@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/constants/app_constants.dart';
+import '../../../data/repositories/ledger_repository.dart';
 import '../data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -158,13 +159,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _loading = true);
     final messenger = ScaffoldMessenger.of(context);
     final auth = ref.read(authRepositoryProvider);
+    var signedIn = false;
     try {
       if (_emailMode) {
         await auth.signInWithEmailPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-        if (mounted) context.go(AppRoutes.onboarding);
+        signedIn = true;
+        await ref.read(ledgerRepositoryProvider).ensureWorkspace();
+        ref.invalidate(ledgerWorkspaceProvider);
+        ref.invalidate(partiesProvider);
+        ref.invalidate(ledgerTransactionsProvider);
+        ref.invalidate(businessSummaryProvider);
+        if (mounted) context.go(AppRoutes.home);
       } else {
         await auth.sendPhoneOtp(_phoneController.text.trim());
         if (mounted) context.push(AppRoutes.otp);
@@ -177,7 +185,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final isPhoneOtpUnavailable =
           !_emailMode &&
           (msg.contains('phone otp is not configured') ||
-              (msg.contains('phone') && msg.contains('otp') && msg.contains('not configured')) ||
+              (msg.contains('phone') &&
+                  msg.contains('otp') &&
+                  msg.contains('not configured')) ||
               msg.contains('provider') && msg.contains('not configured'));
 
       if (isPhoneOtpUnavailable && mounted) {
@@ -197,18 +207,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final normalized = m.toLowerCase();
         if (_emailMode &&
             (normalized.contains('invalid login credentials') ||
-                normalized.contains('invalid') && normalized.contains('credentials'))) {
+                normalized.contains('invalid') &&
+                    normalized.contains('credentials'))) {
           messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Incorrect email or password.'),
-            ),
+            const SnackBar(content: Text('Incorrect email or password.')),
           );
           return;
         }
         if (_emailMode && normalized.contains('email not confirmed')) {
           messenger.showSnackBar(
             const SnackBar(
-              content: Text('Email is not confirmed yet. Please confirm and try again.'),
+              content: Text(
+                'Email is not confirmed yet. Please confirm and try again.',
+              ),
             ),
           );
           return;
@@ -217,6 +228,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           messenger.showSnackBar(SnackBar(content: Text(m)));
           return;
         }
+      }
+
+      if (signedIn) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Signed in, but workspace setup failed: ${_cleanError(error)}',
+            ),
+          ),
+        );
+        return;
       }
 
       messenger.showSnackBar(
@@ -229,5 +251,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _cleanError(Object error) {
+    if (error is PostgrestException) {
+      return error.message;
+    }
+    return error.toString();
   }
 }

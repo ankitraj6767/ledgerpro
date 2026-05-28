@@ -22,7 +22,8 @@ dart run build_runner build
 flutter run --dart-define-from-file=supabase/dart_defines.dev.json
 ```
 
-Without Supabase `--dart-define` values, the app opens in local demo mode and does not attempt real auth.
+The app also includes the LedgerPro Supabase publishable config as a safe fallback,
+so release APKs remain connected if the dart-define file is accidentally omitted.
 
 ### Supabase Dart Defines
 
@@ -32,7 +33,8 @@ This project reads Supabase config from Dart defines:
 - `SUPABASE_PUBLISHABLE_KEY`
 
 A local (gitignored) file is provided at `supabase/dart_defines.dev.json`. If missing, use
-`supabase/dart_defines.dev.json.example` as a template.
+`supabase/dart_defines.dev.json.example` as a template. The publishable key is safe to ship in
+the client; never place service-role keys or payment secrets in Flutter.
 
 ## Supabase
 

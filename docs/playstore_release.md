@@ -37,7 +37,7 @@ This file is gitignored.
 flutter clean
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
-flutter build apk --release
+flutter build apk --release --dart-define-from-file=supabase/dart_defines.dev.json
 ```
 
 Output:
@@ -47,7 +47,7 @@ Output:
 ## 4) Build signed App Bundle (recommended for Play Store)
 
 ```bash
-flutter build appbundle --release
+flutter build appbundle --release --dart-define-from-file=supabase/dart_defines.dev.json
 ```
 
 Output:
@@ -59,4 +59,3 @@ Output:
 ```bash
 jarsigner -verify -verbose -certs build/app/outputs/flutter-apk/app-release.apk | head -n 30
 ```
-

@@ -12,7 +12,8 @@ class LedgerProApp extends StatelessWidget {
       title: 'LedgerPro Mobile',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      darkTheme: AppTheme.light(),
+      themeMode: ThemeMode.light,
       routerConfig: AppRouter.router,
     );
   }

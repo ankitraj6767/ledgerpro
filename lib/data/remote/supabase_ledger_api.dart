@@ -1,11 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../app/constants/supabase_config.dart';
+
 final supabaseLedgerApiProvider = Provider<SupabaseLedgerApi?>((ref) {
-  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  const supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-  if (supabaseUrl.isEmpty || supabaseKey.isEmpty) return null;
-  return SupabaseLedgerApi(Supabase.instance.client);
+  if (!SupabaseConfig.isConfigured) return null;
+  try {
+    return SupabaseLedgerApi(Supabase.instance.client);
+  } catch (_) {
+    return null;
+  }
 });
 
 class SupabaseLedgerApi {

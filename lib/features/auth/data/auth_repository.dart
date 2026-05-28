@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/constants/supabase_config.dart';
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
 });
 
 class AuthRepository {
   SupabaseClient? get _client {
-    const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-    const supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-    if (supabaseUrl.isEmpty || supabaseKey.isEmpty) return null;
+    if (!SupabaseConfig.isConfigured) return null;
     // Supabase.instance.client throws if Supabase.initialize wasn't called.
     try {
       return Supabase.instance.client;

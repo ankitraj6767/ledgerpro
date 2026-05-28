@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/money/money.dart';
-import '../../../data/repositories/demo_ledger_provider.dart';
+import '../../../data/repositories/ledger_repository.dart';
 import '../../../shared/components/sync_badge.dart';
 import '../../../shared/models/ledger_models.dart';
 
@@ -29,7 +29,7 @@ class _PartiesListScreenState extends ConsumerState<PartiesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final parties = _filtered(ref.watch(demoPartiesProvider));
+    final partiesAsync = ref.watch(partiesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -96,67 +96,79 @@ class _PartiesListScreenState extends ConsumerState<PartiesListScreen> {
             ),
           ),
           Expanded(
-            child: parties.isEmpty
-                ? const _EmptyParties()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: parties.length,
-                    itemBuilder: (context, index) {
-                      final party = parties[index];
-                      final receivable = party.balancePaise >= 0;
-                      return Card(
-                        child: ListTile(
-                          onTap: () => context.push('/parties/${party.id}'),
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                (receivable
+            child: partiesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _PartiesError(
+                message: 'Could not load parties: $error',
+                onRetry: () => ref.invalidate(partiesProvider),
+              ),
+              data: (loadedParties) {
+                final parties = _filtered(loadedParties);
+                return parties.isEmpty
+                    ? const _EmptyParties()
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: parties.length,
+                        itemBuilder: (context, index) {
+                          final party = parties[index];
+                          final receivable = party.balancePaise >= 0;
+                          return Card(
+                            child: ListTile(
+                              onTap: () => context.push('/parties/${party.id}'),
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    (receivable
+                                            ? AppTheme.emerald
+                                            : AppTheme.crimson)
+                                        .withValues(alpha: 0.12),
+                                child: Text(
+                                  party.name.characters.first.toUpperCase(),
+                                  style: TextStyle(
+                                    color: receivable
                                         ? AppTheme.emerald
-                                        : AppTheme.crimson)
-                                    .withValues(alpha: 0.12),
-                            child: Text(
-                              party.name.characters.first.toUpperCase(),
-                              style: TextStyle(
-                                color: receivable
-                                    ? AppTheme.emerald
-                                    : AppTheme.crimson,
-                                fontWeight: FontWeight.w900,
+                                        : AppTheme.crimson,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          title: Text(
-                            party.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          subtitle: Text(
-                            '${party.phone} · ${party.tags.join(', ')}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                Money.fromPaise(
-                                  party.balancePaise.abs(),
-                                ).formatInr(),
-                                style: TextStyle(
-                                  color: receivable
-                                      ? AppTheme.emerald
-                                      : AppTheme.crimson,
+                              title: Text(
+                                party.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              SyncBadge(status: party.syncStatus),
-                            ],
-                          ),
-                        ),
+                              subtitle: Text(
+                                '${party.phone} · ${party.tags.join(', ')}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    Money.fromPaise(
+                                      party.balancePaise.abs(),
+                                    ).formatInr(),
+                                    style: TextStyle(
+                                      color: receivable
+                                          ? AppTheme.emerald
+                                          : AppTheme.crimson,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SyncBadge(status: party.syncStatus),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       );
-                    },
-                  ),
+              },
+            ),
           ),
         ],
       ),
@@ -189,6 +201,36 @@ class _PartiesListScreenState extends ConsumerState<PartiesListScreen> {
       (a, b) => b.balancePaise.abs().compareTo(a.balancePaise.abs()),
     );
     return filtered;
+  }
+}
+
+class _PartiesError extends StatelessWidget {
+  const _PartiesError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_outlined, size: 44),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
