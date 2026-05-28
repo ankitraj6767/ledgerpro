@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/constants/app_constants.dart';
 import '../data/auth_repository.dart';
@@ -169,10 +170,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (mounted) context.push(AppRoutes.otp);
       }
     } catch (error) {
+      // Supabase can be "configured" (keys present) but phone OTP can still be disabled
+      // in the project's Auth provider settings. In that case, fall back to email mode
+      // instead of showing a raw exception string.
+      final msg = error.toString().toLowerCase();
+      final isPhoneOtpUnavailable =
+          !_emailMode &&
+          (msg.contains('phone otp is not configured') ||
+              (msg.contains('phone') && msg.contains('otp') && msg.contains('not configured')) ||
+              msg.contains('provider') && msg.contains('not configured'));
+
+      if (isPhoneOtpUnavailable && mounted) {
+        setState(() => _emailMode = true);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Phone OTP login is not enabled for this Supabase project. Please use email sign-in.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (error is AuthException) {
+        final m = error.message.trim();
+        final normalized = m.toLowerCase();
+        if (_emailMode &&
+            (normalized.contains('invalid login credentials') ||
+                normalized.contains('invalid') && normalized.contains('credentials'))) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Incorrect email or password.'),
+            ),
+          );
+          return;
+        }
+        if (_emailMode && normalized.contains('email not confirmed')) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Email is not confirmed yet. Please confirm and try again.'),
+            ),
+          );
+          return;
+        }
+        if (m.isNotEmpty) {
+          messenger.showSnackBar(SnackBar(content: Text(m)));
+          return;
+        }
+      }
+
       messenger.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            '$error Use demo workspace or configure Supabase Auth provider.',
+            'Sign-in failed. Please check your credentials or use the demo workspace.',
           ),
         ),
       );

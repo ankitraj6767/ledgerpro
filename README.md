@@ -19,10 +19,20 @@ LedgerPro Mobile is an original fintech ledger app inspired by digital bahi khat
 ```bash
 flutter pub get
 dart run build_runner build
-flutter run --dart-define=SUPABASE_URL=https://PROJECT.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+flutter run --dart-define-from-file=supabase/dart_defines.dev.json
 ```
 
 Without Supabase `--dart-define` values, the app opens in local demo mode and does not attempt real auth.
+
+### Supabase Dart Defines
+
+This project reads Supabase config from Dart defines:
+
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+A local (gitignored) file is provided at `supabase/dart_defines.dev.json`. If missing, use
+`supabase/dart_defines.dev.json.example` as a template.
 
 ## Supabase
 

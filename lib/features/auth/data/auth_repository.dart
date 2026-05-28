@@ -10,7 +10,12 @@ class AuthRepository {
     const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
     const supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
     if (supabaseUrl.isEmpty || supabaseKey.isEmpty) return null;
-    return Supabase.instance.client;
+    // Supabase.instance.client throws if Supabase.initialize wasn't called.
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
   }
 
   bool get isConfigured => _client != null;
@@ -40,7 +45,9 @@ class AuthRepository {
   }) async {
     final client = _client;
     if (client == null) {
-      throw const AuthException('Supabase email login is not configured.');
+      throw const AuthException(
+        'Supabase is not configured for this build. Rebuild with SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.',
+      );
     }
     return client.auth.signInWithPassword(email: email, password: password);
   }
