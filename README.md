@@ -1,0 +1,47 @@
+# LedgerPro Mobile
+
+Private internal-use mobile ledger application for Android-first business bookkeeping.
+
+LedgerPro Mobile is an original fintech ledger app inspired by digital bahi khata workflows. It does not use Khatabook branding, layouts, copy, screenshots, icons, colors, or proprietary flows.
+
+## Stack
+
+- Flutter 3.44.0 / Dart 3.12
+- Riverpod, GoRouter, Freezed, json_serializable
+- Supabase Auth, Postgres, Storage, Realtime-ready migration
+- Drift local database for offline-first ledger data
+- Secure storage, PIN lock, biometrics
+- PDF generation, sharing, WhatsApp/phone/UPI links
+- Mobile scanner and Firebase Cloud Messaging integration hooks
+
+## Run
+
+```bash
+flutter pub get
+dart run build_runner build
+flutter run --dart-define=SUPABASE_URL=https://PROJECT.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+```
+
+Without Supabase `--dart-define` values, the app opens in local demo mode and does not attempt real auth.
+
+## Supabase
+
+The core schema migration is:
+
+```text
+supabase/migrations/20260527084243_ledgerpro_core_schema.sql
+```
+
+It creates UUID tables, business/book scoping, paise-based money columns, RLS policies, explicit authenticated grants, audit triggers, soft-delete guardrails for financial records, a private storage bucket, and realtime publication entries.
+
+Do not place service-role keys or payment gateway secrets in the Flutter app. Future payment gateway webhooks should be implemented with Supabase Edge Functions.
+
+## Verification
+
+```bash
+flutter analyze
+flutter test
+cd android && ./gradlew assembleDebug --no-daemon
+```
+
+Local Supabase migration execution requires Docker/Supabase local services. Docker was not available in this environment, so the migration was generated but not applied locally.

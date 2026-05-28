@@ -1,0 +1,183 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../app/constants/app_constants.dart';
+import '../data/auth_repository.dart';
+
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _phoneController = TextEditingController(text: '+91');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _emailMode = false;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authRepositoryProvider);
+
+    return Scaffold(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  AppConstants.appName,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            const SizedBox(height: 36),
+            Text(
+              _emailMode ? 'Email fallback' : 'Phone OTP login',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              auth.isConfigured
+                  ? 'Use your internal business account to continue.'
+                  : 'Supabase keys are not provided. Demo workspace is available for local review.',
+            ),
+            const SizedBox(height: 24),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _emailMode
+                  ? Column(
+                      key: const ValueKey('email'),
+                      children: [
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.mail_outline),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                        ),
+                      ],
+                    )
+                  : TextField(
+                      key: const ValueKey('phone'),
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone number',
+                        prefixIcon: Icon(Icons.phone_android_outlined),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: _loading ? null : _continue,
+              icon: _loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward),
+              label: Text(_emailMode ? 'Sign in' : 'Send OTP'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _emailMode = !_emailMode),
+              icon: Icon(_emailMode ? Icons.sms_outlined : Icons.mail_outline),
+              label: Text(_emailMode ? 'Use phone OTP' : 'Use email fallback'),
+            ),
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: () => context.go(AppRoutes.home),
+              icon: const Icon(Icons.visibility_outlined),
+              label: const Text('Open demo workspace'),
+            ),
+            const SizedBox(height: 24),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.security_outlined),
+                title: const Text('Private by design'),
+                subtitle: const Text(
+                  'No service-role keys belong in the mobile app. Secrets stay server-side.',
+                ),
+                trailing: IconButton(
+                  tooltip: 'Set app lock',
+                  onPressed: () => context.push(AppRoutes.appLock),
+                  icon: const Icon(Icons.lock_outline),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _continue() async {
+    setState(() => _loading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final auth = ref.read(authRepositoryProvider);
+    try {
+      if (_emailMode) {
+        await auth.signInWithEmailPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (mounted) context.go(AppRoutes.onboarding);
+      } else {
+        await auth.sendPhoneOtp(_phoneController.text.trim());
+        if (mounted) context.push(AppRoutes.otp);
+      }
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '$error Use demo workspace or configure Supabase Auth provider.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+}
