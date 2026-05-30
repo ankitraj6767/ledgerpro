@@ -4,6 +4,12 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>LedgerPro uses the camera to scan product barcodes when adding inventory.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>LedgerPro uses Face ID to unlock the app and protect your ledger data.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>LedgerPro saves exported statements, invoices, and reports to your device.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
