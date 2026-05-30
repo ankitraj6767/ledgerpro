@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'theme/app_theme.dart';
+import 'constants/app_constants.dart';
+import 'theme/infra_theme.dart';
 
 class LedgerProApp extends StatelessWidget {
   const LedgerProApp({super.key, required this.router});
@@ -11,10 +12,9 @@ class LedgerProApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'LedgerPro Mobile',
+      title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.light(),
+      theme: InfraTheme.light(),
       themeMode: ThemeMode.light,
       routerConfig: router,
     );

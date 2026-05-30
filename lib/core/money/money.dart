@@ -63,6 +63,32 @@ class Money implements Comparable<Money> {
     return '$sign$rupees.${cents.toString().padLeft(2, '0')}';
   }
 
+  /// Compact Indian formatting using Crore / Lakh suffixes, e.g.
+  /// ₹1.50 Cr, ₹75.25 Lakh, ₹12,500. Useful for dashboard KPIs and cards.
+  String formatCompactInr() {
+    final negative = paise < 0;
+    final absoluteRupees = paise.abs() / 100.0;
+    final sign = negative ? '-' : '';
+    if (absoluteRupees >= 10000000) {
+      final cr = absoluteRupees / 10000000;
+      return '$sign₹${_trim(cr)} Cr';
+    }
+    if (absoluteRupees >= 100000) {
+      final lakh = absoluteRupees / 100000;
+      return '$sign₹${_trim(lakh)} Lakh';
+    }
+    return formatInr();
+  }
+
+  static String _trim(double value) {
+    // Two decimals, then strip trailing zeros (1.50 -> 1.5, 2.00 -> 2).
+    var s = value.toStringAsFixed(2);
+    if (s.contains('.')) {
+      s = s.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+    }
+    return s;
+  }
+
   static String _formatIndianGrouping(int rupees) {
     final value = rupees.toString();
     if (value.length <= 3) return value;
