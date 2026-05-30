@@ -263,57 +263,74 @@ class HomeDashboardScreen extends ConsumerWidget {
                 if (transactions.isEmpty)
                   const _DashboardSkeleton()
                 else
-                  ...transactions.map((entry) {
-                    final party = parties.firstWhere(
-                      (p) => p.id == entry.partyId,
-                      orElse: () => Party(
-                        id: entry.partyId,
-                        businessId: entry.businessId,
-                        bookId: entry.bookId,
-                        name: 'Unknown party',
-                        phone: '',
-                      ),
-                    );
-                    return Card(
-                      child: ListTile(
-                        onTap: () => context.push('/transactions/${entry.id}'),
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.secondary.withValues(alpha: 0.12),
-                          child: Icon(
-                            entry.type == TransactionType.youGot
-                                ? Icons.south_west
-                                : Icons.north_east,
-                            color: entry.type == TransactionType.youGot
-                                ? AppTheme.emerald
-                                : AppTheme.brass,
+                  ...() {
+                    final partyIds = parties.map((p) => p.id).toSet();
+                    // Only show transactions that still belong to an active
+                    // party. This hides entries whose party was deleted so we
+                    // never render an "Unknown party" row.
+                    final visible = transactions
+                        .where((entry) => partyIds.contains(entry.partyId))
+                        .toList();
+                    if (visible.isEmpty) {
+                      return [
+                        const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('No recent transactions yet.'),
                           ),
                         ),
-                        title: Text(
-                          party.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        subtitle: Text(entry.note ?? entry.type.name),
-                        trailing: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              Money.fromPaise(entry.amountPaise).formatInr(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                              ),
+                      ];
+                    }
+                    return visible.map((entry) {
+                      final party = parties.firstWhere(
+                        (p) => p.id == entry.partyId,
+                      );
+                      return Card(
+                        child: ListTile(
+                          onTap: () =>
+                              context.push('/transactions/${entry.id}'),
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.secondary.withValues(alpha: 0.12),
+                            child: Icon(
+                              entry.type == TransactionType.youGot
+                                  ? Icons.south_west
+                                  : Icons.north_east,
+                              color: entry.type == TransactionType.youGot
+                                  ? AppTheme.emerald
+                                  : AppTheme.brass,
                             ),
-                            const SizedBox(height: 4),
-                            SyncBadge(status: entry.syncStatus),
-                          ],
+                          ),
+                          title: Text(
+                            party.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          subtitle: Text(entry.note ?? entry.type.name),
+                          trailing: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                Money.fromPaise(
+                                  entry.amountPaise,
+                                ).formatInr(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              SyncBadge(status: entry.syncStatus),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }).toList();
+                  }(),
               ],
             ),
           ),

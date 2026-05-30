@@ -240,14 +240,30 @@ class LedgerRepository {
 
   /// Soft-deletes a party (hard delete is blocked by a DB trigger). The row is
   /// retained for audit but excluded from all fetches via the deleted_at filter.
+  ///
+  /// Also soft-deletes the party's transactions so they stop appearing in the
+  /// dashboard / reports (otherwise they would render as "Unknown party").
   Future<void> softDeleteParty(String partyId) async {
     final userId = _userId;
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+
+    // Archive the party's transactions first so nothing is left orphaned.
+    await _client
+        .from('transactions')
+        .update({
+          'deleted_at': nowIso,
+          'updated_by': userId,
+          'updated_at': nowIso,
+        })
+        .eq('party_id', partyId)
+        .isFilter('deleted_at', null);
+
     await _client
         .from('parties')
         .update({
-          'deleted_at': DateTime.now().toUtc().toIso8601String(),
+          'deleted_at': nowIso,
           'updated_by': userId,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
+          'updated_at': nowIso,
         })
         .eq('id', partyId);
   }
