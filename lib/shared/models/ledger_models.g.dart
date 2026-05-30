@@ -286,3 +286,75 @@ const _$InvoiceStatusEnumMap = {
   InvoiceStatus.overdue: 'overdue',
   InvoiceStatus.cancelled: 'cancelled',
 };
+
+_StaffMember _$StaffMemberFromJson(Map<String, dynamic> json) => _StaffMember(
+  id: json['id'] as String,
+  businessId: json['businessId'] as String,
+  userId: json['userId'] as String,
+  role: $enumDecode(_$MemberRoleEnumMap, json['role']),
+  permissions:
+      (json['permissions'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  fullName: json['fullName'] as String?,
+  phone: json['phone'] as String?,
+);
+
+Map<String, dynamic> _$StaffMemberToJson(_StaffMember instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'businessId': instance.businessId,
+      'userId': instance.userId,
+      'role': _$MemberRoleEnumMap[instance.role]!,
+      'permissions': instance.permissions,
+      'fullName': instance.fullName,
+      'phone': instance.phone,
+    };
+
+const _$MemberRoleEnumMap = {
+  MemberRole.owner: 'owner',
+  MemberRole.manager: 'manager',
+  MemberRole.accountant: 'accountant',
+  MemberRole.staff: 'staff',
+};
+
+_AuditLogEntry _$AuditLogEntryFromJson(Map<String, dynamic> json) =>
+    _AuditLogEntry(
+      id: json['id'] as String,
+      entityTable: json['entityTable'] as String,
+      action: json['action'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      actorId: json['actorId'] as String?,
+    );
+
+Map<String, dynamic> _$AuditLogEntryToJson(_AuditLogEntry instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'entityTable': instance.entityTable,
+      'action': instance.action,
+      'createdAt': instance.createdAt.toIso8601String(),
+      'actorId': instance.actorId,
+    };
+
+_SyncQueueItem _$SyncQueueItemFromJson(Map<String, dynamic> json) =>
+    _SyncQueueItem(
+      id: json['id'] as String,
+      entityType: json['entityType'] as String,
+      status: $enumDecode(_$SyncStatusEnumMap, json['status']),
+      attempts: (json['attempts'] as num?)?.toInt() ?? 0,
+      lastError: json['lastError'] as String?,
+      lastSyncedAt: json['lastSyncedAt'] == null
+          ? null
+          : DateTime.parse(json['lastSyncedAt'] as String),
+    );
+
+Map<String, dynamic> _$SyncQueueItemToJson(_SyncQueueItem instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'entityType': instance.entityType,
+      'status': _$SyncStatusEnumMap[instance.status]!,
+      'attempts': instance.attempts,
+      'lastError': instance.lastError,
+      'lastSyncedAt': instance.lastSyncedAt?.toIso8601String(),
+    };

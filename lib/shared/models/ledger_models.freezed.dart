@@ -2083,4 +2083,844 @@ as String?,
 
 }
 
+
+/// @nodoc
+mixin _$StaffMember {
+
+ String get id; String get businessId; String get userId; MemberRole get role; List<String> get permissions; String? get fullName; String? get phone;
+/// Create a copy of StaffMember
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$StaffMemberCopyWith<StaffMember> get copyWith => _$StaffMemberCopyWithImpl<StaffMember>(this as StaffMember, _$identity);
+
+  /// Serializes this StaffMember to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StaffMember&&(identical(other.id, id) || other.id == id)&&(identical(other.businessId, businessId) || other.businessId == businessId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&const DeepCollectionEquality().equals(other.permissions, permissions)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,businessId,userId,role,const DeepCollectionEquality().hash(permissions),fullName,phone);
+
+@override
+String toString() {
+  return 'StaffMember(id: $id, businessId: $businessId, userId: $userId, role: $role, permissions: $permissions, fullName: $fullName, phone: $phone)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $StaffMemberCopyWith<$Res>  {
+  factory $StaffMemberCopyWith(StaffMember value, $Res Function(StaffMember) _then) = _$StaffMemberCopyWithImpl;
+@useResult
+$Res call({
+ String id, String businessId, String userId, MemberRole role, List<String> permissions, String? fullName, String? phone
+});
+
+
+
+
+}
+/// @nodoc
+class _$StaffMemberCopyWithImpl<$Res>
+    implements $StaffMemberCopyWith<$Res> {
+  _$StaffMemberCopyWithImpl(this._self, this._then);
+
+  final StaffMember _self;
+  final $Res Function(StaffMember) _then;
+
+/// Create a copy of StaffMember
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? businessId = null,Object? userId = null,Object? role = null,Object? permissions = null,Object? fullName = freezed,Object? phone = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,businessId: null == businessId ? _self.businessId : businessId // ignore: cast_nullable_to_non_nullable
+as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as MemberRole,permissions: null == permissions ? _self.permissions : permissions // ignore: cast_nullable_to_non_nullable
+as List<String>,fullName: freezed == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
+as String?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [StaffMember].
+extension StaffMemberPatterns on StaffMember {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _StaffMember value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _StaffMember() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _StaffMember value)  $default,){
+final _that = this;
+switch (_that) {
+case _StaffMember():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _StaffMember value)?  $default,){
+final _that = this;
+switch (_that) {
+case _StaffMember() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String businessId,  String userId,  MemberRole role,  List<String> permissions,  String? fullName,  String? phone)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _StaffMember() when $default != null:
+return $default(_that.id,_that.businessId,_that.userId,_that.role,_that.permissions,_that.fullName,_that.phone);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String businessId,  String userId,  MemberRole role,  List<String> permissions,  String? fullName,  String? phone)  $default,) {final _that = this;
+switch (_that) {
+case _StaffMember():
+return $default(_that.id,_that.businessId,_that.userId,_that.role,_that.permissions,_that.fullName,_that.phone);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String businessId,  String userId,  MemberRole role,  List<String> permissions,  String? fullName,  String? phone)?  $default,) {final _that = this;
+switch (_that) {
+case _StaffMember() when $default != null:
+return $default(_that.id,_that.businessId,_that.userId,_that.role,_that.permissions,_that.fullName,_that.phone);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _StaffMember implements StaffMember {
+  const _StaffMember({required this.id, required this.businessId, required this.userId, required this.role, final  List<String> permissions = const <String>[], this.fullName, this.phone}): _permissions = permissions;
+  factory _StaffMember.fromJson(Map<String, dynamic> json) => _$StaffMemberFromJson(json);
+
+@override final  String id;
+@override final  String businessId;
+@override final  String userId;
+@override final  MemberRole role;
+ final  List<String> _permissions;
+@override@JsonKey() List<String> get permissions {
+  if (_permissions is EqualUnmodifiableListView) return _permissions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_permissions);
+}
+
+@override final  String? fullName;
+@override final  String? phone;
+
+/// Create a copy of StaffMember
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$StaffMemberCopyWith<_StaffMember> get copyWith => __$StaffMemberCopyWithImpl<_StaffMember>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$StaffMemberToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StaffMember&&(identical(other.id, id) || other.id == id)&&(identical(other.businessId, businessId) || other.businessId == businessId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&const DeepCollectionEquality().equals(other._permissions, _permissions)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,businessId,userId,role,const DeepCollectionEquality().hash(_permissions),fullName,phone);
+
+@override
+String toString() {
+  return 'StaffMember(id: $id, businessId: $businessId, userId: $userId, role: $role, permissions: $permissions, fullName: $fullName, phone: $phone)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$StaffMemberCopyWith<$Res> implements $StaffMemberCopyWith<$Res> {
+  factory _$StaffMemberCopyWith(_StaffMember value, $Res Function(_StaffMember) _then) = __$StaffMemberCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String businessId, String userId, MemberRole role, List<String> permissions, String? fullName, String? phone
+});
+
+
+
+
+}
+/// @nodoc
+class __$StaffMemberCopyWithImpl<$Res>
+    implements _$StaffMemberCopyWith<$Res> {
+  __$StaffMemberCopyWithImpl(this._self, this._then);
+
+  final _StaffMember _self;
+  final $Res Function(_StaffMember) _then;
+
+/// Create a copy of StaffMember
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? businessId = null,Object? userId = null,Object? role = null,Object? permissions = null,Object? fullName = freezed,Object? phone = freezed,}) {
+  return _then(_StaffMember(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,businessId: null == businessId ? _self.businessId : businessId // ignore: cast_nullable_to_non_nullable
+as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as MemberRole,permissions: null == permissions ? _self._permissions : permissions // ignore: cast_nullable_to_non_nullable
+as List<String>,fullName: freezed == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
+as String?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$AuditLogEntry {
+
+ String get id; String get entityTable; String get action; DateTime get createdAt; String? get actorId;
+/// Create a copy of AuditLogEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AuditLogEntryCopyWith<AuditLogEntry> get copyWith => _$AuditLogEntryCopyWithImpl<AuditLogEntry>(this as AuditLogEntry, _$identity);
+
+  /// Serializes this AuditLogEntry to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuditLogEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.entityTable, entityTable) || other.entityTable == entityTable)&&(identical(other.action, action) || other.action == action)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.actorId, actorId) || other.actorId == actorId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,entityTable,action,createdAt,actorId);
+
+@override
+String toString() {
+  return 'AuditLogEntry(id: $id, entityTable: $entityTable, action: $action, createdAt: $createdAt, actorId: $actorId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AuditLogEntryCopyWith<$Res>  {
+  factory $AuditLogEntryCopyWith(AuditLogEntry value, $Res Function(AuditLogEntry) _then) = _$AuditLogEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String entityTable, String action, DateTime createdAt, String? actorId
+});
+
+
+
+
+}
+/// @nodoc
+class _$AuditLogEntryCopyWithImpl<$Res>
+    implements $AuditLogEntryCopyWith<$Res> {
+  _$AuditLogEntryCopyWithImpl(this._self, this._then);
+
+  final AuditLogEntry _self;
+  final $Res Function(AuditLogEntry) _then;
+
+/// Create a copy of AuditLogEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? entityTable = null,Object? action = null,Object? createdAt = null,Object? actorId = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,entityTable: null == entityTable ? _self.entityTable : entityTable // ignore: cast_nullable_to_non_nullable
+as String,action: null == action ? _self.action : action // ignore: cast_nullable_to_non_nullable
+as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,actorId: freezed == actorId ? _self.actorId : actorId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [AuditLogEntry].
+extension AuditLogEntryPatterns on AuditLogEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _AuditLogEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _AuditLogEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _AuditLogEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _AuditLogEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _AuditLogEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _AuditLogEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String entityTable,  String action,  DateTime createdAt,  String? actorId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _AuditLogEntry() when $default != null:
+return $default(_that.id,_that.entityTable,_that.action,_that.createdAt,_that.actorId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String entityTable,  String action,  DateTime createdAt,  String? actorId)  $default,) {final _that = this;
+switch (_that) {
+case _AuditLogEntry():
+return $default(_that.id,_that.entityTable,_that.action,_that.createdAt,_that.actorId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String entityTable,  String action,  DateTime createdAt,  String? actorId)?  $default,) {final _that = this;
+switch (_that) {
+case _AuditLogEntry() when $default != null:
+return $default(_that.id,_that.entityTable,_that.action,_that.createdAt,_that.actorId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _AuditLogEntry implements AuditLogEntry {
+  const _AuditLogEntry({required this.id, required this.entityTable, required this.action, required this.createdAt, this.actorId});
+  factory _AuditLogEntry.fromJson(Map<String, dynamic> json) => _$AuditLogEntryFromJson(json);
+
+@override final  String id;
+@override final  String entityTable;
+@override final  String action;
+@override final  DateTime createdAt;
+@override final  String? actorId;
+
+/// Create a copy of AuditLogEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AuditLogEntryCopyWith<_AuditLogEntry> get copyWith => __$AuditLogEntryCopyWithImpl<_AuditLogEntry>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$AuditLogEntryToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuditLogEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.entityTable, entityTable) || other.entityTable == entityTable)&&(identical(other.action, action) || other.action == action)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.actorId, actorId) || other.actorId == actorId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,entityTable,action,createdAt,actorId);
+
+@override
+String toString() {
+  return 'AuditLogEntry(id: $id, entityTable: $entityTable, action: $action, createdAt: $createdAt, actorId: $actorId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AuditLogEntryCopyWith<$Res> implements $AuditLogEntryCopyWith<$Res> {
+  factory _$AuditLogEntryCopyWith(_AuditLogEntry value, $Res Function(_AuditLogEntry) _then) = __$AuditLogEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String entityTable, String action, DateTime createdAt, String? actorId
+});
+
+
+
+
+}
+/// @nodoc
+class __$AuditLogEntryCopyWithImpl<$Res>
+    implements _$AuditLogEntryCopyWith<$Res> {
+  __$AuditLogEntryCopyWithImpl(this._self, this._then);
+
+  final _AuditLogEntry _self;
+  final $Res Function(_AuditLogEntry) _then;
+
+/// Create a copy of AuditLogEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? entityTable = null,Object? action = null,Object? createdAt = null,Object? actorId = freezed,}) {
+  return _then(_AuditLogEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,entityTable: null == entityTable ? _self.entityTable : entityTable // ignore: cast_nullable_to_non_nullable
+as String,action: null == action ? _self.action : action // ignore: cast_nullable_to_non_nullable
+as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,actorId: freezed == actorId ? _self.actorId : actorId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$SyncQueueItem {
+
+ String get id; String get entityType; SyncStatus get status; int get attempts; String? get lastError; DateTime? get lastSyncedAt;
+/// Create a copy of SyncQueueItem
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SyncQueueItemCopyWith<SyncQueueItem> get copyWith => _$SyncQueueItemCopyWithImpl<SyncQueueItem>(this as SyncQueueItem, _$identity);
+
+  /// Serializes this SyncQueueItem to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SyncQueueItem&&(identical(other.id, id) || other.id == id)&&(identical(other.entityType, entityType) || other.entityType == entityType)&&(identical(other.status, status) || other.status == status)&&(identical(other.attempts, attempts) || other.attempts == attempts)&&(identical(other.lastError, lastError) || other.lastError == lastError)&&(identical(other.lastSyncedAt, lastSyncedAt) || other.lastSyncedAt == lastSyncedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,entityType,status,attempts,lastError,lastSyncedAt);
+
+@override
+String toString() {
+  return 'SyncQueueItem(id: $id, entityType: $entityType, status: $status, attempts: $attempts, lastError: $lastError, lastSyncedAt: $lastSyncedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SyncQueueItemCopyWith<$Res>  {
+  factory $SyncQueueItemCopyWith(SyncQueueItem value, $Res Function(SyncQueueItem) _then) = _$SyncQueueItemCopyWithImpl;
+@useResult
+$Res call({
+ String id, String entityType, SyncStatus status, int attempts, String? lastError, DateTime? lastSyncedAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$SyncQueueItemCopyWithImpl<$Res>
+    implements $SyncQueueItemCopyWith<$Res> {
+  _$SyncQueueItemCopyWithImpl(this._self, this._then);
+
+  final SyncQueueItem _self;
+  final $Res Function(SyncQueueItem) _then;
+
+/// Create a copy of SyncQueueItem
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? entityType = null,Object? status = null,Object? attempts = null,Object? lastError = freezed,Object? lastSyncedAt = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,entityType: null == entityType ? _self.entityType : entityType // ignore: cast_nullable_to_non_nullable
+as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as SyncStatus,attempts: null == attempts ? _self.attempts : attempts // ignore: cast_nullable_to_non_nullable
+as int,lastError: freezed == lastError ? _self.lastError : lastError // ignore: cast_nullable_to_non_nullable
+as String?,lastSyncedAt: freezed == lastSyncedAt ? _self.lastSyncedAt : lastSyncedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SyncQueueItem].
+extension SyncQueueItemPatterns on SyncQueueItem {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SyncQueueItem value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SyncQueueItem() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SyncQueueItem value)  $default,){
+final _that = this;
+switch (_that) {
+case _SyncQueueItem():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SyncQueueItem value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SyncQueueItem() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String entityType,  SyncStatus status,  int attempts,  String? lastError,  DateTime? lastSyncedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SyncQueueItem() when $default != null:
+return $default(_that.id,_that.entityType,_that.status,_that.attempts,_that.lastError,_that.lastSyncedAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String entityType,  SyncStatus status,  int attempts,  String? lastError,  DateTime? lastSyncedAt)  $default,) {final _that = this;
+switch (_that) {
+case _SyncQueueItem():
+return $default(_that.id,_that.entityType,_that.status,_that.attempts,_that.lastError,_that.lastSyncedAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String entityType,  SyncStatus status,  int attempts,  String? lastError,  DateTime? lastSyncedAt)?  $default,) {final _that = this;
+switch (_that) {
+case _SyncQueueItem() when $default != null:
+return $default(_that.id,_that.entityType,_that.status,_that.attempts,_that.lastError,_that.lastSyncedAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SyncQueueItem implements SyncQueueItem {
+  const _SyncQueueItem({required this.id, required this.entityType, required this.status, this.attempts = 0, this.lastError, this.lastSyncedAt});
+  factory _SyncQueueItem.fromJson(Map<String, dynamic> json) => _$SyncQueueItemFromJson(json);
+
+@override final  String id;
+@override final  String entityType;
+@override final  SyncStatus status;
+@override@JsonKey() final  int attempts;
+@override final  String? lastError;
+@override final  DateTime? lastSyncedAt;
+
+/// Create a copy of SyncQueueItem
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SyncQueueItemCopyWith<_SyncQueueItem> get copyWith => __$SyncQueueItemCopyWithImpl<_SyncQueueItem>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SyncQueueItemToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SyncQueueItem&&(identical(other.id, id) || other.id == id)&&(identical(other.entityType, entityType) || other.entityType == entityType)&&(identical(other.status, status) || other.status == status)&&(identical(other.attempts, attempts) || other.attempts == attempts)&&(identical(other.lastError, lastError) || other.lastError == lastError)&&(identical(other.lastSyncedAt, lastSyncedAt) || other.lastSyncedAt == lastSyncedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,entityType,status,attempts,lastError,lastSyncedAt);
+
+@override
+String toString() {
+  return 'SyncQueueItem(id: $id, entityType: $entityType, status: $status, attempts: $attempts, lastError: $lastError, lastSyncedAt: $lastSyncedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SyncQueueItemCopyWith<$Res> implements $SyncQueueItemCopyWith<$Res> {
+  factory _$SyncQueueItemCopyWith(_SyncQueueItem value, $Res Function(_SyncQueueItem) _then) = __$SyncQueueItemCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String entityType, SyncStatus status, int attempts, String? lastError, DateTime? lastSyncedAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$SyncQueueItemCopyWithImpl<$Res>
+    implements _$SyncQueueItemCopyWith<$Res> {
+  __$SyncQueueItemCopyWithImpl(this._self, this._then);
+
+  final _SyncQueueItem _self;
+  final $Res Function(_SyncQueueItem) _then;
+
+/// Create a copy of SyncQueueItem
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? entityType = null,Object? status = null,Object? attempts = null,Object? lastError = freezed,Object? lastSyncedAt = freezed,}) {
+  return _then(_SyncQueueItem(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,entityType: null == entityType ? _self.entityType : entityType // ignore: cast_nullable_to_non_nullable
+as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as SyncStatus,attempts: null == attempts ? _self.attempts : attempts // ignore: cast_nullable_to_non_nullable
+as int,lastError: freezed == lastError ? _self.lastError : lastError // ignore: cast_nullable_to_non_nullable
+as String?,lastSyncedAt: freezed == lastSyncedAt ? _self.lastSyncedAt : lastSyncedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
+
 // dart format on

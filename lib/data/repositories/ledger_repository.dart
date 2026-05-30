@@ -104,6 +104,31 @@ final partyTransactionsProvider =
           .toList();
     });
 
+final productsProvider = FutureProvider<List<Product>>((ref) async {
+  await ref.watch(ledgerWorkspaceProvider.future);
+  return ref.watch(ledgerRepositoryProvider).fetchProducts();
+});
+
+final invoicesProvider = FutureProvider<List<Invoice>>((ref) async {
+  await ref.watch(ledgerWorkspaceProvider.future);
+  return ref.watch(ledgerRepositoryProvider).fetchInvoices();
+});
+
+final staffProvider = FutureProvider<List<StaffMember>>((ref) async {
+  await ref.watch(ledgerWorkspaceProvider.future);
+  return ref.watch(ledgerRepositoryProvider).fetchStaff();
+});
+
+final auditLogsProvider = FutureProvider<List<AuditLogEntry>>((ref) async {
+  await ref.watch(ledgerWorkspaceProvider.future);
+  return ref.watch(ledgerRepositoryProvider).fetchAuditLogs();
+});
+
+final syncQueueProvider = FutureProvider<List<SyncQueueItem>>((ref) async {
+  await ref.watch(ledgerWorkspaceProvider.future);
+  return ref.watch(ledgerRepositoryProvider).fetchSyncQueue();
+});
+
 class LedgerWorkspace {
   const LedgerWorkspace({
     required this.businessId,
@@ -316,6 +341,312 @@ class LedgerRepository {
       },
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Products / Inventory
+  // ---------------------------------------------------------------------------
+
+  Future<List<Product>> fetchProducts() async {
+    final workspace = await ensureWorkspace();
+    final rows = await _client
+        .from('products')
+        .select()
+        .eq('business_id', workspace.businessId)
+        .isFilter('deleted_at', null)
+        .order('name');
+    return rows
+        .map<Product>((row) => _productFromRow(Map<String, dynamic>.from(row)))
+        .toList();
+  }
+
+  Future<void> createProduct({
+    required String name,
+    String? sku,
+    String? barcode,
+    String unit = 'pcs',
+    int salePricePaise = 0,
+    int purchasePricePaise = 0,
+    double gstRate = 0,
+    double openingStock = 0,
+    double lowStockThreshold = 0,
+  }) async {
+    final workspace = await ensureWorkspace();
+    final userId = _userId;
+    await _client.from('products').insert({
+      'business_id': workspace.businessId,
+      'name': name,
+      'sku': sku?.trim().isEmpty ?? true ? null : sku!.trim(),
+      'barcode': barcode?.trim().isEmpty ?? true ? null : barcode!.trim(),
+      'unit': unit,
+      'sale_price_paise': salePricePaise,
+      'purchase_price_paise': purchasePricePaise,
+      'gst_rate': gstRate,
+      'opening_stock': openingStock,
+      'stock_on_hand': openingStock,
+      'low_stock_threshold': lowStockThreshold,
+      'created_by': userId,
+      'updated_by': userId,
+    });
+  }
+
+  Future<void> softDeleteProduct(String productId) async {
+    final userId = _userId;
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    await _client
+        .from('products')
+        .update({
+          'deleted_at': nowIso,
+          'updated_by': userId,
+          'updated_at': nowIso,
+        })
+        .eq('id', productId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Invoices
+  // ---------------------------------------------------------------------------
+
+  Future<List<Invoice>> fetchInvoices() async {
+    final workspace = await ensureWorkspace();
+    final rows = await _client
+        .from('invoices')
+        .select()
+        .eq('book_id', workspace.bookId)
+        .isFilter('deleted_at', null)
+        .order('invoice_date', ascending: false);
+    return rows
+        .map<Invoice>((row) => _invoiceFromRow(Map<String, dynamic>.from(row)))
+        .toList();
+  }
+
+  /// Creates a simple (non-line-item) invoice with a subtotal + GST split.
+  Future<String> createInvoice({
+    required String partyId,
+    required String invoiceNumber,
+    required int subtotalPaise,
+    double gstRate = 0,
+    String? notes,
+  }) async {
+    final workspace = await ensureWorkspace();
+    final userId = _userId;
+    final gstPaise = (subtotalPaise * gstRate / 100).round();
+    final cgst = gstPaise ~/ 2;
+    final sgst = gstPaise - cgst;
+    final total = subtotalPaise + gstPaise;
+
+    final row = await _client
+        .from('invoices')
+        .insert({
+          'business_id': workspace.businessId,
+          'book_id': workspace.bookId,
+          'party_id': partyId,
+          'invoice_number': invoiceNumber,
+          'invoice_kind': gstRate > 0 ? 'gst' : 'non_gst',
+          'subtotal_paise': subtotalPaise,
+          'cgst_paise': cgst,
+          'sgst_paise': sgst,
+          'total_paise': total,
+          'status': 'sent',
+          'notes': notes?.trim().isEmpty ?? true ? null : notes!.trim(),
+          'created_by': userId,
+          'updated_by': userId,
+        })
+        .select('id')
+        .single();
+    return row['id'] as String;
+  }
+
+  /// Generates the next invoice number for the active business.
+  Future<String> nextInvoiceNumber() async {
+    final workspace = await ensureWorkspace();
+    final rows = await _client
+        .from('invoices')
+        .select('invoice_number')
+        .eq('business_id', workspace.businessId)
+        .order('created_at', ascending: false)
+        .limit(1);
+    final year = DateTime.now().year;
+    var seq = 1;
+    if (rows.isNotEmpty) {
+      final last = rows.first['invoice_number']?.toString() ?? '';
+      final match = RegExp(r'(\d+)$').firstMatch(last);
+      if (match != null) seq = (int.tryParse(match.group(1)!) ?? 0) + 1;
+    }
+    return 'INV-$year-${seq.toString().padLeft(4, '0')}';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Staff / members
+  // ---------------------------------------------------------------------------
+
+  Future<List<StaffMember>> fetchStaff() async {
+    final workspace = await ensureWorkspace();
+    final rows = await _client
+        .from('business_members')
+        .select('id, business_id, user_id, role, permissions, profiles(full_name)')
+        .eq('business_id', workspace.businessId)
+        .isFilter('deleted_at', null);
+    return rows.map<StaffMember>((raw) {
+      final row = Map<String, dynamic>.from(raw);
+      final profile = row['profiles'] is Map
+          ? Map<String, dynamic>.from(row['profiles'] as Map)
+          : null;
+      return StaffMember(
+        id: row['id'] as String,
+        businessId: row['business_id'] as String,
+        userId: row['user_id'] as String,
+        role: _memberRoleFromDb(row['role'] as String?),
+        permissions:
+            (row['permissions'] as List?)
+                ?.map((p) => p.toString())
+                .toList() ??
+            const [],
+        fullName: profile?['full_name']?.toString(),
+      );
+    }).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Audit logs
+  // ---------------------------------------------------------------------------
+
+  Future<List<AuditLogEntry>> fetchAuditLogs() async {
+    final workspace = await ensureWorkspace();
+    final rows = await _client
+        .from('audit_logs')
+        .select('id, entity_table, action, created_at, actor_id')
+        .eq('business_id', workspace.businessId)
+        .order('created_at', ascending: false)
+        .limit(100);
+    return rows.map<AuditLogEntry>((raw) {
+      final row = Map<String, dynamic>.from(raw);
+      return AuditLogEntry(
+        id: row['id'] as String,
+        entityTable: row['entity_table']?.toString() ?? '',
+        action: row['action']?.toString() ?? '',
+        createdAt:
+            DateTime.tryParse(row['created_at']?.toString() ?? '') ??
+            DateTime.now(),
+        actorId: row['actor_id']?.toString(),
+      );
+    }).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sync queue
+  // ---------------------------------------------------------------------------
+
+  Future<List<SyncQueueItem>> fetchSyncQueue() async {
+    final workspace = await ensureWorkspace();
+    final rows = await _client
+        .from('sync_queue_metadata')
+        .select()
+        .eq('business_id', workspace.businessId)
+        .isFilter('deleted_at', null)
+        .order('updated_at', ascending: false)
+        .limit(100);
+    return rows.map<SyncQueueItem>((raw) {
+      final row = Map<String, dynamic>.from(raw);
+      return SyncQueueItem(
+        id: row['id'] as String,
+        entityType: row['entity_type']?.toString() ?? '',
+        status: _syncStatusFromDb(row['status'] as String?),
+        attempts: (row['attempts'] as num?)?.toInt() ?? 0,
+        lastError: row['last_error']?.toString(),
+        lastSyncedAt: DateTime.tryParse(
+          row['last_synced_at']?.toString() ?? '',
+        ),
+      );
+    }).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Business profile (settings + business card)
+  // ---------------------------------------------------------------------------
+
+  Future<void> updateBusinessProfile({
+    required String businessId,
+    String? name,
+    String? ownerName,
+    String? phone,
+    String? upiId,
+    String? gstin,
+    String? address,
+  }) async {
+    final userId = _userId;
+    final patch = <String, dynamic>{
+      'updated_by': userId,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+    if (name != null && name.trim().isNotEmpty) {
+      patch['business_name'] = name.trim();
+    }
+    if (ownerName != null && ownerName.trim().isNotEmpty) {
+      patch['owner_name'] = ownerName.trim();
+    }
+    if (phone != null) patch['phone'] = phone.trim();
+    if (upiId != null) patch['upi_id'] = upiId.trim().isEmpty ? null : upiId.trim();
+    if (gstin != null) patch['gstin'] = gstin.trim().isEmpty ? null : gstin.trim();
+    if (address != null) {
+      patch['address'] = address.trim().isEmpty ? null : address.trim();
+    }
+    await _client.from('businesses').update(patch).eq('id', businessId);
+  }
+
+  Product _productFromRow(Map<String, dynamic> row) {
+    return Product(
+      id: row['id'] as String,
+      businessId: row['business_id'] as String,
+      name: row['name']?.toString() ?? '',
+      unit: row['unit']?.toString() ?? 'pcs',
+      salePricePaise: (row['sale_price_paise'] as num?)?.toInt() ?? 0,
+      purchasePricePaise: (row['purchase_price_paise'] as num?)?.toInt() ?? 0,
+      stockOnHand: (row['stock_on_hand'] as num?)?.round() ?? 0,
+      lowStockThreshold: (row['low_stock_threshold'] as num?)?.round() ?? 0,
+      sku: row['sku']?.toString(),
+      barcode: row['barcode']?.toString(),
+    );
+  }
+
+  Invoice _invoiceFromRow(Map<String, dynamic> row) {
+    return Invoice(
+      id: row['id'] as String,
+      businessId: row['business_id'] as String,
+      bookId: row['book_id'] as String,
+      invoiceNumber: row['invoice_number']?.toString() ?? '',
+      partyId: row['party_id']?.toString() ?? '',
+      date:
+          DateTime.tryParse(row['invoice_date']?.toString() ?? '') ??
+          DateTime.now(),
+      dueDate: DateTime.tryParse(row['due_date']?.toString() ?? ''),
+      subtotalPaise: (row['subtotal_paise'] as num?)?.toInt() ?? 0,
+      gstPaise:
+          ((row['cgst_paise'] as num?)?.toInt() ?? 0) +
+          ((row['sgst_paise'] as num?)?.toInt() ?? 0) +
+          ((row['igst_paise'] as num?)?.toInt() ?? 0),
+      totalPaise: (row['total_paise'] as num?)?.toInt() ?? 0,
+      paidPaise: (row['paid_paise'] as num?)?.toInt() ?? 0,
+      status: _invoiceStatusFromDb(row['status'] as String?),
+      notes: row['notes']?.toString(),
+      terms: row['terms']?.toString(),
+    );
+  }
+
+  static MemberRole _memberRoleFromDb(String? value) => switch (value) {
+    'owner' => MemberRole.owner,
+    'manager' => MemberRole.manager,
+    'accountant' => MemberRole.accountant,
+    _ => MemberRole.staff,
+  };
+
+  static InvoiceStatus _invoiceStatusFromDb(String? value) => switch (value) {
+    'sent' => InvoiceStatus.sent,
+    'partially_paid' => InvoiceStatus.partiallyPaid,
+    'paid' => InvoiceStatus.paid,
+    'overdue' => InvoiceStatus.overdue,
+    'cancelled' => InvoiceStatus.cancelled,
+    _ => InvoiceStatus.draft,
+  };
 
   Party _partyFromRow(Map<String, dynamic> row) {
     return Party(

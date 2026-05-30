@@ -176,3 +176,48 @@ abstract class Invoice with _$Invoice {
   factory Invoice.fromJson(Map<String, dynamic> json) =>
       _$InvoiceFromJson(json);
 }
+
+@freezed
+abstract class StaffMember with _$StaffMember {
+  const factory StaffMember({
+    required String id,
+    required String businessId,
+    required String userId,
+    required MemberRole role,
+    @Default(<String>[]) List<String> permissions,
+    String? fullName,
+    String? phone,
+  }) = _StaffMember;
+
+  factory StaffMember.fromJson(Map<String, dynamic> json) =>
+      _$StaffMemberFromJson(json);
+}
+
+@freezed
+abstract class AuditLogEntry with _$AuditLogEntry {
+  const factory AuditLogEntry({
+    required String id,
+    required String entityTable,
+    required String action,
+    required DateTime createdAt,
+    String? actorId,
+  }) = _AuditLogEntry;
+
+  factory AuditLogEntry.fromJson(Map<String, dynamic> json) =>
+      _$AuditLogEntryFromJson(json);
+}
+
+@freezed
+abstract class SyncQueueItem with _$SyncQueueItem {
+  const factory SyncQueueItem({
+    required String id,
+    required String entityType,
+    required SyncStatus status,
+    @Default(0) int attempts,
+    String? lastError,
+    DateTime? lastSyncedAt,
+  }) = _SyncQueueItem;
+
+  factory SyncQueueItem.fromJson(Map<String, dynamic> json) =>
+      _$SyncQueueItemFromJson(json);
+}
