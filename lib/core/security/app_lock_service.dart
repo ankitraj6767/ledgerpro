@@ -47,13 +47,29 @@ class AppLockService {
   Future<bool> get biometricEnabled async =>
       await _storage.read(key: _biometricEnabledKey) == 'true';
 
+  /// Whether the device can actually perform a biometric (or device
+  /// credential) check right now.
+  Future<bool> canUseBiometrics() async {
+    try {
+      final supported = await _localAuth.isDeviceSupported();
+      if (!supported) return false;
+      final canCheck = await _localAuth.canCheckBiometrics;
+      final enrolled = await _localAuth.getAvailableBiometrics();
+      return canCheck || enrolled.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> authenticateWithBiometrics() async {
-    final canCheck = await _localAuth.canCheckBiometrics;
     final supported = await _localAuth.isDeviceSupported();
-    if (!canCheck || !supported) return false;
+    if (!supported) return false;
     return _localAuth.authenticate(
       localizedReason: 'Unlock LedgerPro Mobile',
-      biometricOnly: true,
+      // Allow fallback to device PIN/pattern/password so unlock still works on
+      // devices without enrolled fingerprints/face. biometricOnly:true would
+      // throw on such devices and make the button appear to do nothing.
+      biometricOnly: false,
       persistAcrossBackgrounding: true,
     );
   }

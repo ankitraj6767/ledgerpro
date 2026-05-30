@@ -48,6 +48,7 @@ abstract class Party with _$Party {
     String? alternatePhone,
     String? address,
     String? gstin,
+    String? upiId,
     String? notes,
     String? profileImageUrl,
     DateTime? lastActivityAt,
@@ -83,6 +84,22 @@ abstract class LedgerTransaction with _$LedgerTransaction {
 
   factory LedgerTransaction.fromJson(Map<String, dynamic> json) =>
       _$LedgerTransactionFromJson(json);
+}
+
+@freezed
+abstract class BusinessProfile with _$BusinessProfile {
+  const factory BusinessProfile({
+    required String id,
+    required String name,
+    String? ownerName,
+    String? phone,
+    String? upiId,
+    String? gstin,
+    String? address,
+  }) = _BusinessProfile;
+
+  factory BusinessProfile.fromJson(Map<String, dynamic> json) =>
+      _$BusinessProfileFromJson(json);
 }
 
 @freezed

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Party {
 
- String get id; String get businessId; String get bookId; String get name; String get phone; PartyType get type; int get balancePaise; int get creditLimitPaise; List<String> get tags; String? get alternatePhone; String? get address; String? get gstin; String? get notes; String? get profileImageUrl; DateTime? get lastActivityAt; SyncStatus get syncStatus; DateTime? get deletedAt;
+ String get id; String get businessId; String get bookId; String get name; String get phone; PartyType get type; int get balancePaise; int get creditLimitPaise; List<String> get tags; String? get alternatePhone; String? get address; String? get gstin; String? get upiId; String? get notes; String? get profileImageUrl; DateTime? get lastActivityAt; SyncStatus get syncStatus; DateTime? get deletedAt;
 /// Create a copy of Party
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PartyCopyWith<Party> get copyWith => _$PartyCopyWithImpl<Party>(this as Party, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Party&&(identical(other.id, id) || other.id == id)&&(identical(other.businessId, businessId) || other.businessId == businessId)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.type, type) || other.type == type)&&(identical(other.balancePaise, balancePaise) || other.balancePaise == balancePaise)&&(identical(other.creditLimitPaise, creditLimitPaise) || other.creditLimitPaise == creditLimitPaise)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.alternatePhone, alternatePhone) || other.alternatePhone == alternatePhone)&&(identical(other.address, address) || other.address == address)&&(identical(other.gstin, gstin) || other.gstin == gstin)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.lastActivityAt, lastActivityAt) || other.lastActivityAt == lastActivityAt)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Party&&(identical(other.id, id) || other.id == id)&&(identical(other.businessId, businessId) || other.businessId == businessId)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.type, type) || other.type == type)&&(identical(other.balancePaise, balancePaise) || other.balancePaise == balancePaise)&&(identical(other.creditLimitPaise, creditLimitPaise) || other.creditLimitPaise == creditLimitPaise)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.alternatePhone, alternatePhone) || other.alternatePhone == alternatePhone)&&(identical(other.address, address) || other.address == address)&&(identical(other.gstin, gstin) || other.gstin == gstin)&&(identical(other.upiId, upiId) || other.upiId == upiId)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.lastActivityAt, lastActivityAt) || other.lastActivityAt == lastActivityAt)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,businessId,bookId,name,phone,type,balancePaise,creditLimitPaise,const DeepCollectionEquality().hash(tags),alternatePhone,address,gstin,notes,profileImageUrl,lastActivityAt,syncStatus,deletedAt);
+int get hashCode => Object.hash(runtimeType,id,businessId,bookId,name,phone,type,balancePaise,creditLimitPaise,const DeepCollectionEquality().hash(tags),alternatePhone,address,gstin,upiId,notes,profileImageUrl,lastActivityAt,syncStatus,deletedAt);
 
 @override
 String toString() {
-  return 'Party(id: $id, businessId: $businessId, bookId: $bookId, name: $name, phone: $phone, type: $type, balancePaise: $balancePaise, creditLimitPaise: $creditLimitPaise, tags: $tags, alternatePhone: $alternatePhone, address: $address, gstin: $gstin, notes: $notes, profileImageUrl: $profileImageUrl, lastActivityAt: $lastActivityAt, syncStatus: $syncStatus, deletedAt: $deletedAt)';
+  return 'Party(id: $id, businessId: $businessId, bookId: $bookId, name: $name, phone: $phone, type: $type, balancePaise: $balancePaise, creditLimitPaise: $creditLimitPaise, tags: $tags, alternatePhone: $alternatePhone, address: $address, gstin: $gstin, upiId: $upiId, notes: $notes, profileImageUrl: $profileImageUrl, lastActivityAt: $lastActivityAt, syncStatus: $syncStatus, deletedAt: $deletedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $PartyCopyWith<$Res>  {
   factory $PartyCopyWith(Party value, $Res Function(Party) _then) = _$PartyCopyWithImpl;
 @useResult
 $Res call({
- String id, String businessId, String bookId, String name, String phone, PartyType type, int balancePaise, int creditLimitPaise, List<String> tags, String? alternatePhone, String? address, String? gstin, String? notes, String? profileImageUrl, DateTime? lastActivityAt, SyncStatus syncStatus, DateTime? deletedAt
+ String id, String businessId, String bookId, String name, String phone, PartyType type, int balancePaise, int creditLimitPaise, List<String> tags, String? alternatePhone, String? address, String? gstin, String? upiId, String? notes, String? profileImageUrl, DateTime? lastActivityAt, SyncStatus syncStatus, DateTime? deletedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$PartyCopyWithImpl<$Res>
 
 /// Create a copy of Party
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? businessId = null,Object? bookId = null,Object? name = null,Object? phone = null,Object? type = null,Object? balancePaise = null,Object? creditLimitPaise = null,Object? tags = null,Object? alternatePhone = freezed,Object? address = freezed,Object? gstin = freezed,Object? notes = freezed,Object? profileImageUrl = freezed,Object? lastActivityAt = freezed,Object? syncStatus = null,Object? deletedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? businessId = null,Object? bookId = null,Object? name = null,Object? phone = null,Object? type = null,Object? balancePaise = null,Object? creditLimitPaise = null,Object? tags = null,Object? alternatePhone = freezed,Object? address = freezed,Object? gstin = freezed,Object? upiId = freezed,Object? notes = freezed,Object? profileImageUrl = freezed,Object? lastActivityAt = freezed,Object? syncStatus = null,Object? deletedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,businessId: null == businessId ? _self.businessId : businessId // ignore: cast_nullable_to_non_nullable
@@ -79,6 +79,7 @@ as int,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nu
 as List<String>,alternatePhone: freezed == alternatePhone ? _self.alternatePhone : alternatePhone // ignore: cast_nullable_to_non_nullable
 as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
 as String?,gstin: freezed == gstin ? _self.gstin : gstin // ignore: cast_nullable_to_non_nullable
+as String?,upiId: freezed == upiId ? _self.upiId : upiId // ignore: cast_nullable_to_non_nullable
 as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,profileImageUrl: freezed == profileImageUrl ? _self.profileImageUrl : profileImageUrl // ignore: cast_nullable_to_non_nullable
 as String?,lastActivityAt: freezed == lastActivityAt ? _self.lastActivityAt : lastActivityAt // ignore: cast_nullable_to_non_nullable
@@ -169,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String businessId,  String bookId,  String name,  String phone,  PartyType type,  int balancePaise,  int creditLimitPaise,  List<String> tags,  String? alternatePhone,  String? address,  String? gstin,  String? notes,  String? profileImageUrl,  DateTime? lastActivityAt,  SyncStatus syncStatus,  DateTime? deletedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String businessId,  String bookId,  String name,  String phone,  PartyType type,  int balancePaise,  int creditLimitPaise,  List<String> tags,  String? alternatePhone,  String? address,  String? gstin,  String? upiId,  String? notes,  String? profileImageUrl,  DateTime? lastActivityAt,  SyncStatus syncStatus,  DateTime? deletedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Party() when $default != null:
-return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_that.type,_that.balancePaise,_that.creditLimitPaise,_that.tags,_that.alternatePhone,_that.address,_that.gstin,_that.notes,_that.profileImageUrl,_that.lastActivityAt,_that.syncStatus,_that.deletedAt);case _:
+return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_that.type,_that.balancePaise,_that.creditLimitPaise,_that.tags,_that.alternatePhone,_that.address,_that.gstin,_that.upiId,_that.notes,_that.profileImageUrl,_that.lastActivityAt,_that.syncStatus,_that.deletedAt);case _:
   return orElse();
 
 }
@@ -190,10 +191,10 @@ return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String businessId,  String bookId,  String name,  String phone,  PartyType type,  int balancePaise,  int creditLimitPaise,  List<String> tags,  String? alternatePhone,  String? address,  String? gstin,  String? notes,  String? profileImageUrl,  DateTime? lastActivityAt,  SyncStatus syncStatus,  DateTime? deletedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String businessId,  String bookId,  String name,  String phone,  PartyType type,  int balancePaise,  int creditLimitPaise,  List<String> tags,  String? alternatePhone,  String? address,  String? gstin,  String? upiId,  String? notes,  String? profileImageUrl,  DateTime? lastActivityAt,  SyncStatus syncStatus,  DateTime? deletedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Party():
-return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_that.type,_that.balancePaise,_that.creditLimitPaise,_that.tags,_that.alternatePhone,_that.address,_that.gstin,_that.notes,_that.profileImageUrl,_that.lastActivityAt,_that.syncStatus,_that.deletedAt);case _:
+return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_that.type,_that.balancePaise,_that.creditLimitPaise,_that.tags,_that.alternatePhone,_that.address,_that.gstin,_that.upiId,_that.notes,_that.profileImageUrl,_that.lastActivityAt,_that.syncStatus,_that.deletedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +211,10 @@ return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String businessId,  String bookId,  String name,  String phone,  PartyType type,  int balancePaise,  int creditLimitPaise,  List<String> tags,  String? alternatePhone,  String? address,  String? gstin,  String? notes,  String? profileImageUrl,  DateTime? lastActivityAt,  SyncStatus syncStatus,  DateTime? deletedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String businessId,  String bookId,  String name,  String phone,  PartyType type,  int balancePaise,  int creditLimitPaise,  List<String> tags,  String? alternatePhone,  String? address,  String? gstin,  String? upiId,  String? notes,  String? profileImageUrl,  DateTime? lastActivityAt,  SyncStatus syncStatus,  DateTime? deletedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Party() when $default != null:
-return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_that.type,_that.balancePaise,_that.creditLimitPaise,_that.tags,_that.alternatePhone,_that.address,_that.gstin,_that.notes,_that.profileImageUrl,_that.lastActivityAt,_that.syncStatus,_that.deletedAt);case _:
+return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_that.type,_that.balancePaise,_that.creditLimitPaise,_that.tags,_that.alternatePhone,_that.address,_that.gstin,_that.upiId,_that.notes,_that.profileImageUrl,_that.lastActivityAt,_that.syncStatus,_that.deletedAt);case _:
   return null;
 
 }
@@ -225,7 +226,7 @@ return $default(_that.id,_that.businessId,_that.bookId,_that.name,_that.phone,_t
 @JsonSerializable()
 
 class _Party implements Party {
-  const _Party({required this.id, required this.businessId, required this.bookId, required this.name, required this.phone, this.type = PartyType.customer, this.balancePaise = 0, this.creditLimitPaise = 0, final  List<String> tags = const <String>[], this.alternatePhone, this.address, this.gstin, this.notes, this.profileImageUrl, this.lastActivityAt, this.syncStatus = SyncStatus.synced, this.deletedAt}): _tags = tags;
+  const _Party({required this.id, required this.businessId, required this.bookId, required this.name, required this.phone, this.type = PartyType.customer, this.balancePaise = 0, this.creditLimitPaise = 0, final  List<String> tags = const <String>[], this.alternatePhone, this.address, this.gstin, this.upiId, this.notes, this.profileImageUrl, this.lastActivityAt, this.syncStatus = SyncStatus.synced, this.deletedAt}): _tags = tags;
   factory _Party.fromJson(Map<String, dynamic> json) => _$PartyFromJson(json);
 
 @override final  String id;
@@ -246,6 +247,7 @@ class _Party implements Party {
 @override final  String? alternatePhone;
 @override final  String? address;
 @override final  String? gstin;
+@override final  String? upiId;
 @override final  String? notes;
 @override final  String? profileImageUrl;
 @override final  DateTime? lastActivityAt;
@@ -265,16 +267,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Party&&(identical(other.id, id) || other.id == id)&&(identical(other.businessId, businessId) || other.businessId == businessId)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.type, type) || other.type == type)&&(identical(other.balancePaise, balancePaise) || other.balancePaise == balancePaise)&&(identical(other.creditLimitPaise, creditLimitPaise) || other.creditLimitPaise == creditLimitPaise)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.alternatePhone, alternatePhone) || other.alternatePhone == alternatePhone)&&(identical(other.address, address) || other.address == address)&&(identical(other.gstin, gstin) || other.gstin == gstin)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.lastActivityAt, lastActivityAt) || other.lastActivityAt == lastActivityAt)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Party&&(identical(other.id, id) || other.id == id)&&(identical(other.businessId, businessId) || other.businessId == businessId)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.type, type) || other.type == type)&&(identical(other.balancePaise, balancePaise) || other.balancePaise == balancePaise)&&(identical(other.creditLimitPaise, creditLimitPaise) || other.creditLimitPaise == creditLimitPaise)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.alternatePhone, alternatePhone) || other.alternatePhone == alternatePhone)&&(identical(other.address, address) || other.address == address)&&(identical(other.gstin, gstin) || other.gstin == gstin)&&(identical(other.upiId, upiId) || other.upiId == upiId)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.lastActivityAt, lastActivityAt) || other.lastActivityAt == lastActivityAt)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,businessId,bookId,name,phone,type,balancePaise,creditLimitPaise,const DeepCollectionEquality().hash(_tags),alternatePhone,address,gstin,notes,profileImageUrl,lastActivityAt,syncStatus,deletedAt);
+int get hashCode => Object.hash(runtimeType,id,businessId,bookId,name,phone,type,balancePaise,creditLimitPaise,const DeepCollectionEquality().hash(_tags),alternatePhone,address,gstin,upiId,notes,profileImageUrl,lastActivityAt,syncStatus,deletedAt);
 
 @override
 String toString() {
-  return 'Party(id: $id, businessId: $businessId, bookId: $bookId, name: $name, phone: $phone, type: $type, balancePaise: $balancePaise, creditLimitPaise: $creditLimitPaise, tags: $tags, alternatePhone: $alternatePhone, address: $address, gstin: $gstin, notes: $notes, profileImageUrl: $profileImageUrl, lastActivityAt: $lastActivityAt, syncStatus: $syncStatus, deletedAt: $deletedAt)';
+  return 'Party(id: $id, businessId: $businessId, bookId: $bookId, name: $name, phone: $phone, type: $type, balancePaise: $balancePaise, creditLimitPaise: $creditLimitPaise, tags: $tags, alternatePhone: $alternatePhone, address: $address, gstin: $gstin, upiId: $upiId, notes: $notes, profileImageUrl: $profileImageUrl, lastActivityAt: $lastActivityAt, syncStatus: $syncStatus, deletedAt: $deletedAt)';
 }
 
 
@@ -285,7 +287,7 @@ abstract mixin class _$PartyCopyWith<$Res> implements $PartyCopyWith<$Res> {
   factory _$PartyCopyWith(_Party value, $Res Function(_Party) _then) = __$PartyCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String businessId, String bookId, String name, String phone, PartyType type, int balancePaise, int creditLimitPaise, List<String> tags, String? alternatePhone, String? address, String? gstin, String? notes, String? profileImageUrl, DateTime? lastActivityAt, SyncStatus syncStatus, DateTime? deletedAt
+ String id, String businessId, String bookId, String name, String phone, PartyType type, int balancePaise, int creditLimitPaise, List<String> tags, String? alternatePhone, String? address, String? gstin, String? upiId, String? notes, String? profileImageUrl, DateTime? lastActivityAt, SyncStatus syncStatus, DateTime? deletedAt
 });
 
 
@@ -302,7 +304,7 @@ class __$PartyCopyWithImpl<$Res>
 
 /// Create a copy of Party
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? businessId = null,Object? bookId = null,Object? name = null,Object? phone = null,Object? type = null,Object? balancePaise = null,Object? creditLimitPaise = null,Object? tags = null,Object? alternatePhone = freezed,Object? address = freezed,Object? gstin = freezed,Object? notes = freezed,Object? profileImageUrl = freezed,Object? lastActivityAt = freezed,Object? syncStatus = null,Object? deletedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? businessId = null,Object? bookId = null,Object? name = null,Object? phone = null,Object? type = null,Object? balancePaise = null,Object? creditLimitPaise = null,Object? tags = null,Object? alternatePhone = freezed,Object? address = freezed,Object? gstin = freezed,Object? upiId = freezed,Object? notes = freezed,Object? profileImageUrl = freezed,Object? lastActivityAt = freezed,Object? syncStatus = null,Object? deletedAt = freezed,}) {
   return _then(_Party(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,businessId: null == businessId ? _self.businessId : businessId // ignore: cast_nullable_to_non_nullable
@@ -316,6 +318,7 @@ as int,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_n
 as List<String>,alternatePhone: freezed == alternatePhone ? _self.alternatePhone : alternatePhone // ignore: cast_nullable_to_non_nullable
 as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
 as String?,gstin: freezed == gstin ? _self.gstin : gstin // ignore: cast_nullable_to_non_nullable
+as String?,upiId: freezed == upiId ? _self.upiId : upiId // ignore: cast_nullable_to_non_nullable
 as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,profileImageUrl: freezed == profileImageUrl ? _self.profileImageUrl : profileImageUrl // ignore: cast_nullable_to_non_nullable
 as String?,lastActivityAt: freezed == lastActivityAt ? _self.lastActivityAt : lastActivityAt // ignore: cast_nullable_to_non_nullable
@@ -636,6 +639,287 @@ as String?,isReversal: null == isReversal ? _self.isReversal : isReversal // ign
 as bool,syncStatus: null == syncStatus ? _self.syncStatus : syncStatus // ignore: cast_nullable_to_non_nullable
 as SyncStatus,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$BusinessProfile {
+
+ String get id; String get name; String? get ownerName; String? get phone; String? get upiId; String? get gstin; String? get address;
+/// Create a copy of BusinessProfile
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BusinessProfileCopyWith<BusinessProfile> get copyWith => _$BusinessProfileCopyWithImpl<BusinessProfile>(this as BusinessProfile, _$identity);
+
+  /// Serializes this BusinessProfile to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BusinessProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.ownerName, ownerName) || other.ownerName == ownerName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.upiId, upiId) || other.upiId == upiId)&&(identical(other.gstin, gstin) || other.gstin == gstin)&&(identical(other.address, address) || other.address == address));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,ownerName,phone,upiId,gstin,address);
+
+@override
+String toString() {
+  return 'BusinessProfile(id: $id, name: $name, ownerName: $ownerName, phone: $phone, upiId: $upiId, gstin: $gstin, address: $address)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BusinessProfileCopyWith<$Res>  {
+  factory $BusinessProfileCopyWith(BusinessProfile value, $Res Function(BusinessProfile) _then) = _$BusinessProfileCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String? ownerName, String? phone, String? upiId, String? gstin, String? address
+});
+
+
+
+
+}
+/// @nodoc
+class _$BusinessProfileCopyWithImpl<$Res>
+    implements $BusinessProfileCopyWith<$Res> {
+  _$BusinessProfileCopyWithImpl(this._self, this._then);
+
+  final BusinessProfile _self;
+  final $Res Function(BusinessProfile) _then;
+
+/// Create a copy of BusinessProfile
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? ownerName = freezed,Object? phone = freezed,Object? upiId = freezed,Object? gstin = freezed,Object? address = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,ownerName: freezed == ownerName ? _self.ownerName : ownerName // ignore: cast_nullable_to_non_nullable
+as String?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String?,upiId: freezed == upiId ? _self.upiId : upiId // ignore: cast_nullable_to_non_nullable
+as String?,gstin: freezed == gstin ? _self.gstin : gstin // ignore: cast_nullable_to_non_nullable
+as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [BusinessProfile].
+extension BusinessProfilePatterns on BusinessProfile {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _BusinessProfile value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _BusinessProfile() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _BusinessProfile value)  $default,){
+final _that = this;
+switch (_that) {
+case _BusinessProfile():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _BusinessProfile value)?  $default,){
+final _that = this;
+switch (_that) {
+case _BusinessProfile() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? ownerName,  String? phone,  String? upiId,  String? gstin,  String? address)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _BusinessProfile() when $default != null:
+return $default(_that.id,_that.name,_that.ownerName,_that.phone,_that.upiId,_that.gstin,_that.address);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? ownerName,  String? phone,  String? upiId,  String? gstin,  String? address)  $default,) {final _that = this;
+switch (_that) {
+case _BusinessProfile():
+return $default(_that.id,_that.name,_that.ownerName,_that.phone,_that.upiId,_that.gstin,_that.address);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? ownerName,  String? phone,  String? upiId,  String? gstin,  String? address)?  $default,) {final _that = this;
+switch (_that) {
+case _BusinessProfile() when $default != null:
+return $default(_that.id,_that.name,_that.ownerName,_that.phone,_that.upiId,_that.gstin,_that.address);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _BusinessProfile implements BusinessProfile {
+  const _BusinessProfile({required this.id, required this.name, this.ownerName, this.phone, this.upiId, this.gstin, this.address});
+  factory _BusinessProfile.fromJson(Map<String, dynamic> json) => _$BusinessProfileFromJson(json);
+
+@override final  String id;
+@override final  String name;
+@override final  String? ownerName;
+@override final  String? phone;
+@override final  String? upiId;
+@override final  String? gstin;
+@override final  String? address;
+
+/// Create a copy of BusinessProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$BusinessProfileCopyWith<_BusinessProfile> get copyWith => __$BusinessProfileCopyWithImpl<_BusinessProfile>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$BusinessProfileToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BusinessProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.ownerName, ownerName) || other.ownerName == ownerName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.upiId, upiId) || other.upiId == upiId)&&(identical(other.gstin, gstin) || other.gstin == gstin)&&(identical(other.address, address) || other.address == address));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,ownerName,phone,upiId,gstin,address);
+
+@override
+String toString() {
+  return 'BusinessProfile(id: $id, name: $name, ownerName: $ownerName, phone: $phone, upiId: $upiId, gstin: $gstin, address: $address)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$BusinessProfileCopyWith<$Res> implements $BusinessProfileCopyWith<$Res> {
+  factory _$BusinessProfileCopyWith(_BusinessProfile value, $Res Function(_BusinessProfile) _then) = __$BusinessProfileCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String? ownerName, String? phone, String? upiId, String? gstin, String? address
+});
+
+
+
+
+}
+/// @nodoc
+class __$BusinessProfileCopyWithImpl<$Res>
+    implements _$BusinessProfileCopyWith<$Res> {
+  __$BusinessProfileCopyWithImpl(this._self, this._then);
+
+  final _BusinessProfile _self;
+  final $Res Function(_BusinessProfile) _then;
+
+/// Create a copy of BusinessProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? ownerName = freezed,Object? phone = freezed,Object? upiId = freezed,Object? gstin = freezed,Object? address = freezed,}) {
+  return _then(_BusinessProfile(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,ownerName: freezed == ownerName ? _self.ownerName : ownerName // ignore: cast_nullable_to_non_nullable
+as String?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String?,upiId: freezed == upiId ? _self.upiId : upiId // ignore: cast_nullable_to_non_nullable
+as String?,gstin: freezed == gstin ? _self.gstin : gstin // ignore: cast_nullable_to_non_nullable
+as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

@@ -24,6 +24,7 @@ import '../../features/transactions/presentation/add_transaction_screen.dart';
 import '../../features/transactions/presentation/transaction_detail_screen.dart';
 import '../../shared/widgets/ledger_shell.dart';
 import '../../shared/widgets/module_screen.dart';
+import '../../shared/models/ledger_models.dart';
 import '../constants/app_constants.dart';
 
 class AppRouter {
@@ -104,7 +105,8 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.addParty,
-        builder: (context, state) => const AddPartyScreen(),
+        builder: (context, state) =>
+            AddPartyScreen(party: state.extra as Party?),
       ),
       GoRoute(
         path: '/parties/:partyId',

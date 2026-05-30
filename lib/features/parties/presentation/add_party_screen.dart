@@ -2,30 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/money/money.dart';
 import '../../../data/repositories/ledger_repository.dart';
 import '../../../shared/models/ledger_models.dart';
 
 class AddPartyScreen extends ConsumerStatefulWidget {
-  const AddPartyScreen({super.key});
+  const AddPartyScreen({super.key, this.party});
+
+  /// When provided, the screen edits an existing party instead of creating one.
+  final Party? party;
 
   @override
   ConsumerState<AddPartyScreen> createState() => _AddPartyScreenState();
 }
 
 class _AddPartyScreenState extends ConsumerState<AddPartyScreen> {
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _openingBalanceController = TextEditingController();
-  final _creditLimitController = TextEditingController();
-  final _tagsController = TextEditingController();
-  final _notesController = TextEditingController();
-  PartyType _type = PartyType.customer;
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _upiController;
+  late final TextEditingController _openingBalanceController;
+  late final TextEditingController _creditLimitController;
+  late final TextEditingController _tagsController;
+  late final TextEditingController _notesController;
+  late PartyType _type;
   bool _saving = false;
+
+  bool get _isEditing => widget.party != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final party = widget.party;
+    _nameController = TextEditingController(text: party?.name ?? '');
+    _phoneController = TextEditingController(text: party?.phone ?? '');
+    _upiController = TextEditingController(text: party?.upiId ?? '');
+    _openingBalanceController = TextEditingController(
+      text: party == null
+          ? ''
+          : Money.fromPaise(party.balancePaise).formatPlain(),
+    );
+    _creditLimitController = TextEditingController(
+      text: party == null || party.creditLimitPaise == 0
+          ? ''
+          : Money.fromPaise(party.creditLimitPaise).formatPlain(),
+    );
+    _tagsController = TextEditingController(text: party?.tags.join(', ') ?? '');
+    _notesController = TextEditingController(text: party?.notes ?? '');
+    _type = party?.type ?? PartyType.customer;
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _upiController.dispose();
     _openingBalanceController.dispose();
     _creditLimitController.dispose();
     _tagsController.dispose();
@@ -36,7 +66,7 @@ class _AddPartyScreenState extends ConsumerState<AddPartyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add party')),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit party' : 'Add party')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -81,11 +111,26 @@ class _AddPartyScreenState extends ConsumerState<AddPartyScreen> {
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _openingBalanceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            controller: _upiController,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
             decoration: const InputDecoration(
+              labelText: 'UPI ID (for payment QR)',
+              hintText: 'name@bank',
+              prefixIcon: Icon(Icons.qr_code_2_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _openingBalanceController,
+            enabled: !_isEditing,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
               labelText: 'Opening balance',
-              prefixIcon: Icon(Icons.currency_rupee),
+              prefixIcon: const Icon(Icons.currency_rupee),
+              helperText: _isEditing
+                  ? 'Opening balance can only be set when creating a party.'
+                  : null,
             ),
           ),
           const SizedBox(height: 12),
@@ -124,7 +169,7 @@ class _AddPartyScreenState extends ConsumerState<AddPartyScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: const Text('Save party'),
+            label: Text(_isEditing ? 'Update party' : 'Save party'),
           ),
         ],
       ),
@@ -141,28 +186,45 @@ class _AddPartyScreenState extends ConsumerState<AddPartyScreen> {
       return;
     }
 
+    final tags = _tagsController.text
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+
     setState(() => _saving = true);
     try {
-      await ref
-          .read(ledgerRepositoryProvider)
-          .createParty(
-            type: _type,
-            name: name,
-            phone: _phoneController.text.trim(),
-            openingBalancePaise: _parseOptionalMoney(
-              _openingBalanceController.text,
-            ),
-            creditLimitPaise: _parseOptionalMoney(_creditLimitController.text),
-            tags: _tagsController.text
-                .split(',')
-                .map((tag) => tag.trim())
-                .where((tag) => tag.isNotEmpty)
-                .toList(),
-            notes: _notesController.text,
-          );
+      final repository = ref.read(ledgerRepositoryProvider);
+      if (_isEditing) {
+        await repository.updateParty(
+          partyId: widget.party!.id,
+          type: _type,
+          name: name,
+          phone: _phoneController.text.trim(),
+          creditLimitPaise: _parseOptionalMoney(_creditLimitController.text),
+          tags: tags,
+          notes: _notesController.text,
+          upiId: _upiController.text,
+        );
+      } else {
+        await repository.createParty(
+          type: _type,
+          name: name,
+          phone: _phoneController.text.trim(),
+          openingBalancePaise: _parseOptionalMoney(
+            _openingBalanceController.text,
+          ),
+          creditLimitPaise: _parseOptionalMoney(_creditLimitController.text),
+          tags: tags,
+          notes: _notesController.text,
+          upiId: _upiController.text,
+        );
+      }
       ref.invalidate(partiesProvider);
       ref.invalidate(businessSummaryProvider);
-      messenger.showSnackBar(const SnackBar(content: Text('Party saved.')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(_isEditing ? 'Party updated.' : 'Party saved.')),
+      );
       if (mounted) context.pop();
     } catch (error) {
       messenger.showSnackBar(

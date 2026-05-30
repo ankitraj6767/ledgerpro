@@ -37,19 +37,44 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     final controller = ref.read(appSessionControllerProvider);
     final enabled = await controller.lockService.biometricEnabled;
     if (!enabled) return;
+    // Show the biometric button whenever the user enrolled it during setup.
     if (mounted) setState(() => _biometricAvailable = true);
-    await _unlockWithBiometrics();
+    final canUse = await controller.lockService.canUseBiometrics();
+    if (canUse) await _unlockWithBiometrics(auto: true);
   }
 
-  Future<void> _unlockWithBiometrics() async {
+  Future<void> _unlockWithBiometrics({bool auto = false}) async {
     final controller = ref.read(appSessionControllerProvider);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final ok = await controller.lockService.authenticateWithBiometrics();
-      if (ok && mounted) {
+      if (!mounted) return;
+      if (ok) {
         _onUnlocked();
+      } else if (!auto) {
+        // Returned false without throwing (e.g. user dismissed); stay on PIN.
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Biometric unlock was not completed. Enter your PIN.'),
+          ),
+        );
       }
+    } on PlatformException catch (error) {
+      if (!mounted || auto) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Biometric unlock unavailable: ${error.message ?? error.code}. Use your PIN.',
+          ),
+        ),
+      );
     } catch (_) {
-      // Biometric prompt cancelled or unavailable; PIN remains usable.
+      if (!mounted || auto) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Biometric unlock failed. Please use your PIN.'),
+        ),
+      );
     }
   }
 

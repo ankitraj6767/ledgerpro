@@ -75,6 +75,35 @@ final businessNameProvider = FutureProvider<String>((ref) async {
   return workspace.businessName;
 });
 
+/// Full business profile (name, owner, phone, UPI id, gstin) for the active
+/// business. Used for payment QR generation and statements.
+final businessProfileProvider = FutureProvider<BusinessProfile>((ref) async {
+  final workspace = await ref.watch(ledgerWorkspaceProvider.future);
+  return ref
+      .watch(ledgerRepositoryProvider)
+      .fetchBusinessProfile(workspace.businessId);
+});
+
+/// A single party by id, sourced from the real parties list.
+final partyByIdProvider = Provider.family<Party?, String>((ref, partyId) {
+  final parties = ref.watch(partiesProvider).value ?? const <Party>[];
+  for (final party in parties) {
+    if (party.id == partyId) return party;
+  }
+  return null;
+});
+
+/// Transactions for a single party, derived from the real transactions list.
+final partyTransactionsProvider =
+    Provider.family<List<LedgerTransaction>, String>((ref, partyId) {
+      final transactions =
+          ref.watch(ledgerTransactionsProvider).value ??
+          const <LedgerTransaction>[];
+      return transactions
+          .where((entry) => entry.partyId == partyId)
+          .toList();
+    });
+
 class LedgerWorkspace {
   const LedgerWorkspace({
     required this.businessId,
@@ -160,6 +189,7 @@ class LedgerRepository {
     required int creditLimitPaise,
     required List<String> tags,
     String? notes,
+    String? upiId,
   }) async {
     final workspace = await ensureWorkspace();
     final userId = _userId;
@@ -170,6 +200,7 @@ class LedgerRepository {
       'kind': _partyTypeToDb(type),
       'name': name,
       'phone': phone.isEmpty ? null : phone,
+      'upi_id': upiId?.trim().isEmpty ?? true ? null : upiId!.trim(),
       'opening_balance_paise': openingBalancePaise,
       'cached_balance_paise': openingBalancePaise,
       'credit_limit_paise': creditLimitPaise,
@@ -178,6 +209,65 @@ class LedgerRepository {
       'created_by': userId,
       'updated_by': userId,
     });
+  }
+
+  Future<void> updateParty({
+    required String partyId,
+    required PartyType type,
+    required String name,
+    required String phone,
+    required int creditLimitPaise,
+    required List<String> tags,
+    String? notes,
+    String? upiId,
+  }) async {
+    final userId = _userId;
+    await _client
+        .from('parties')
+        .update({
+          'kind': _partyTypeToDb(type),
+          'name': name,
+          'phone': phone.isEmpty ? null : phone,
+          'upi_id': upiId?.trim().isEmpty ?? true ? null : upiId!.trim(),
+          'credit_limit_paise': creditLimitPaise,
+          'tags': tags,
+          'notes': notes?.trim().isEmpty ?? true ? null : notes!.trim(),
+          'updated_by': userId,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', partyId);
+  }
+
+  /// Soft-deletes a party (hard delete is blocked by a DB trigger). The row is
+  /// retained for audit but excluded from all fetches via the deleted_at filter.
+  Future<void> softDeleteParty(String partyId) async {
+    final userId = _userId;
+    await _client
+        .from('parties')
+        .update({
+          'deleted_at': DateTime.now().toUtc().toIso8601String(),
+          'updated_by': userId,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', partyId);
+  }
+
+  Future<BusinessProfile> fetchBusinessProfile(String businessId) async {
+    final row = await _client
+        .from('businesses')
+        .select('id, business_name, owner_name, phone, upi_id, gstin, address')
+        .eq('id', businessId)
+        .single();
+
+    return BusinessProfile(
+      id: row['id'] as String,
+      name: row['business_name']?.toString() ?? 'LedgerPro Business',
+      ownerName: row['owner_name']?.toString(),
+      phone: row['phone']?.toString(),
+      upiId: row['upi_id']?.toString(),
+      gstin: row['gstin']?.toString(),
+      address: row['address']?.toString(),
+    );
   }
 
   Future<void> createTransaction({
@@ -227,6 +317,7 @@ class LedgerRepository {
       alternatePhone: row['alternate_phone']?.toString(),
       address: row['address']?.toString(),
       gstin: row['gstin']?.toString(),
+      upiId: row['upi_id']?.toString(),
       notes: row['notes']?.toString(),
       profileImageUrl: row['profile_image_path']?.toString(),
       lastActivityAt: DateTime.tryParse(row['updated_at']?.toString() ?? ''),

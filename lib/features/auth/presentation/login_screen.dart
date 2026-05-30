@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/constants/app_constants.dart';
-import '../../../core/security/app_session_controller.dart';
 import '../../../data/repositories/ledger_repository.dart';
 import '../data/auth_repository.dart';
 
@@ -129,26 +128,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               icon: Icon(_emailMode ? Icons.sms_outlined : Icons.mail_outline),
               label: Text(_emailMode ? 'Use phone OTP' : 'Use email fallback'),
             ),
-            const SizedBox(height: 10),
-            TextButton.icon(
-              onPressed: () {
-                ref.read(appSessionControllerProvider).enterDemoMode();
-                context.go(AppRoutes.home);
-              },
-              icon: const Icon(Icons.visibility_outlined),
-              label: const Text('Open demo workspace'),
-            ),
-            const SizedBox(height: 24),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.security_outlined),
-                title: const Text('Private by design'),
-                subtitle: const Text(
-                  'No service-role keys belong in the mobile app. Secrets stay server-side.',
-                ),
-                trailing: const Icon(Icons.lock_outline),
-              ),
-            ),
           ],
         ),
       ),
@@ -158,7 +137,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _continue() async {
     setState(() => _loading = true);
     final messenger = ScaffoldMessenger.of(context);
-    final auth = ref.read(authRepositoryProvider);
+    // Capture the container up front. After a successful sign-in the auth state
+    // change triggers the router guard, which unmounts this screen. Using `ref`
+    // after that point throws "ref used after unmount", so we use the container
+    // (which is not tied to this widget's lifecycle) for post-await work.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final auth = container.read(authRepositoryProvider);
     var signedIn = false;
     try {
       if (_emailMode) {
@@ -167,12 +151,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           password: _passwordController.text,
         );
         signedIn = true;
-        await ref.read(ledgerRepositoryProvider).ensureWorkspace();
-        ref.invalidate(ledgerWorkspaceProvider);
-        ref.invalidate(partiesProvider);
-        ref.invalidate(ledgerTransactionsProvider);
-        ref.invalidate(businessSummaryProvider);
-        if (mounted) context.go(AppRoutes.home);
+        await container.read(ledgerRepositoryProvider).ensureWorkspace();
+        container.invalidate(ledgerWorkspaceProvider);
+        container.invalidate(partiesProvider);
+        container.invalidate(ledgerTransactionsProvider);
+        container.invalidate(businessSummaryProvider);
+        // Navigation is handled by the router guard (it redirects to app-lock
+        // setup or home based on session + PIN state), so no manual go() here.
       } else {
         await auth.sendPhoneOtp(_phoneController.text.trim());
         if (mounted) context.push(AppRoutes.otp);

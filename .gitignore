@@ -51,3 +51,6 @@ app.*.map.json
 *.keystore
 *.jks
 android/key.properties
+
+# Local agent/editor hooks
+.kiro/

@@ -52,6 +52,17 @@ class Money implements Comparable<Money> {
     return '$sign₹${_formatIndianGrouping(rupees)}.${cents.toString().padLeft(2, '0')}';
   }
 
+  /// Plain decimal string (no symbol, no grouping), suitable for pre-filling an
+  /// editable amount field that is later parsed by [Money.fromRupeeString].
+  String formatPlain() {
+    final negative = paise < 0;
+    final absolute = paise.abs();
+    final rupees = absolute ~/ 100;
+    final cents = absolute % 100;
+    final sign = negative ? '-' : '';
+    return '$sign$rupees.${cents.toString().padLeft(2, '0')}';
+  }
+
   static String _formatIndianGrouping(int rupees) {
     final value = rupees.toString();
     if (value.length <= 3) return value;

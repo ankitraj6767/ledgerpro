@@ -23,6 +23,7 @@ _Party _$PartyFromJson(Map<String, dynamic> json) => _Party(
   alternatePhone: json['alternatePhone'] as String?,
   address: json['address'] as String?,
   gstin: json['gstin'] as String?,
+  upiId: json['upiId'] as String?,
   notes: json['notes'] as String?,
   profileImageUrl: json['profileImageUrl'] as String?,
   lastActivityAt: json['lastActivityAt'] == null
@@ -49,6 +50,7 @@ Map<String, dynamic> _$PartyToJson(_Party instance) => <String, dynamic>{
   'alternatePhone': instance.alternatePhone,
   'address': instance.address,
   'gstin': instance.gstin,
+  'upiId': instance.upiId,
   'notes': instance.notes,
   'profileImageUrl': instance.profileImageUrl,
   'lastActivityAt': instance.lastActivityAt?.toIso8601String(),
@@ -143,6 +145,28 @@ const _$PaymentModeEnumMap = {
   PaymentMode.wallet: 'wallet',
   PaymentMode.other: 'other',
 };
+
+_BusinessProfile _$BusinessProfileFromJson(Map<String, dynamic> json) =>
+    _BusinessProfile(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      ownerName: json['ownerName'] as String?,
+      phone: json['phone'] as String?,
+      upiId: json['upiId'] as String?,
+      gstin: json['gstin'] as String?,
+      address: json['address'] as String?,
+    );
+
+Map<String, dynamic> _$BusinessProfileToJson(_BusinessProfile instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'ownerName': instance.ownerName,
+      'phone': instance.phone,
+      'upiId': instance.upiId,
+      'gstin': instance.gstin,
+      'address': instance.address,
+    };
 
 _BusinessSummary _$BusinessSummaryFromJson(Map<String, dynamic> json) =>
     _BusinessSummary(

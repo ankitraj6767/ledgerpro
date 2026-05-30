@@ -74,7 +74,8 @@ begin
       user_id,
       user_id
     )
-    returning id, business_name into found_business_id, found_business_name;
+    returning businesses.id, businesses.business_name
+      into found_business_id, found_business_name;
   end if;
 
   select b.id
