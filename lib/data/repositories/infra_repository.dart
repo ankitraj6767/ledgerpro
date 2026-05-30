@@ -307,11 +307,14 @@ class InfraRepository {
     );
   }
 
+  /// Soft-deletes a project and cascades the soft-delete to all its child
+  /// financial records (investments, government funds + receipts, expenses,
+  /// notes, documents, progress) atomically via the delete_project RPC.
   Future<void> softDeleteProject(String projectId) async {
-    await _client
-        .from('infra_projects')
-        .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
-        .eq('id', projectId);
+    await _client.rpc(
+      'delete_project',
+      params: {'p_project_id': projectId},
+    );
   }
 
   // --------------------------------------------------------------------------

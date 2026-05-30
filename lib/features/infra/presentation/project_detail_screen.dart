@@ -59,12 +59,19 @@ class ProjectDetailScreen extends ConsumerWidget {
                       extra: project);
                 } else if (value == 'progress') {
                   _showProgressDialog(context, ref, project);
+                } else if (value == 'delete') {
+                  _confirmDeleteProject(context, ref, project);
                 }
               },
               itemBuilder: (context) => const [
                 PopupMenuItem(value: 'edit', child: Text('Edit project')),
                 PopupMenuItem(
                     value: 'progress', child: Text('Update progress')),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text('Delete project',
+                      style: TextStyle(color: InfraColors.red)),
+                ),
               ],
             ),
           ],
@@ -154,6 +161,56 @@ class ProjectDetailScreen extends ConsumerWidget {
     } catch (error) {
       messenger.showSnackBar(
         SnackBar(content: Text('Could not update progress: $error')),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteProject(
+    BuildContext context,
+    WidgetRef ref,
+    InfraProject project,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete project?'),
+        content: Text(
+          'This will remove "${project.name}" along with all its investments, '
+          'government funds, receipts, expenses, and notes. This cannot be '
+          'undone from the app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: InfraColors.red),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(infraRepositoryProvider).softDeleteProject(project.id);
+      ref.invalidate(projectsProvider);
+      ref.invalidate(dashboardSummaryProvider);
+      messenger.showSnackBar(
+        SnackBar(content: Text('"${project.name}" deleted.')),
+      );
+      // Leave the detail screen after deletion.
+      if (router.canPop()) {
+        router.pop();
+      } else {
+        router.go(AppRoutes.projects);
+      }
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not delete project: $error')),
       );
     }
   }
