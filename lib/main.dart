@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
 import 'app/constants/supabase_config.dart';
+import 'app/router/app_router.dart';
+import 'core/security/app_session_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,8 +15,28 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       anonKey: SupabaseConfig.publishableKey,
       debug: false,
+      authOptions: const FlutterAuthClientOptions(
+        // Persist the session to disk and auto-refresh tokens so returning
+        // users are not forced to log in again.
+        authFlowType: AuthFlowType.pkce,
+        autoRefreshToken: true,
+      ),
     );
   }
 
-  runApp(const ProviderScope(child: LedgerProApp()));
+  // Build and initialize the session/lock controller before the first frame so
+  // the router guard can decide login vs unlock vs home synchronously.
+  final sessionController = AppSessionController();
+  await sessionController.initialize();
+
+  final router = AppRouter.create(sessionController);
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        appSessionControllerProvider.overrideWithValue(sessionController),
+      ],
+      child: LedgerProApp(router: router),
+    ),
+  );
 }

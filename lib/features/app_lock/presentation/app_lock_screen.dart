@@ -1,29 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../core/security/app_lock_service.dart';
+import '../../../app/constants/app_constants.dart';
+import '../../../core/security/app_session_controller.dart';
 
-class AppLockScreen extends StatefulWidget {
+class AppLockScreen extends ConsumerStatefulWidget {
   const AppLockScreen({super.key});
 
   @override
-  State<AppLockScreen> createState() => _AppLockScreenState();
+  ConsumerState<AppLockScreen> createState() => _AppLockScreenState();
 }
 
-class _AppLockScreenState extends State<AppLockScreen> {
+class _AppLockScreenState extends ConsumerState<AppLockScreen> {
   final _pinController = TextEditingController();
-  final _service = AppLockService();
+  final _confirmController = TextEditingController();
   bool _biometric = true;
+  bool _saving = false;
 
   @override
   void dispose() {
     _pinController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = ref.read(appSessionControllerProvider);
+    // When there is no PIN yet and the user is signed in, this screen is the
+    // mandatory one-time setup step, so we hide the back button.
+    final isMandatorySetup = controller.isAuthenticated && !controller.hasPin;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('App lock')),
+      appBar: AppBar(
+        title: Text(isMandatorySetup ? 'Set up app lock' : 'App lock'),
+        automaticallyImplyLeading: !isMandatorySetup,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -34,8 +48,10 @@ class _AppLockScreenState extends State<AppLockScreen> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'PIN is hashed and stored with salt in secure platform storage.',
+          Text(
+            isMandatorySetup
+                ? 'Create a PIN so you can quickly unlock next time without signing in again.'
+                : 'PIN is hashed and stored with salt in secure platform storage.',
           ),
           const SizedBox(height: 20),
           TextField(
@@ -43,9 +59,24 @@ class _AppLockScreenState extends State<AppLockScreen> {
             keyboardType: TextInputType.number,
             obscureText: true,
             maxLength: 8,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: const InputDecoration(
-              labelText: 'Set PIN',
+              labelText: 'Set PIN (4 to 8 digits)',
               prefixIcon: Icon(Icons.password_outlined),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _confirmController,
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            maxLength: 8,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: const InputDecoration(
+              labelText: 'Confirm PIN',
+              prefixIcon: Icon(Icons.password_outlined),
+              counterText: '',
             ),
           ),
           SwitchListTile(
@@ -56,9 +87,14 @@ class _AppLockScreenState extends State<AppLockScreen> {
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.lock_outline),
-            label: const Text('Save app lock'),
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.lock_outline),
+            label: Text(isMandatorySetup ? 'Save and continue' : 'Save app lock'),
           ),
         ],
       ),
@@ -67,12 +103,42 @@ class _AppLockScreenState extends State<AppLockScreen> {
 
   Future<void> _save() async {
     final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(appSessionControllerProvider);
+    final pin = _pinController.text.trim();
+    final confirm = _confirmController.text.trim();
+
+    if (pin != confirm) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('PINs do not match.')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    final wasMandatorySetup = controller.isAuthenticated && !controller.hasPin;
+
     try {
-      await _service.setPin(_pinController.text.trim());
-      await _service.setBiometricEnabled(enabled: _biometric);
-      messenger.showSnackBar(const SnackBar(content: Text('App lock saved')));
+      await controller.lockService.setPin(pin);
+      await controller.lockService.setBiometricEnabled(enabled: _biometric);
+      await controller.refreshLockSettings();
+      // Setting a PIN implicitly unlocks the current session.
+      controller.markUnlocked();
+
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('App lock saved')),
+      );
+
+      if (wasMandatorySetup) {
+        context.go(AppRoutes.home);
+      } else if (context.canPop()) {
+        context.pop();
+      }
     } catch (error) {
+      if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text('$error')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/constants/app_constants.dart';
+import '../../../core/security/app_session_controller.dart';
 import '../../../data/repositories/ledger_repository.dart';
 import '../data/auth_repository.dart';
 
@@ -130,7 +131,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 10),
             TextButton.icon(
-              onPressed: () => context.go(AppRoutes.home),
+              onPressed: () {
+                ref.read(appSessionControllerProvider).enterDemoMode();
+                context.go(AppRoutes.home);
+              },
               icon: const Icon(Icons.visibility_outlined),
               label: const Text('Open demo workspace'),
             ),
@@ -142,11 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 subtitle: const Text(
                   'No service-role keys belong in the mobile app. Secrets stay server-side.',
                 ),
-                trailing: IconButton(
-                  tooltip: 'Set app lock',
-                  onPressed: () => context.push(AppRoutes.appLock),
-                  icon: const Icon(Icons.lock_outline),
-                ),
+                trailing: const Icon(Icons.lock_outline),
               ),
             ),
           ],

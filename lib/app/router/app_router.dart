@@ -1,9 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/security/app_session_controller.dart';
 import '../../features/app_lock/presentation/app_lock_screen.dart';
+import '../../features/app_lock/presentation/unlock_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/otp_screen.dart';
 import '../../features/dashboard/presentation/home_dashboard_screen.dart';
@@ -29,25 +29,42 @@ import '../constants/app_constants.dart';
 class AppRouter {
   const AppRouter._();
 
-  static final router = GoRouter(
-    initialLocation: AppRoutes.splash,
-    routes: [
-      GoRoute(
-        path: AppRoutes.splash,
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.otp,
-        builder: (context, state) => const OtpScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.appLock,
-        builder: (context, state) => const AppLockScreen(),
-      ),
+  /// Builds the app router with an auth + app-lock guard.
+  ///
+  /// Routing rules (in priority order):
+  /// 1. While the session controller is still initializing → splash.
+  /// 2. Demo mode → allow app shell without a session.
+  /// 3. No Supabase session → login (and its sub-flows: otp / onboarding).
+  /// 4. Session but no PIN configured → force app-lock setup once.
+  /// 5. Session + PIN but locked → unlock screen (PIN / biometric).
+  /// 6. Otherwise → app shell.
+  static GoRouter create(AppSessionController session) {
+    return GoRouter(
+      initialLocation: AppRoutes.splash,
+      refreshListenable: session,
+      redirect: (context, state) =>
+          _guard(session, state.matchedLocation),
+      routes: [
+        GoRoute(
+          path: AppRoutes.splash,
+          builder: (context, state) => const SplashScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.otp,
+          builder: (context, state) => const OtpScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.unlock,
+          builder: (context, state) => const UnlockScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.appLock,
+          builder: (context, state) => const AppLockScreen(),
+        ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OwnerOnboardingScreen(),
@@ -185,8 +202,72 @@ class AppRouter {
               'Pending local mutations sync in the order businesses, books, parties, transactions, attachments, reminders, and reports.',
         ),
       ),
-    ],
-  );
+      ],
+    );
+  }
+
+  /// Locations reachable without a Supabase session.
+  ///
+  /// [AppRoutes.splash] is intentionally NOT included: it is a transient
+  /// loading screen, so once the controller is initialized the guard must
+  /// always redirect away from it (to login / unlock / app-lock / home).
+  static const _publicRoutes = <String>{
+    AppRoutes.login,
+    AppRoutes.otp,
+    AppRoutes.onboarding,
+    AppRoutes.businessSetup,
+  };
+
+  static String? _guard(AppSessionController session, String location) {
+    // Wait for the controller to finish loading lock state. While not yet
+    // initialized, hold on the splash screen.
+    if (!session.isInitialized) {
+      return location == AppRoutes.splash ? null : AppRoutes.splash;
+    }
+
+    // Once initialized, the splash screen is never a valid resting place.
+    // Resolve it to the correct destination based on auth + lock state.
+    if (location == AppRoutes.splash) {
+      if (session.isDemoMode) return AppRoutes.home;
+      if (!session.isAuthenticated) return AppRoutes.login;
+      if (!session.hasPin) return AppRoutes.appLock;
+      if (!session.isUnlocked) return AppRoutes.unlock;
+      return AppRoutes.home;
+    }
+
+    // Demo workspace: no session required, but block the auth/lock routes.
+    if (session.isDemoMode) {
+      if (location == AppRoutes.login ||
+          location == AppRoutes.unlock ||
+          location == AppRoutes.splash) {
+        return AppRoutes.home;
+      }
+      return null;
+    }
+
+    final authed = session.isAuthenticated;
+
+    // Not signed in → only public routes are allowed.
+    if (!authed) {
+      return _publicRoutes.contains(location) ? null : AppRoutes.login;
+    }
+
+    // Signed in but no PIN configured → force one-time app-lock setup.
+    if (!session.hasPin) {
+      return location == AppRoutes.appLock ? null : AppRoutes.appLock;
+    }
+
+    // Signed in with a PIN but currently locked → require unlock.
+    if (!session.isUnlocked) {
+      return location == AppRoutes.unlock ? null : AppRoutes.unlock;
+    }
+
+    // Fully authenticated and unlocked: keep users out of the gate screens.
+    if (location == AppRoutes.login || location == AppRoutes.unlock) {
+      return AppRoutes.home;
+    }
+    return null;
+  }
 }
 
 class SplashScreen extends StatefulWidget {
@@ -197,22 +278,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(const Duration(milliseconds: 800), () {
-      if (mounted) context.go(AppRoutes.login);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

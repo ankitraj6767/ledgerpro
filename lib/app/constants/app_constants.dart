@@ -14,6 +14,7 @@ class AppRoutes {
   static const login = '/login';
   static const otp = '/otp';
   static const appLock = '/app-lock';
+  static const unlock = '/unlock';
   static const onboarding = '/onboarding';
   static const businessSetup = '/business-setup';
   static const home = '/home';
