@@ -5,7 +5,7 @@ import 'package:ledgerpro_mobile/app/router/app_router.dart';
 import 'package:ledgerpro_mobile/core/security/app_session_controller.dart';
 
 void main() {
-  testWidgets('LedgerPro app starts with branded splash', (tester) async {
+  testWidgets('Royal Infra app starts with branded splash', (tester) async {
     // Use a controller that has not been initialized so the router guard keeps
     // the app on the splash screen (Supabase is not configured in tests).
     final controller = AppSessionController();
@@ -20,9 +20,9 @@ void main() {
       ),
     );
 
-    expect(find.text('LedgerPro Mobile'), findsOneWidget);
+    expect(find.text('Royal Infra'), findsOneWidget);
     expect(
-      find.text('Secure mobile ledger for internal business books.'),
+      find.text('We Build Today, For a Better Tomorrow'),
       findsOneWidget,
     );
   });
