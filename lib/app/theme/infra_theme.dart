@@ -128,6 +128,9 @@ class InfraTheme {
       case 'active':
       case 'fully_received':
         return InfraColors.green;
+      case 'planning':
+      case 'sanctioned':
+        return InfraColors.royalBlue;
       case 'completed':
         return InfraColors.royalBlue;
       case 'on_hold':

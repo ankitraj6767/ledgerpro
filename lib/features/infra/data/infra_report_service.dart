@@ -16,16 +16,15 @@ class InfraReportService {
 
   static final _dateTime = DateFormat('yyyy-MM-dd HH:mm');
   static final _date = DateFormat('yyyy-MM-dd');
-  static const _navy = PdfColor.fromInt(0xFF03152E);
-  static const _blue = PdfColor.fromInt(0xFF1D74F5);
-  static const _gold = PdfColor.fromInt(0xFFD6A83A);
-  static const _green = PdfColor.fromInt(0xFF138A4A);
-  static const _orange = PdfColor.fromInt(0xFFF59E0B);
-  static const _red = PdfColor.fromInt(0xFFDC2626);
-  static const _ink = PdfColor.fromInt(0xFF101828);
-  static const _muted = PdfColor.fromInt(0xFF667085);
-  static const _line = PdfColor.fromInt(0xFFE4E7EC);
-  static const _soft = PdfColor.fromInt(0xFFF5F7FB);
+  static const _blue = PdfColor.fromInt(0xFF000000);
+  static const _gold = PdfColor.fromInt(0xFF000000);
+  static const _green = PdfColor.fromInt(0xFF000000);
+  static const _orange = PdfColor.fromInt(0xFF000000);
+  static const _red = PdfColor.fromInt(0xFF000000);
+  static const _ink = PdfColor.fromInt(0xFF000000);
+  static const _muted = PdfColor.fromInt(0xFF000000);
+  static const _line = PdfColor.fromInt(0xFF000000);
+  static const _soft = PdfColor.fromInt(0xFFFFFFFF);
   static const _white = PdfColor.fromInt(0xFFFFFFFF);
 
   Future<File> projectSummaryPdf({
@@ -40,9 +39,10 @@ class InfraReportService {
     final generatedAt = DateTime.now();
     doc.addPage(
       pw.MultiPage(
-        pageTheme: const pw.PageTheme(
+        pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.fromLTRB(28, 28, 28, 32),
+          margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 32),
+          buildBackground: (context) => pw.Container(color: _white),
         ),
         footer: (context) => _footer(context, generatedAt),
         build: (context) => [
@@ -169,8 +169,9 @@ class InfraReportService {
     return pw.Container(
       padding: const pw.EdgeInsets.all(24),
       decoration: pw.BoxDecoration(
-        color: _navy,
+        color: _white,
         borderRadius: pw.BorderRadius.circular(18),
+        border: pw.Border.all(color: _line, width: 1.2),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -185,7 +186,7 @@ class InfraReportService {
                     pw.Text(
                       orgName,
                       style: pw.TextStyle(
-                        color: _gold,
+                        color: _ink,
                         fontSize: 12,
                         fontWeight: pw.FontWeight.bold,
                       ),
@@ -194,7 +195,7 @@ class InfraReportService {
                     pw.Text(
                       'Project Financial Summary',
                       style: pw.TextStyle(
-                        color: _white,
+                        color: _ink,
                         fontSize: 25,
                         fontWeight: pw.FontWeight.bold,
                       ),
@@ -203,7 +204,7 @@ class InfraReportService {
                     pw.Text(
                       project.name,
                       style: pw.TextStyle(
-                        color: _white,
+                        color: _ink,
                         fontSize: 15,
                         fontWeight: pw.FontWeight.bold,
                       ),
@@ -211,7 +212,7 @@ class InfraReportService {
                     pw.SizedBox(height: 4),
                     pw.Text(
                       _projectLocation(project),
-                      style: const pw.TextStyle(color: _line, fontSize: 10),
+                      style: const pw.TextStyle(color: _ink, fontSize: 10),
                     ),
                   ],
                 ),
@@ -220,24 +221,22 @@ class InfraReportService {
                 width: 118,
                 padding: const pw.EdgeInsets.all(12),
                 decoration: pw.BoxDecoration(
-                  color: const PdfColor.fromInt(0xFF0A2548),
+                  color: _white,
                   borderRadius: pw.BorderRadius.circular(12),
-                  border: pw.Border.all(
-                    color: const PdfColor.fromInt(0xFF183A63),
-                  ),
+                  border: pw.Border.all(color: _line),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
                       'Generated',
-                      style: const pw.TextStyle(color: _line, fontSize: 8),
+                      style: const pw.TextStyle(color: _ink, fontSize: 8),
                     ),
                     pw.SizedBox(height: 4),
                     pw.Text(
                       _dateTime.format(generatedAt),
                       style: pw.TextStyle(
-                        color: _white,
+                        color: _ink,
                         fontSize: 9,
                         fontWeight: pw.FontWeight.bold,
                       ),
@@ -246,13 +245,13 @@ class InfraReportService {
                       pw.SizedBox(height: 10),
                       pw.Text(
                         'Project Code',
-                        style: const pw.TextStyle(color: _line, fontSize: 8),
+                        style: const pw.TextStyle(color: _ink, fontSize: 8),
                       ),
                       pw.SizedBox(height: 4),
                       pw.Text(
                         project.code!,
                         style: pw.TextStyle(
-                          color: _gold,
+                          color: _ink,
                           fontSize: 9,
                           fontWeight: pw.FontWeight.bold,
                         ),
@@ -289,13 +288,14 @@ class InfraReportService {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: pw.BoxDecoration(
-        color: color,
+        color: _white,
         borderRadius: pw.BorderRadius.circular(999),
+        border: pw.Border.all(color: color),
       ),
       child: pw.Text(
         label,
         style: pw.TextStyle(
-          color: _white,
+          color: _ink,
           fontSize: 8.5,
           fontWeight: pw.FontWeight.bold,
         ),
@@ -397,7 +397,7 @@ class InfraReportService {
       width: 166,
       padding: const pw.EdgeInsets.all(14),
       decoration: pw.BoxDecoration(
-        color: highlighted ? const PdfColor.fromInt(0xFFF8FBFF) : _white,
+        color: _white,
         borderRadius: pw.BorderRadius.circular(14),
         border: pw.Border.all(color: highlighted ? _blue : _line, width: 1),
       ),
@@ -448,8 +448,9 @@ class InfraReportService {
     return pw.Container(
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
-        color: _navy,
+        color: _white,
         borderRadius: pw.BorderRadius.circular(14),
+        border: pw.Border.all(color: _line, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -460,7 +461,7 @@ class InfraReportService {
               pw.Text(
                 'Funding Health',
                 style: pw.TextStyle(
-                  color: _white,
+                  color: _ink,
                   fontSize: 13,
                   fontWeight: pw.FontWeight.bold,
                 ),
@@ -468,7 +469,7 @@ class InfraReportService {
               pw.Text(
                 'Cash in: ${_inr(totalCashIn)}',
                 style: pw.TextStyle(
-                  color: _gold,
+                  color: _ink,
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
                 ),
@@ -478,14 +479,10 @@ class InfraReportService {
           pw.SizedBox(height: 10),
           pw.Text(
             'Spent $spentPercent% of received funding. Available balance is $availablePercent%.',
-            style: const pw.TextStyle(color: _line, fontSize: 9.5),
+            style: const pw.TextStyle(color: _ink, fontSize: 9.5),
           ),
           pw.SizedBox(height: 12),
-          _linearBar(
-            spentPercent,
-            _gold,
-            trackColor: const PdfColor.fromInt(0xFF17395F),
-          ),
+          _linearBar(spentPercent, _gold),
         ],
       ),
     );
@@ -552,7 +549,7 @@ class InfraReportService {
       ),
       children: [
         pw.TableRow(
-          decoration: const pw.BoxDecoration(color: _navy),
+          decoration: const pw.BoxDecoration(color: _white),
           children: [
             for (var i = 0; i < headers.length; i++)
               _tableCell(
@@ -564,9 +561,7 @@ class InfraReportService {
         ),
         for (var rowIndex = 0; rowIndex < rows.length; rowIndex++)
           pw.TableRow(
-            decoration: pw.BoxDecoration(
-              color: rowIndex.isEven ? _white : _soft,
-            ),
+            decoration: const pw.BoxDecoration(color: _white),
             children: [
               for (var i = 0; i < headers.length; i++)
                 _tableCell(
@@ -590,7 +585,7 @@ class InfraReportService {
         value,
         textAlign: alignRight ? pw.TextAlign.right : pw.TextAlign.left,
         style: pw.TextStyle(
-          color: isHeader ? _white : _ink,
+          color: _ink,
           fontSize: isHeader ? 8.3 : 8,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
         ),
@@ -623,8 +618,9 @@ class InfraReportService {
     return pw.Container(
       height: 8,
       decoration: pw.BoxDecoration(
-        color: trackColor,
+        color: _white,
         borderRadius: pw.BorderRadius.circular(99),
+        border: pw.Border.all(color: trackColor, width: 0.7),
       ),
       child: pw.Row(
         children: [

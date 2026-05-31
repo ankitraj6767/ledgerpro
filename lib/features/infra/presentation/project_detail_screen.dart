@@ -103,20 +103,13 @@ class ProjectDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: Column(
+        body: TabBarView(
           children: [
-            _ProjectHeaderCard(project: project),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _OverviewTab(project: project),
-                  _InvestorsTab(project: project),
-                  _GovtFundsTab(project: project),
-                  _ExpensesTab(project: project),
-                  _ReportsTab(project: project),
-                ],
-              ),
-            ),
+            _OverviewTab(project: project),
+            _InvestorsTab(project: project),
+            _GovtFundsTab(project: project),
+            _ExpensesTab(project: project),
+            _ReportsTab(project: project),
           ],
         ),
       ),
@@ -239,30 +232,37 @@ class _ProjectHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('dd MMM yyyy');
     final location = [
       project.locationCity,
       project.locationState,
     ].where((e) => (e ?? '').isNotEmpty).join(', ');
+
     return Container(
-      margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: InfraColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: InfraColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.navy.withValues(alpha: 0.07),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: InfraColors.royalBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Icon(
                   Icons.apartment,
@@ -276,9 +276,11 @@ class _ProjectHeaderCard extends StatelessWidget {
                   children: [
                     Text(
                       project.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 17,
+                        fontSize: 18,
                       ),
                     ),
                     if (location.isNotEmpty)
@@ -289,11 +291,16 @@ class _ProjectHeaderCard extends StatelessWidget {
                             size: 14,
                             color: InfraColors.textSecondary,
                           ),
-                          Text(
-                            location,
-                            style: const TextStyle(
-                              color: InfraColors.textSecondary,
-                              fontSize: 12,
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              location,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: InfraColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -303,44 +310,21 @@ class _ProjectHeaderCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 11),
           Row(
             children: [
               StatusPill(
                 label: _statusLabel(project.status),
                 dbStatus: _statusDb(project.status),
               ),
-              const Spacer(),
-              if (project.startDate != null)
-                _dateChip('Start', dateFmt.format(project.startDate!)),
-              const SizedBox(width: 8),
-              if (project.expectedEndDate != null)
-                _dateChip('End', dateFmt.format(project.expectedEndDate!)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ProjectProgressBar(percent: project.progressPercent),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          ProjectProgressBar(percent: project.progressPercent),
         ],
       ),
-    );
-  }
-
-  Widget _dateChip(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: InfraColors.textSecondary,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-        ),
-      ],
     );
   }
 
@@ -376,8 +360,10 @@ class _OverviewTab extends ConsumerWidget {
     final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
       children: [
+        _ProjectHeaderCard(project: project),
+        const SizedBox(height: 12),
         SectionCard(
           title: 'Government Funds',
           icon: Icons.account_balance_outlined,
@@ -595,7 +581,7 @@ class _FinanceSearchBar extends StatelessWidget {
     required this.resultCount,
     required this.onChanged,
     required this.onClear,
-    this.topPadding = 0,
+    this.onAdd,
   });
 
   final TextEditingController controller;
@@ -605,96 +591,213 @@ class _FinanceSearchBar extends StatelessWidget {
   final int resultCount;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
-  final double topPadding;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
     final isFiltering = query.trim().isNotEmpty;
-    final counterText = isFiltering
-        ? '$resultCount/$totalCount'
-        : '$totalCount';
+    final badgeText = _formatSearchCount(
+      isFiltering ? resultCount : totalCount,
+    );
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(12, topPadding, 12, 12),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 58),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: InfraColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: InfraColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: InfraColors.navy.withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+          final search = _PremiumSearchField(
+            controller: controller,
+            hintText: hintText,
+            isFiltering: isFiltering,
+            badgeText: badgeText,
+            onChanged: onChanged,
+            onClear: onClear,
+          );
+          final addButton = onAdd == null
+              ? null
+              : _PremiumAddButton(onPressed: onAdd!);
+
+          if (compact && addButton != null) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [search, const SizedBox(height: 10), addButton],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: search),
+              if (addButton != null) ...[const SizedBox(width: 10), addButton],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatSearchCount(int count) {
+    if (count > 99) return '99+';
+    return '$count';
+  }
+}
+
+class _PremiumSearchField extends StatelessWidget {
+  const _PremiumSearchField({
+    required this.controller,
+    required this.hintText,
+    required this.isFiltering,
+    required this.badgeText,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool isFiltering;
+  final String badgeText;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: InfraColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: InfraColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.navy.withValues(alpha: 0.07),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: InfraColors.royalBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: InfraColors.royalBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.search,
-                color: InfraColors.royalBlue,
-                size: 21,
-              ),
+            child: const Icon(
+              Icons.search_rounded,
+              color: InfraColors.royalBlue,
+              size: 22,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                onChanged: onChanged,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration.collapsed(hintText: hintText),
-                style: const TextStyle(
-                  color: InfraColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-            if (isFiltering)
-              Tooltip(
-                message: 'Clear search',
-                child: IconButton(
-                  onPressed: onClear,
-                  icon: const Icon(Icons.close, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              textInputAction: TextInputAction.search,
+              cursorColor: InfraColors.royalBlue,
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: const TextStyle(
                   color: InfraColors.textSecondary,
-                  constraints: const BoxConstraints.tightFor(
-                    width: 38,
-                    height: 38,
-                  ),
-                  padding: EdgeInsets.zero,
+                  fontWeight: FontWeight.w600,
                 ),
+                isCollapsed: true,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
               ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: isFiltering
-                    ? InfraColors.navy
-                    : InfraColors.royalBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                counterText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isFiltering ? Colors.white : InfraColors.royalBlue,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
+              style: const TextStyle(
+                color: InfraColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
               ),
             ),
-          ],
+          ),
+          const SizedBox(width: 8),
+          if (isFiltering)
+            Tooltip(
+              message: 'Clear search',
+              child: IconButton(
+                onPressed: onClear,
+                icon: const Icon(Icons.close_rounded, size: 18),
+                color: InfraColors.textSecondary,
+                constraints: const BoxConstraints.tightFor(
+                  width: 34,
+                  height: 34,
+                ),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          Container(
+            constraints: const BoxConstraints(minWidth: 36),
+            height: 34,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: isFiltering
+                  ? InfraColors.navy
+                  : InfraColors.royalBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              badgeText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isFiltering ? Colors.white : InfraColors.royalBlue,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumAddButton extends StatelessWidget {
+  const _PremiumAddButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: InfraColors.navy,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.navy.withValues(alpha: 0.18),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: const Text('Add'),
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          minimumSize: const Size(104, 58),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -779,18 +882,6 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
 
     return Column(
       children: [
-        if (permissions.canManageInvestments)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: FilledButton.icon(
-              onPressed: () => context.push(
-                AppRoutes.newInvestment(widget.project.id),
-                extra: widget.project,
-              ),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Investment'),
-            ),
-          ),
         Expanded(
           child: investmentsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -800,13 +891,6 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                   ref.invalidate(projectInvestmentsProvider(widget.project.id)),
             ),
             data: (investments) {
-              if (investments.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.savings_outlined,
-                  title: 'No investments yet',
-                  message: 'Add an investor contribution to this project.',
-                );
-              }
               final filtered = investments
                   .where(_matchesInvestment)
                   .toList(growable: false);
@@ -818,16 +902,28 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                 children: [
                   _FinanceSearchBar(
                     controller: _searchController,
-                    hintText: 'Search investors by name, amount, date...',
+                    hintText: 'Search investors, name, amount',
                     query: _query,
                     totalCount: investments.length,
                     resultCount: filtered.length,
-                    topPadding: permissions.canManageInvestments ? 0 : 12,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
+                    onAdd: permissions.canManageInvestments
+                        ? () => context.push(
+                            AppRoutes.newInvestment(widget.project.id),
+                            extra: widget.project,
+                          )
+                        : null,
                   ),
                   Expanded(
-                    child: filtered.isEmpty
+                    child: investments.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.savings_outlined,
+                            title: 'No investments yet',
+                            message:
+                                'Add an investor contribution to this project.',
+                          )
+                        : filtered.isEmpty
                         ? _NoFinanceMatches(
                             icon: Icons.savings_outlined,
                             title: 'No matching investors',
@@ -1009,18 +1105,6 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
 
     return Column(
       children: [
-        if (permissions.canManageFunds)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: FilledButton.icon(
-              onPressed: () => context.push(
-                AppRoutes.newGovtFund(widget.project.id),
-                extra: widget.project,
-              ),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Sanctioned Fund'),
-            ),
-          ),
         Expanded(
           child: fundsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -1030,13 +1114,6 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                   ref.invalidate(governmentFundsProvider(widget.project.id)),
             ),
             data: (funds) {
-              if (funds.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.account_balance_outlined,
-                  title: 'No government funds yet',
-                  message: 'Add a sanctioned fund to track receipts.',
-                );
-              }
               final filtered = funds
                   .where(_matchesFund)
                   .toList(growable: false);
@@ -1044,16 +1121,27 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                 children: [
                   _FinanceSearchBar(
                     controller: _searchController,
-                    hintText: 'Search funds by department, scheme, status...',
+                    hintText: 'Search funds, department, scheme',
                     query: _query,
                     totalCount: funds.length,
                     resultCount: filtered.length,
-                    topPadding: permissions.canManageFunds ? 0 : 12,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
+                    onAdd: permissions.canManageFunds
+                        ? () => context.push(
+                            AppRoutes.newGovtFund(widget.project.id),
+                            extra: widget.project,
+                          )
+                        : null,
                   ),
                   Expanded(
-                    child: filtered.isEmpty
+                    child: funds.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.account_balance_outlined,
+                            title: 'No government funds yet',
+                            message: 'Add a sanctioned fund to track receipts.',
+                          )
+                        : filtered.isEmpty
                         ? _NoFinanceMatches(
                             icon: Icons.account_balance_outlined,
                             title: 'No matching funds',
@@ -1282,18 +1370,6 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
 
     return Column(
       children: [
-        if (permissions.canAddExpense)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: FilledButton.icon(
-              onPressed: () => context.push(
-                AppRoutes.newExpense(widget.project.id),
-                extra: widget.project,
-              ),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Expense'),
-            ),
-          ),
         Expanded(
           child: expensesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -1303,13 +1379,6 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                   ref.invalidate(projectExpensesProvider(widget.project.id)),
             ),
             data: (expenses) {
-              if (expenses.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'No expenses yet',
-                  message: 'Record material, labor, and other project costs.',
-                );
-              }
               final filtered = expenses
                   .where(_matchesExpense)
                   .toList(growable: false);
@@ -1321,16 +1390,28 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 children: [
                   _FinanceSearchBar(
                     controller: _searchController,
-                    hintText: 'Search expenses by vendor, category, bill...',
+                    hintText: 'Search expenses, vendor, category',
                     query: _query,
                     totalCount: expenses.length,
                     resultCount: filtered.length,
-                    topPadding: permissions.canAddExpense ? 0 : 12,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
+                    onAdd: permissions.canAddExpense
+                        ? () => context.push(
+                            AppRoutes.newExpense(widget.project.id),
+                            extra: widget.project,
+                          )
+                        : null,
                   ),
                   Expanded(
-                    child: filtered.isEmpty
+                    child: expenses.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.receipt_long_outlined,
+                            title: 'No expenses yet',
+                            message:
+                                'Record material, labor, and other project costs.',
+                          )
+                        : filtered.isEmpty
                         ? _NoFinanceMatches(
                             icon: Icons.receipt_long_outlined,
                             title: 'No matching expenses',
