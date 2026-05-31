@@ -39,6 +39,7 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
   bool _hasPin = false;
   bool _unlocked = false;
   bool _demoMode = false;
+  bool _validatingWorkspace = false;
   int _autoLockMinutes = 2;
   DateTime? _backgroundedAt;
 
@@ -84,8 +85,7 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
       _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((
         state,
       ) {
-        final hasSession =
-            Supabase.instance.client.auth.currentSession != null;
+        final hasSession = Supabase.instance.client.auth.currentSession != null;
         if (!hasSession) {
           // Signed out: drop the unlock gate and demo flag so the guard sends
           // the user back to login.
@@ -99,8 +99,29 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
       // Supabase not configured for this build; auth stays unavailable.
     }
 
+    await validateActiveWorkspaceAccess();
+
     _initialized = true;
     notifyListeners();
+  }
+
+  Future<void> validateActiveWorkspaceAccess() async {
+    if (_validatingWorkspace || !isAuthenticated) return;
+    _validatingWorkspace = true;
+    try {
+      await Supabase.instance.client.rpc('get_my_infra_workspace').single();
+    } on PostgrestException catch (error) {
+      final message = error.message.toLowerCase();
+      if (message.contains('no organization access') ||
+          message.contains('invalid jwt') ||
+          message.contains('jwt expired')) {
+        await signOut();
+      }
+    } on AuthException {
+      await signOut();
+    } finally {
+      _validatingWorkspace = false;
+    }
   }
 
   /// Re-reads PIN + auto-lock settings from secure storage (call after the
@@ -160,6 +181,7 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
         // Transient (e.g. system dialog); don't start the background timer.
         break;
       case AppLifecycleState.resumed:
+        unawaited(validateActiveWorkspaceAccess());
         _maybeLockAfterBackground();
         _backgroundedAt = null;
         break;

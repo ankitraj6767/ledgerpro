@@ -150,6 +150,20 @@ async function createCustomer(
     return json({ error: 'Could not create or locate the auth user.' }, 500);
   }
 
+  if (!createdAuthUser) {
+    const { error: reactivateError } = await adminClient.auth.admin
+      .updateUserById(authUser.id, {
+        email,
+        password,
+        email_confirm: true,
+        ban_duration: 'none',
+        user_metadata: { full_name: fullName },
+      });
+    if (reactivateError) {
+      return json({ error: reactivateError.message }, 400);
+    }
+  }
+
   const profileError = await upsertProfile(adminClient, {
     userId: authUser.id,
     fullName,
@@ -211,6 +225,7 @@ async function updateCustomer(
 
   const attributes: Record<string, unknown> = {
     email,
+    ban_duration: 'none',
     user_metadata: { full_name: fullName },
   };
   if (password != null) {
@@ -291,12 +306,40 @@ async function deleteCustomer(
     return json({ error: error.message }, 500);
   }
 
-  const { error: deleteUserError } = await adminClient.auth.admin.deleteUser(
-    membership.customer.user_id,
-    true,
+  const disabledPassword = crypto.randomUUID() + crypto.randomUUID();
+  const { error: disableAuthError } = await adminClient.auth.admin
+    .updateUserById(membership.customer.user_id, {
+      password: disabledPassword,
+      ban_duration: '876000h',
+      user_metadata: {
+        customer_access_deleted_at: new Date().toISOString(),
+        customer_access_deleted_from: organizationId,
+      },
+    });
+  if (disableAuthError) {
+    return json({ error: disableAuthError.message }, 500);
+  }
+
+  const { error: assignmentError } = await adminClient
+    .from('customer_project_assignments')
+    .update({
+      deleted_at: new Date().toISOString(),
+      updated_by: callerId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('organization_id', organizationId)
+    .eq('customer_user_id', membership.customer.user_id)
+    .is('deleted_at', null);
+  if (assignmentError) {
+    return json({ error: assignmentError.message }, 500);
+  }
+
+  const { error: revokeError } = await adminClient.rpc(
+    'revoke_auth_sessions_for_user',
+    { p_user_id: membership.customer.user_id },
   );
-  if (deleteUserError) {
-    return json({ error: deleteUserError.message }, 500);
+  if (revokeError) {
+    return json({ error: revokeError.message }, 500);
   }
 
   return json({
