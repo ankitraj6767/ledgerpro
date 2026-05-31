@@ -891,7 +891,9 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                   ref.invalidate(projectInvestmentsProvider(widget.project.id)),
             ),
             data: (investments) {
-              final filtered = investments
+              final sortedInvestments = investments.toList()
+                ..sort(_compareInvestmentsByInvestorName);
+              final filtered = sortedInvestments
                   .where(_matchesInvestment)
                   .toList(growable: false);
               final total = filtered.fold<int>(
@@ -998,6 +1000,11 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                                                   ),
                                                 );
                                                 ref.invalidate(
+                                                  projectInvestorsProvider(
+                                                    widget.project.id,
+                                                  ),
+                                                );
+                                                ref.invalidate(
                                                   projectFinancialSummaryProvider(
                                                     widget.project.id,
                                                   ),
@@ -1007,6 +1014,9 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                                                 );
                                                 ref.invalidate(
                                                   dashboardSummaryProvider,
+                                                );
+                                                ref.invalidate(
+                                                  investorsProvider,
                                                 );
                                               },
                                             ),
@@ -1068,6 +1078,19 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
       (investment.amountPaise / 100).toStringAsFixed(2),
       _searchDate(investment.investmentDate),
     ], _query);
+  }
+
+  int _compareInvestmentsByInvestorName(
+    ProjectInvestment a,
+    ProjectInvestment b,
+  ) {
+    final byName = (a.investorName ?? '').toLowerCase().compareTo(
+      (b.investorName ?? '').toLowerCase(),
+    );
+    if (byName != 0) return byName;
+    return (b.investmentDate ?? DateTime(0)).compareTo(
+      a.investmentDate ?? DateTime(0),
+    );
   }
 }
 
