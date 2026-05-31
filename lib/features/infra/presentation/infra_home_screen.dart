@@ -16,6 +16,7 @@ class InfraHomeScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(dashboardSummaryProvider);
     final projectsAsync = ref.watch(projectsProvider);
     final org = ref.watch(infraWorkspaceProvider).value;
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Scaffold(
       backgroundColor: InfraColors.background,
@@ -46,20 +47,24 @@ class InfraHomeScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: InfraColors.navy,
-                          minimumSize: const Size(0, 40),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                      if (permissions.canManageProjects)
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: InfraColors.navy,
+                            minimumSize: const Size(0, 40),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          onPressed: () => context.push(AppRoutes.newProject),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Project'),
                         ),
-                        onPressed: () => context.push(AppRoutes.newProject),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Project'),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _ProjectsList(projectsAsync: projectsAsync),
+                  _ProjectsList(
+                    projectsAsync: projectsAsync,
+                    canCreateProjects: permissions.canManageProjects,
+                  ),
                 ],
               ),
             ),
@@ -103,13 +108,18 @@ class _HeroHeader extends StatelessWidget {
               const Icon(Icons.apartment, color: InfraColors.gold, size: 28),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  AppConstants.appName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                    letterSpacing: 0.5,
+                child: FittedBox(
+                  alignment: Alignment.centerLeft,
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    orgName,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),
@@ -199,9 +209,13 @@ class _KpiRow extends StatelessWidget {
 }
 
 class _ProjectsList extends StatelessWidget {
-  const _ProjectsList({required this.projectsAsync});
+  const _ProjectsList({
+    required this.projectsAsync,
+    required this.canCreateProjects,
+  });
 
   final AsyncValue<List<InfraProject>> projectsAsync;
+  final bool canCreateProjects;
 
   @override
   Widget build(BuildContext context) {
@@ -210,21 +224,26 @@ class _ProjectsList extends StatelessWidget {
         padding: EdgeInsets.all(40),
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (error, _) => ErrorStateView(message: 'Could not load projects: $error'),
+      error: (error, _) =>
+          ErrorStateView(message: 'Could not load projects: $error'),
       data: (projects) {
         if (projects.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
             icon: Icons.business_outlined,
             title: 'No projects yet',
-            message: 'Tap "Add Project" to create your first infrastructure project.',
+            message: canCreateProjects
+                ? 'Tap "Add Project" to create your first infrastructure project.'
+                : 'No infrastructure projects are available yet.',
           );
         }
         return Column(
           children: projects
-              .map((p) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: ProjectCard(project: p),
-                  ))
+              .map(
+                (p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ProjectCard(project: p),
+                ),
+              )
               .toList(),
         );
       },
@@ -239,16 +258,15 @@ class ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final location = [project.locationCity, project.locationState]
-        .where((e) => (e ?? '').isNotEmpty)
-        .join(', ');
+    final location = [
+      project.locationCity,
+      project.locationState,
+    ].where((e) => (e ?? '').isNotEmpty).join(', ');
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => context.push(
-          AppRoutes.projectDetail(project.id),
-          extra: project,
-        ),
+        onTap: () =>
+            context.push(AppRoutes.projectDetail(project.id), extra: project),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -260,7 +278,10 @@ class ProjectCard extends StatelessWidget {
                   color: InfraColors.royalBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.apartment, color: InfraColors.royalBlue),
+                child: const Icon(
+                  Icons.apartment,
+                  color: InfraColors.royalBlue,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -279,8 +300,11 @@ class ProjectCard extends StatelessWidget {
                     if (location.isNotEmpty)
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined,
-                              size: 13, color: InfraColors.textSecondary),
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 13,
+                            color: InfraColors.textSecondary,
+                          ),
                           const SizedBox(width: 2),
                           Expanded(
                             child: Text(
@@ -304,9 +328,13 @@ class ProjectCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('Invested',
-                      style: TextStyle(
-                          fontSize: 10, color: InfraColors.textSecondary)),
+                  const Text(
+                    'Invested',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: InfraColors.textSecondary,
+                    ),
+                  ),
                   AmountText(
                     paise: project.totalInvestmentPaise,
                     compact: true,
@@ -314,9 +342,13 @@ class ProjectCard extends StatelessWidget {
                     color: InfraColors.gold,
                   ),
                   const SizedBox(height: 4),
-                  const Text('Received',
-                      style: TextStyle(
-                          fontSize: 10, color: InfraColors.textSecondary)),
+                  const Text(
+                    'Received',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: InfraColors.textSecondary,
+                    ),
+                  ),
                   AmountText(
                     paise: project.totalGovtReceivedPaise,
                     compact: true,

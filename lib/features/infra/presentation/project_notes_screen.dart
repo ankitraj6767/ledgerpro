@@ -5,13 +5,10 @@ import 'package:intl/intl.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
+import '../../../shared/widgets/access_denied_screen.dart';
 
 class ProjectNotesScreen extends ConsumerStatefulWidget {
-  const ProjectNotesScreen({
-    super.key,
-    required this.projectId,
-    this.project,
-  });
+  const ProjectNotesScreen({super.key, required this.projectId, this.project});
 
   final String projectId;
   final InfraProject? project;
@@ -32,6 +29,14 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(currentOrgRoleProvider);
+    if (roleAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!ref.watch(currentOrgPermissionsProvider).canAddNotes) {
+      return const AccessDeniedScreen();
+    }
+
     final notesAsync = ref.watch(projectNotesProvider(widget.projectId));
     return Scaffold(
       appBar: AppBar(title: const Text('Project Notes')),
@@ -84,8 +89,11 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
                         title: Text(note.note),
                         subtitle: note.createdAt == null
                             ? null
-                            : Text(DateFormat('dd MMM yyyy HH:mm')
-                                .format(note.createdAt!.toLocal())),
+                            : Text(
+                                DateFormat(
+                                  'dd MMM yyyy HH:mm',
+                                ).format(note.createdAt!.toLocal()),
+                              ),
                       ),
                     );
                   },
@@ -104,7 +112,9 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
     setState(() => _saving = true);
     try {
       final org = await ref.read(infraWorkspaceProvider.future);
-      await ref.read(infraRepositoryProvider).addNote(
+      await ref
+          .read(infraRepositoryProvider)
+          .addNote(
             organizationId: org.id,
             projectId: widget.projectId,
             note: _note.text.trim(),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/constants/app_constants.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../data/auth_repository.dart';
 
@@ -35,10 +37,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         children: [
           Text(
             'Enter the 6 digit code',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
@@ -65,7 +66,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             icon: _verifying
                 ? const SizedBox.square(
                     dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.verified_user_outlined),
             label: const Text('Verify and continue'),
           ),
@@ -95,8 +97,22 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       await container
           .read(authRepositoryProvider)
           .verifyPhoneOtp(phone: phone, token: code);
-      // Provision organization workspace for first-time users.
-      await container.read(infraRepositoryProvider).ensureWorkspace();
+      try {
+        await container.read(infraRepositoryProvider).getMyWorkspace();
+      } on PostgrestException catch (error) {
+        if (error.message.toLowerCase().contains('no organization access')) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'No workspace found. Set up the owner workspace to continue.',
+              ),
+            ),
+          );
+          if (mounted) context.go(AppRoutes.onboarding);
+          return;
+        }
+        rethrow;
+      }
       container.invalidate(infraWorkspaceProvider);
       // Router guard will route to app-lock setup or home.
     } on AuthException catch (e) {

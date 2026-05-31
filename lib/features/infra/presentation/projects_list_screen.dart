@@ -29,17 +29,20 @@ class _ProjectsListScreenState extends ConsumerState<ProjectsListScreen> {
   @override
   Widget build(BuildContext context) {
     final projectsAsync = ref.watch(projectsProvider);
+    final permissions = ref.watch(currentOrgPermissionsProvider);
     final query = _searchController.text.trim().toLowerCase();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Projects')),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: InfraColors.navy,
-        foregroundColor: Colors.white,
-        onPressed: () => context.push(AppRoutes.newProject),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Project'),
-      ),
+      floatingActionButton: permissions.canManageProjects
+          ? FloatingActionButton.extended(
+              backgroundColor: InfraColors.navy,
+              foregroundColor: Colors.white,
+              onPressed: () => context.push(AppRoutes.newProject),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Project'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(
@@ -106,7 +109,9 @@ class _ProjectsListScreenState extends ConsumerState<ProjectsListScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: GestureDetector(
-                          onLongPress: () => _confirmDeleteProject(project),
+                          onLongPress: permissions.canManageProjects
+                              ? () => _confirmDeleteProject(project)
+                              : null,
                           child: ProjectCard(project: project),
                         ),
                       );

@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/constants/app_constants.dart';
 
-/// Bottom-navigation shell for the Royal Infra app:
+/// Bottom-navigation shell for the Navdream Infra app:
 /// Home · Projects · Expenses · Reports · Profile.
 class InfraShell extends StatelessWidget {
   const InfraShell({super.key, required this.child});

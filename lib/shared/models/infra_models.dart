@@ -13,7 +13,77 @@ enum GovtFundStatus {
   cancelled,
 }
 
-enum OrgMemberRole { owner, manager, accountant, siteStaff, viewer }
+enum OrgMemberRole { owner, manager, accountant, siteStaff, viewer, customer }
+
+extension OrgMemberRoleMapping on OrgMemberRole {
+  static OrgMemberRole fromDb(String? value) => switch (value) {
+    'owner' => OrgMemberRole.owner,
+    'manager' => OrgMemberRole.manager,
+    'accountant' => OrgMemberRole.accountant,
+    'site_staff' => OrgMemberRole.siteStaff,
+    'customer' => OrgMemberRole.customer,
+    _ => OrgMemberRole.viewer,
+  };
+
+  String get dbValue => switch (this) {
+    OrgMemberRole.owner => 'owner',
+    OrgMemberRole.manager => 'manager',
+    OrgMemberRole.accountant => 'accountant',
+    OrgMemberRole.siteStaff => 'site_staff',
+    OrgMemberRole.viewer => 'viewer',
+    OrgMemberRole.customer => 'customer',
+  };
+
+  String get label => switch (this) {
+    OrgMemberRole.owner => 'Owner',
+    OrgMemberRole.manager => 'Manager',
+    OrgMemberRole.accountant => 'Accountant',
+    OrgMemberRole.siteStaff => 'Site Staff',
+    OrgMemberRole.viewer => 'Viewer',
+    OrgMemberRole.customer => 'Customer',
+  };
+}
+
+class OrgPermissions {
+  const OrgPermissions(this.role, {this.currentUserId});
+
+  final OrgMemberRole? role;
+  final String? currentUserId;
+
+  bool get canReadOrg => role != null;
+  bool get isCustomer => role == OrgMemberRole.customer;
+
+  bool get canManageUsers =>
+      role == OrgMemberRole.owner || role == OrgMemberRole.manager;
+
+  bool get canEditSettings => canManageUsers;
+  bool get canViewAuditLogs => canManageUsers;
+
+  bool get canManageProjects =>
+      role == OrgMemberRole.owner ||
+      role == OrgMemberRole.manager ||
+      role == OrgMemberRole.accountant;
+
+  bool get canManageFunds => canManageProjects;
+  bool get canManageInvestments => canManageProjects;
+  bool get canUpdateProgress =>
+      canManageProjects || role == OrgMemberRole.siteStaff;
+  bool get canAddNotes => canManageProjects || role == OrgMemberRole.siteStaff;
+
+  bool get canAddExpense =>
+      canManageProjects ||
+      role == OrgMemberRole.siteStaff ||
+      role == OrgMemberRole.customer;
+
+  bool canEditExpense(ProjectExpense expense) {
+    if (canManageProjects || role == OrgMemberRole.siteStaff) return true;
+    return role == OrgMemberRole.customer &&
+        currentUserId != null &&
+        expense.createdBy == currentUserId;
+  }
+
+  bool get canDeleteExpense => canManageProjects;
+}
 
 /// Canonical expense categories for infrastructure projects.
 class ExpenseCategories {
@@ -28,6 +98,7 @@ class ExpenseCategories {
     'Site Office',
     'Fuel',
     'Miscellaneous',
+    'Other',
   ];
 }
 
@@ -167,6 +238,7 @@ abstract class ProjectExpense with _$ProjectExpense {
     String? billNumber,
     String? billImagePath,
     String? notes,
+    String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -224,6 +296,38 @@ abstract class Organization with _$Organization {
 
   factory Organization.fromJson(Map<String, dynamic> json) =>
       _$OrganizationFromJson(json);
+}
+
+class InfraWorkspaceSession {
+  const InfraWorkspaceSession({required this.organization, required this.role});
+
+  final Organization organization;
+  final OrgMemberRole role;
+
+  String get id => organization.id;
+  String get name => organization.name;
+}
+
+class CustomerMember {
+  const CustomerMember({
+    required this.memberId,
+    required this.userId,
+    required this.role,
+    this.fullName,
+    this.email,
+    this.phone,
+    this.notes,
+    this.createdAt,
+  });
+
+  final String memberId;
+  final String userId;
+  final OrgMemberRole role;
+  final String? fullName;
+  final String? email;
+  final String? phone;
+  final String? notes;
+  final DateTime? createdAt;
 }
 
 @freezed

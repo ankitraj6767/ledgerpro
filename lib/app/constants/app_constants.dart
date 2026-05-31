@@ -2,11 +2,11 @@ class AppConstants {
   const AppConstants._();
 
   // Configurable app identity (Phase: keep name configurable).
-  static const appName = 'Royal Infra';
+  static const appName = 'Navdream Infra Pvt. Ltd.';
   static const appTagline = 'We Build Today, For a Better Tomorrow';
   static const currency = 'INR';
   static const defaultLocale = 'en_IN';
-  static const supportEmail = 'support@royalinfra.app';
+  static const supportEmail = 'support@navdreaminfra.com';
 }
 
 class AppRoutes {
@@ -62,6 +62,7 @@ class AppRoutes {
   static const staff = '/staff';
   static const auditLogs = '/audit-logs';
   static const settings = '/settings';
+  static const customers = '/settings/customers';
   static const syncQueue = '/sync-queue';
   static const newInvestor = '/investors/new';
 }

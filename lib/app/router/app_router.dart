@@ -15,6 +15,7 @@ import '../../features/infra/presentation/project_reports_screen.dart';
 import '../../features/infra/presentation/projects_list_screen.dart';
 import '../../features/onboarding/presentation/organization_setup_screen.dart';
 import '../../features/settings/presentation/audit_logs_screen.dart';
+import '../../features/settings/presentation/customer_users_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/settings/presentation/sync_queue_screen.dart';
 import '../../shared/models/infra_models.dart';
@@ -40,8 +41,7 @@ class AppRouter {
         ),
         GoRoute(
           path: AppRoutes.otp,
-          builder: (context, state) =>
-              OtpScreen(phone: state.extra as String?),
+          builder: (context, state) => OtpScreen(phone: state.extra as String?),
         ),
         GoRoute(
           path: AppRoutes.unlock,
@@ -157,6 +157,10 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.settings,
           builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.customers,
+          builder: (context, state) => const CustomerUsersScreen(),
         ),
         GoRoute(
           path: AppRoutes.auditLogs,

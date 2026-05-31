@@ -8,9 +8,22 @@ final infraRepositoryProvider = Provider<InfraRepository>((ref) {
   return InfraRepository(Supabase.instance.client);
 });
 
-/// Active organization (created/fetched on first login).
-final infraWorkspaceProvider = FutureProvider<Organization>((ref) async {
-  return ref.watch(infraRepositoryProvider).ensureWorkspace();
+/// Active organization membership fetched without creating a new workspace.
+final infraWorkspaceProvider = FutureProvider<InfraWorkspaceSession>((
+  ref,
+) async {
+  return ref.watch(infraRepositoryProvider).getMyWorkspace();
+});
+
+final currentOrgRoleProvider = FutureProvider<OrgMemberRole>((ref) async {
+  final workspace = await ref.watch(infraWorkspaceProvider.future);
+  return workspace.role;
+});
+
+final currentOrgPermissionsProvider = Provider<OrgPermissions>((ref) {
+  final role = ref.watch(currentOrgRoleProvider).value;
+  final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+  return OrgPermissions(role, currentUserId: currentUserId);
 });
 
 /// Full organization profile (name, owner, phone, address) for the active org.
@@ -76,16 +89,25 @@ final projectExpensesProvider =
       return ref.watch(infraRepositoryProvider).fetchExpenses(projectId);
     });
 
-final projectNotesProvider =
-    FutureProvider.family<List<ProjectNote>, String>((ref, projectId) {
-      return ref.watch(infraRepositoryProvider).fetchNotes(projectId);
-    });
+final projectNotesProvider = FutureProvider.family<List<ProjectNote>, String>((
+  ref,
+  projectId,
+) {
+  return ref.watch(infraRepositoryProvider).fetchNotes(projectId);
+});
 
 final infraAuditLogsProvider = FutureProvider<List<InfraAuditEntry>>((
   ref,
 ) async {
   final org = await ref.watch(infraWorkspaceProvider.future);
   return ref.watch(infraRepositoryProvider).fetchAuditLogs(org.id);
+});
+
+final customerMembersProvider = FutureProvider<List<CustomerMember>>((
+  ref,
+) async {
+  final org = await ref.watch(infraWorkspaceProvider.future);
+  return ref.watch(infraRepositoryProvider).fetchCustomerMembers(org.id);
 });
 
 class InfraRepository {
@@ -95,19 +117,33 @@ class InfraRepository {
   // --------------------------------------------------------------------------
   // Workspace
   // --------------------------------------------------------------------------
+  Future<InfraWorkspaceSession> getMyWorkspace() async {
+    final row = await _client.rpc('get_my_infra_workspace').single();
+    final organization = Organization(
+      id: row['out_organization_id'] as String,
+      name: row['out_organization_name']?.toString() ?? 'My Organization',
+    );
+    return InfraWorkspaceSession(
+      organization: organization,
+      role: OrgMemberRoleMapping.fromDb(row['out_role']?.toString()),
+    );
+  }
+
   Future<Organization> ensureWorkspace({String? orgName}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       throw const AuthException('Please sign in again to continue.');
     }
-    final row = await _client.rpc(
-      'ensure_infra_workspace',
-      params: {
-        'p_email': user.email,
-        'p_full_name': user.userMetadata?['full_name']?.toString(),
-        'p_org_name': orgName,
-      },
-    ).single();
+    final row = await _client
+        .rpc(
+          'ensure_infra_workspace',
+          params: {
+            'p_email': user.email,
+            'p_full_name': user.userMetadata?['full_name']?.toString(),
+            'p_org_name': orgName,
+          },
+        )
+        .single();
     return Organization(
       id: row['out_organization_id'] as String,
       name: row['out_organization_name']?.toString() ?? 'My Organization',
@@ -149,14 +185,116 @@ class InfraRepository {
     await _client.from('organizations').update(patch).eq('id', organizationId);
   }
 
+  Future<List<CustomerMember>> fetchCustomerMembers(
+    String organizationId,
+  ) async {
+    final rows = await _client.rpc(
+      'list_customer_members',
+      params: {'p_organization_id': organizationId},
+    );
+    return (rows as List)
+        .map<CustomerMember>(
+          (raw) => _customerMemberFromRow(Map<String, dynamic>.from(raw)),
+        )
+        .toList();
+  }
+
+  Future<void> createCustomerUser({
+    required String organizationId,
+    required String fullName,
+    required String email,
+    required String password,
+    String? phone,
+    String? notes,
+  }) async {
+    await _client.functions.invoke(
+      'create-customer-user',
+      body: {
+        'organization_id': organizationId,
+        'full_name': fullName,
+        'email': email,
+        'password': password,
+        'phone': phone,
+        'notes': notes,
+      },
+    );
+  }
+
+  Future<void> updateCustomerUser({
+    required String organizationId,
+    required String userId,
+    required String fullName,
+    required String email,
+    String? password,
+    String? phone,
+    String? notes,
+  }) async {
+    await _client.functions.invoke(
+      'create-customer-user',
+      method: HttpMethod.patch,
+      body: {
+        'organization_id': organizationId,
+        'user_id': userId,
+        'full_name': fullName,
+        'email': email,
+        'password': password,
+        'phone': phone,
+        'notes': notes,
+      },
+    );
+  }
+
+  Future<void> deleteCustomerUser({
+    required String organizationId,
+    required String userId,
+  }) async {
+    await _client.functions.invoke(
+      'create-customer-user',
+      method: HttpMethod.delete,
+      body: {'organization_id': organizationId, 'user_id': userId},
+    );
+  }
+
+  Future<List<String>> fetchCustomerProjectAssignments({
+    required String organizationId,
+    required String customerUserId,
+  }) async {
+    final rows = await _client.rpc(
+      'list_customer_project_assignments',
+      params: {
+        'p_organization_id': organizationId,
+        'p_customer_user_id': customerUserId,
+      },
+    );
+    return (rows as List)
+        .map<String>(
+          (raw) => Map<String, dynamic>.from(raw)['project_id'] as String,
+        )
+        .toList();
+  }
+
+  Future<void> setCustomerProjectAssignments({
+    required String organizationId,
+    required String customerUserId,
+    required List<String> projectIds,
+  }) async {
+    await _client.rpc(
+      'set_customer_project_assignments',
+      params: {
+        'p_organization_id': organizationId,
+        'p_customer_user_id': customerUserId,
+        'p_project_ids': projectIds,
+      },
+    );
+  }
+
   // --------------------------------------------------------------------------
   // Dashboard / summaries
   // --------------------------------------------------------------------------
   Future<InfraDashboardSummary> dashboardSummary(String organizationId) async {
-    final row = await _client.rpc(
-      'dashboard_summary',
-      params: {'p_organization_id': organizationId},
-    ).single();
+    final row = await _client
+        .rpc('dashboard_summary', params: {'p_organization_id': organizationId})
+        .single();
     return InfraDashboardSummary(
       totalProjects: (row['total_projects'] as num?)?.toInt() ?? 0,
       activeProjects: (row['active_projects'] as num?)?.toInt() ?? 0,
@@ -250,8 +388,10 @@ class InfraRepository {
         'p_location_state': state,
         'p_address': address,
         'p_start_date': startDate?.toIso8601String().split('T').first,
-        'p_expected_end_date':
-            expectedEndDate?.toIso8601String().split('T').first,
+        'p_expected_end_date': expectedEndDate
+            ?.toIso8601String()
+            .split('T')
+            .first,
         'p_estimated_cost_paise': estimatedCostPaise,
         'p_description': description,
       },
@@ -287,8 +427,10 @@ class InfraRepository {
       patch['start_date'] = startDate.toIso8601String().split('T').first;
     }
     if (expectedEndDate != null) {
-      patch['expected_end_date'] =
-          expectedEndDate.toIso8601String().split('T').first;
+      patch['expected_end_date'] = expectedEndDate
+          .toIso8601String()
+          .split('T')
+          .first;
     }
     if (estimatedCostPaise != null) {
       patch['total_estimated_cost_paise'] = estimatedCostPaise;
@@ -311,10 +453,7 @@ class InfraRepository {
   /// financial records (investments, government funds + receipts, expenses,
   /// notes, documents, progress) atomically via the delete_project RPC.
   Future<void> softDeleteProject(String projectId) async {
-    await _client.rpc(
-      'delete_project',
-      params: {'p_project_id': projectId},
-    );
+    await _client.rpc('delete_project', params: {'p_project_id': projectId});
   }
 
   // --------------------------------------------------------------------------
@@ -374,7 +513,9 @@ class InfraRepository {
         projectId: r['project_id'] as String,
         investorId: r['investor_id'] as String,
         amountPaise: (r['amount_paise'] as num?)?.toInt() ?? 0,
-        investmentDate: DateTime.tryParse(r['investment_date']?.toString() ?? ''),
+        investmentDate: DateTime.tryParse(
+          r['investment_date']?.toString() ?? '',
+        ),
         paymentMode: r['payment_mode']?.toString() ?? 'bank',
         referenceNumber: r['reference_number']?.toString(),
         notes: r['notes']?.toString(),
@@ -474,8 +615,7 @@ class InfraRepository {
         'p_scheme_name': schemeName,
         'p_sanction_order_number': sanctionOrderNumber,
         'p_amount_sanctioned_paise': amountSanctionedPaise,
-        'p_sanction_date':
-            sanctionDate?.toIso8601String().split('T').first,
+        'p_sanction_date': sanctionDate?.toIso8601String().split('T').first,
         'p_document_path': null,
         'p_notes': notes,
       },
@@ -506,10 +646,7 @@ class InfraRepository {
   }
 
   Future<void> deleteGovernmentFund(String fundId) async {
-    await _client.rpc(
-      'delete_government_fund',
-      params: {'p_fund_id': fundId},
-    );
+    await _client.rpc('delete_government_fund', params: {'p_fund_id': fundId});
   }
 
   Future<void> deleteGovernmentReceipt(String receiptId) async {
@@ -556,8 +693,10 @@ class InfraRepository {
       params: {
         'p_government_fund_id': governmentFundId,
         'p_amount_paise': amountPaise,
-        'p_received_date':
-            (receivedDate ?? DateTime.now()).toIso8601String().split('T').first,
+        'p_received_date': (receivedDate ?? DateTime.now())
+            .toIso8601String()
+            .split('T')
+            .first,
         'p_payment_mode': paymentMode,
         'p_reference_number': referenceNumber,
         'p_document_path': null,
@@ -577,7 +716,9 @@ class InfraRepository {
         .isFilter('deleted_at', null)
         .order('expense_date', ascending: false);
     return rows
-        .map<ProjectExpense>((r) => _expenseFromRow(Map<String, dynamic>.from(r)))
+        .map<ProjectExpense>(
+          (r) => _expenseFromRow(Map<String, dynamic>.from(r)),
+        )
         .toList();
   }
 
@@ -598,8 +739,10 @@ class InfraRepository {
         'p_category': category,
         'p_amount_paise': amountPaise,
         'p_vendor_name': vendorName,
-        'p_expense_date':
-            (date ?? DateTime.now()).toIso8601String().split('T').first,
+        'p_expense_date': (date ?? DateTime.now())
+            .toIso8601String()
+            .split('T')
+            .first,
         'p_payment_mode': paymentMode,
         'p_bill_number': billNumber,
         'p_bill_image_path': null,
@@ -625,8 +768,10 @@ class InfraRepository {
         'p_category': category,
         'p_amount_paise': amountPaise,
         'p_vendor_name': vendorName,
-        'p_expense_date':
-            (date ?? DateTime.now()).toIso8601String().split('T').first,
+        'p_expense_date': (date ?? DateTime.now())
+            .toIso8601String()
+            .split('T')
+            .first,
         'p_payment_mode': paymentMode,
         'p_bill_number': billNumber,
         'p_notes': notes,
@@ -691,7 +836,8 @@ class InfraRepository {
         id: r['id'] as String,
         entityTable: r['entity_table']?.toString() ?? '',
         action: r['action']?.toString() ?? '',
-        createdAt: DateTime.tryParse(r['created_at']?.toString() ?? '') ??
+        createdAt:
+            DateTime.tryParse(r['created_at']?.toString() ?? '') ??
             DateTime.now(),
       );
     }).toList();
@@ -712,7 +858,9 @@ class InfraRepository {
       address: r['address']?.toString(),
       status: _statusFromDb(r['status']?.toString()),
       startDate: DateTime.tryParse(r['start_date']?.toString() ?? ''),
-      expectedEndDate: DateTime.tryParse(r['expected_end_date']?.toString() ?? ''),
+      expectedEndDate: DateTime.tryParse(
+        r['expected_end_date']?.toString() ?? '',
+      ),
       actualEndDate: DateTime.tryParse(r['actual_end_date']?.toString() ?? ''),
       progressPercent: (r['progress_percent'] as num?)?.toInt() ?? 0,
       totalEstimatedCostPaise:
@@ -750,10 +898,13 @@ class InfraRepository {
       departmentName: r['department_name']?.toString() ?? '',
       schemeName: r['scheme_name']?.toString(),
       sanctionOrderNumber: r['sanction_order_number']?.toString(),
-      amountSanctionedPaise: (r['amount_sanctioned_paise'] as num?)?.toInt() ?? 0,
+      amountSanctionedPaise:
+          (r['amount_sanctioned_paise'] as num?)?.toInt() ?? 0,
       amountReceivedPaise: (r['amount_received_paise'] as num?)?.toInt() ?? 0,
       sanctionDate: DateTime.tryParse(r['sanction_date']?.toString() ?? ''),
-      lastReceivedDate: DateTime.tryParse(r['last_received_date']?.toString() ?? ''),
+      lastReceivedDate: DateTime.tryParse(
+        r['last_received_date']?.toString() ?? '',
+      ),
       status: _fundStatusFromDb(r['status']?.toString()),
       documentPath: r['document_path']?.toString(),
       notes: r['notes']?.toString(),
@@ -772,6 +923,20 @@ class InfraRepository {
       billNumber: r['bill_number']?.toString(),
       billImagePath: r['bill_image_path']?.toString(),
       notes: r['notes']?.toString(),
+      createdBy: r['created_by']?.toString(),
+    );
+  }
+
+  CustomerMember _customerMemberFromRow(Map<String, dynamic> r) {
+    return CustomerMember(
+      memberId: r['member_id'] as String,
+      userId: r['user_id'] as String,
+      fullName: r['full_name']?.toString(),
+      email: r['email']?.toString(),
+      phone: r['phone']?.toString(),
+      notes: r['notes']?.toString(),
+      role: OrgMemberRoleMapping.fromDb(r['role']?.toString()),
+      createdAt: DateTime.tryParse(r['created_at']?.toString() ?? ''),
     );
   }
 

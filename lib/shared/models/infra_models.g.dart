@@ -275,6 +275,7 @@ _ProjectExpense _$ProjectExpenseFromJson(Map<String, dynamic> json) =>
       billNumber: json['billNumber'] as String?,
       billImagePath: json['billImagePath'] as String?,
       notes: json['notes'] as String?,
+      createdBy: json['createdBy'] as String?,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -298,6 +299,7 @@ Map<String, dynamic> _$ProjectExpenseToJson(_ProjectExpense instance) =>
       'billNumber': instance.billNumber,
       'billImagePath': instance.billImagePath,
       'notes': instance.notes,
+      'createdBy': instance.createdBy,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
       'deletedAt': instance.deletedAt?.toIso8601String(),

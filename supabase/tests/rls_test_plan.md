@@ -33,3 +33,17 @@ Use the Supabase Dashboard RLS tester or local SQL sessions with `request.jwt.cl
 
 - Mobile clients can create pending/manual payment rows only through RLS.
 - Gateway-confirmed payment changes must be performed by future Edge Functions with secrets server-side.
+
+## Royal Infra Customers
+
+- Owner or manager can create a Supabase Auth customer through the `create-customer-user` Edge Function.
+- Customer has an `organization_members.role = customer` row for the active organization.
+- Customer can call `get_my_infra_workspace()` and receives the existing organization and `customer` role.
+- Customer can select organization, projects, reports, investments, government funds, receipts, and expenses.
+- Customer can insert a project expense through `add_project_expense`.
+- Customer can update only a project expense where `project_expenses.created_by = auth.uid()`.
+- Customer cannot delete expenses through RLS or `delete_project_expense`.
+- Customer cannot create, update, or delete projects.
+- Customer cannot call `add_project_investment`, `add_government_fund`, `add_government_fund_receipt`, or `update_project_progress`.
+- Customer cannot update organization settings, manage organization members, or read project audit logs.
+- A signed-in auth user with no organization membership must fail `get_my_infra_workspace()` and must not auto-create an owner workspace.

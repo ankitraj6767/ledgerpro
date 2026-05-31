@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/infra_repository.dart';
+import '../../../shared/widgets/access_denied_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -29,6 +30,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(currentOrgRoleProvider);
+    if (roleAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!ref.watch(currentOrgPermissionsProvider).canEditSettings) {
+      return const AccessDeniedScreen();
+    }
+
     final orgAsync = ref.watch(organizationProfileProvider);
 
     return Scaffold(
@@ -43,8 +52,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 const Icon(Icons.cloud_off_outlined, size: 44),
                 const SizedBox(height: 12),
-                Text('Could not load organization: $e',
-                    textAlign: TextAlign.center),
+                Text(
+                  'Could not load organization: $e',
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
                   onPressed: () => ref.invalidate(organizationProfileProvider),
@@ -66,25 +77,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text('Organization profile',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              const Text(
+                'Organization profile',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
               const SizedBox(height: 12),
               _field(_name, 'Organization name', Icons.apartment),
               const SizedBox(height: 12),
               _field(_owner, 'Owner name', Icons.person_outline),
               const SizedBox(height: 12),
-              _field(_phone, 'Phone', Icons.phone_outlined,
-                  keyboard: TextInputType.phone),
+              _field(
+                _phone,
+                'Phone',
+                Icons.phone_outlined,
+                keyboard: TextInputType.phone,
+              ),
               const SizedBox(height: 12),
-              _field(_address, 'Address', Icons.location_on_outlined,
-                  maxLines: 3),
+              _field(
+                _address,
+                'Address',
+                Icons.location_on_outlined,
+                maxLines: 3,
+              ),
               const SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: _saving ? null : () => _save(org.id),
                 icon: _saving
                     ? const SizedBox.square(
                         dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.save_outlined),
                 label: const Text('Save settings'),
               ),
@@ -95,8 +117,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _field(TextEditingController c, String label, IconData icon,
-      {TextInputType? keyboard, int maxLines = 1}) {
+  Widget _field(
+    TextEditingController c,
+    String label,
+    IconData icon, {
+    TextInputType? keyboard,
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: c,
       keyboardType: keyboard,
@@ -115,7 +142,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
     setState(() => _saving = true);
     try {
-      await ref.read(infraRepositoryProvider).updateOrganization(
+      await ref
+          .read(infraRepositoryProvider)
+          .updateOrganization(
             organizationId: orgId,
             name: _name.text.trim(),
             ownerName: _owner.text.trim(),

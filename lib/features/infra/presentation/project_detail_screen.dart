@@ -25,16 +25,14 @@ class ProjectDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(projectsProvider);
-    final project = projectsAsync.value
-            ?.where((p) => p.id == projectId)
-            .firstOrNull ??
+    final project =
+        projectsAsync.value?.where((p) => p.id == projectId).firstOrNull ??
         initialProject;
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     if (project == null) {
       if (projectsAsync.isLoading) {
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       return Scaffold(
         appBar: AppBar(title: const Text('Project')),
@@ -52,28 +50,43 @@ class ProjectDetailScreen extends ConsumerWidget {
         appBar: AppBar(
           title: const Text('Project Details'),
           actions: [
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') {
-                  context.push(AppRoutes.editProject(project.id),
-                      extra: project);
-                } else if (value == 'progress') {
-                  _showProgressDialog(context, ref, project);
-                } else if (value == 'delete') {
-                  _confirmDeleteProject(context, ref, project);
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit project')),
-                PopupMenuItem(
-                    value: 'progress', child: Text('Update progress')),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete project',
-                      style: TextStyle(color: InfraColors.red)),
-                ),
-              ],
-            ),
+            if (permissions.canManageProjects || permissions.canUpdateProgress)
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit' && permissions.canManageProjects) {
+                    context.push(
+                      AppRoutes.editProject(project.id),
+                      extra: project,
+                    );
+                  } else if (value == 'progress' &&
+                      permissions.canUpdateProgress) {
+                    _showProgressDialog(context, ref, project);
+                  } else if (value == 'delete' &&
+                      permissions.canManageProjects) {
+                    _confirmDeleteProject(context, ref, project);
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (permissions.canManageProjects)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Edit project'),
+                    ),
+                  if (permissions.canUpdateProgress)
+                    const PopupMenuItem(
+                      value: 'progress',
+                      child: Text('Update progress'),
+                    ),
+                  if (permissions.canManageProjects)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete project',
+                        style: TextStyle(color: InfraColors.red),
+                      ),
+                    ),
+                ],
+              ),
           ],
           bottom: const TabBar(
             isScrollable: true,
@@ -90,20 +103,13 @@ class ProjectDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: Column(
+        body: TabBarView(
           children: [
-            _ProjectHeaderCard(project: project),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _OverviewTab(project: project),
-                  _InvestorsTab(project: project),
-                  _GovtFundsTab(project: project),
-                  _ExpensesTab(project: project),
-                  _ReportsTab(project: project),
-                ],
-              ),
-            ),
+            _OverviewTab(project: project),
+            _InvestorsTab(project: project),
+            _GovtFundsTab(project: project),
+            _ExpensesTab(project: project),
+            _ReportsTab(project: project),
           ],
         ),
       ),
@@ -115,8 +121,9 @@ class ProjectDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     InfraProject project,
   ) async {
-    final controller =
-        TextEditingController(text: project.progressPercent.toString());
+    final controller = TextEditingController(
+      text: project.progressPercent.toString(),
+    );
     final messenger = ScaffoldMessenger.of(context);
     final result = await showDialog<int>(
       context: context,
@@ -153,7 +160,9 @@ class ProjectDetailScreen extends ConsumerWidget {
       return;
     }
     try {
-      await ref.read(infraRepositoryProvider).updateProgress(project.id, result);
+      await ref
+          .read(infraRepositoryProvider)
+          .updateProgress(project.id, result);
       ref.invalidate(projectsProvider);
       messenger.showSnackBar(
         const SnackBar(content: Text('Progress updated.')),
@@ -223,31 +232,42 @@ class _ProjectHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('dd MMM yyyy');
-    final location = [project.locationCity, project.locationState]
-        .where((e) => (e ?? '').isNotEmpty)
-        .join(', ');
+    final location = [
+      project.locationCity,
+      project.locationState,
+    ].where((e) => (e ?? '').isNotEmpty).join(', ');
+
     return Container(
-      margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: InfraColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: InfraColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.navy.withValues(alpha: 0.07),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: InfraColors.royalBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                child: const Icon(Icons.apartment, color: InfraColors.royalBlue),
+                child: const Icon(
+                  Icons.apartment,
+                  color: InfraColors.royalBlue,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -256,20 +276,33 @@ class _ProjectHeaderCard extends StatelessWidget {
                   children: [
                     Text(
                       project.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 17,
+                        fontSize: 18,
                       ),
                     ),
                     if (location.isNotEmpty)
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined,
-                              size: 14, color: InfraColors.textSecondary),
-                          Text(location,
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 14,
+                            color: InfraColors.textSecondary,
+                          ),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              location,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  color: InfraColors.textSecondary,
-                                  fontSize: 12)),
+                                color: InfraColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                   ],
@@ -277,57 +310,39 @@ class _ProjectHeaderCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 11),
           Row(
             children: [
               StatusPill(
                 label: _statusLabel(project.status),
                 dbStatus: _statusDb(project.status),
               ),
-              const Spacer(),
-              if (project.startDate != null)
-                _dateChip('Start', dateFmt.format(project.startDate!)),
-              const SizedBox(width: 8),
-              if (project.expectedEndDate != null)
-                _dateChip('End', dateFmt.format(project.expectedEndDate!)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ProjectProgressBar(percent: project.progressPercent),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          ProjectProgressBar(percent: project.progressPercent),
         ],
       ),
     );
   }
 
-  Widget _dateChip(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 10, color: InfraColors.textSecondary)),
-        Text(value,
-            style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w800)),
-      ],
-    );
-  }
-
   static String _statusLabel(InfraProjectStatus s) => switch (s) {
-        InfraProjectStatus.planning => 'Planning',
-        InfraProjectStatus.active => 'Active',
-        InfraProjectStatus.onHold => 'On Hold',
-        InfraProjectStatus.completed => 'Completed',
-        InfraProjectStatus.cancelled => 'Cancelled',
-      };
+    InfraProjectStatus.planning => 'Planning',
+    InfraProjectStatus.active => 'Active',
+    InfraProjectStatus.onHold => 'On Hold',
+    InfraProjectStatus.completed => 'Completed',
+    InfraProjectStatus.cancelled => 'Cancelled',
+  };
 
   static String _statusDb(InfraProjectStatus s) => switch (s) {
-        InfraProjectStatus.planning => 'planning',
-        InfraProjectStatus.active => 'active',
-        InfraProjectStatus.onHold => 'on_hold',
-        InfraProjectStatus.completed => 'completed',
-        InfraProjectStatus.cancelled => 'cancelled',
-      };
+    InfraProjectStatus.planning => 'planning',
+    InfraProjectStatus.active => 'active',
+    InfraProjectStatus.onHold => 'on_hold',
+    InfraProjectStatus.completed => 'completed',
+    InfraProjectStatus.cancelled => 'cancelled',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -340,13 +355,15 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summaryAsync =
-        ref.watch(projectFinancialSummaryProvider(project.id));
+    final summaryAsync = ref.watch(projectFinancialSummaryProvider(project.id));
     final expensesAsync = ref.watch(projectExpensesProvider(project.id));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
       children: [
+        _ProjectHeaderCard(project: project),
+        const SizedBox(height: 12),
         SectionCard(
           title: 'Government Funds',
           icon: Icons.account_balance_outlined,
@@ -361,10 +378,16 @@ class _OverviewTab extends ConsumerWidget {
             data: (s) => Column(
               children: [
                 _kv('Amount Sanctioned', s.totalGovtSanctionedPaise),
-                _kv('Received Till Date', s.totalGovtReceivedPaise,
-                    color: InfraColors.green),
-                _kv('Pending Amount', s.pendingGovtPaise,
-                    color: InfraColors.orange),
+                _kv(
+                  'Received Till Date',
+                  s.totalGovtReceivedPaise,
+                  color: InfraColors.green,
+                ),
+                _kv(
+                  'Pending Amount',
+                  s.pendingGovtPaise,
+                  color: InfraColors.orange,
+                ),
               ],
             ),
           ),
@@ -378,13 +401,23 @@ class _OverviewTab extends ConsumerWidget {
             error: (e, _) => Text('Error: $e'),
             data: (s) => Column(
               children: [
-                _kv('Total Investment', s.totalInvestmentPaise,
-                    color: InfraColors.gold),
-                _kv('Total Expenses', s.totalExpensePaise,
-                    color: InfraColors.red),
+                _kv(
+                  'Total Investment',
+                  s.totalInvestmentPaise,
+                  color: InfraColors.gold,
+                ),
+                _kv(
+                  'Total Expenses',
+                  s.totalExpensePaise,
+                  color: InfraColors.red,
+                ),
                 const Divider(),
-                _kv('Available Balance', s.availableBalancePaise,
-                    color: InfraColors.royalBlue, bold: true),
+                _kv(
+                  'Available Balance',
+                  s.availableBalancePaise,
+                  color: InfraColors.royalBlue,
+                  bold: true,
+                ),
               ],
             ),
           ),
@@ -412,19 +445,21 @@ class _OverviewTab extends ConsumerWidget {
                 ..sort((a, b) => b.value.compareTo(a.value));
               final slices = <DonutSlice>[];
               for (var i = 0; i < entries.length; i++) {
-                slices.add(DonutSlice(
-                  label: entries[i].key,
-                  amountPaise: entries[i].value,
-                  color: DonutExpenseChart
-                      .palette[i % DonutExpenseChart.palette.length],
-                ));
+                slices.add(
+                  DonutSlice(
+                    label: entries[i].key,
+                    amountPaise: entries[i].value,
+                    color: DonutExpenseChart
+                        .palette[i % DonutExpenseChart.palette.length],
+                  ),
+                );
               }
               return DonutExpenseChart(slices: slices);
             },
           ),
         ),
         const SizedBox(height: 12),
-        _QuickActions(project: project),
+        _QuickActions(project: project, permissions: permissions),
       ],
     );
   }
@@ -435,10 +470,13 @@ class _OverviewTab extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: InfraColors.textSecondary,
-                  fontWeight: bold ? FontWeight.w900 : FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              color: InfraColors.textSecondary,
+              fontWeight: bold ? FontWeight.w900 : FontWeight.w500,
+            ),
+          ),
           Text(
             Money.fromPaise(paise).formatInr(),
             style: TextStyle(
@@ -453,58 +491,70 @@ class _OverviewTab extends ConsumerWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.project});
+  const _QuickActions({required this.project, required this.permissions});
 
   final InfraProject project;
+  final OrgPermissions permissions;
 
   @override
   Widget build(BuildContext context) {
+    final actions = <Widget>[
+      if (permissions.canAddExpense)
+        QuickActionCard(
+          icon: Icons.add_card_outlined,
+          label: 'Add Expense',
+          color: InfraColors.royalBlue,
+          onTap: () =>
+              context.push(AppRoutes.newExpense(project.id), extra: project),
+        ),
+      if (permissions.canManageFunds)
+        QuickActionCard(
+          icon: Icons.account_balance_outlined,
+          label: 'Add Fund',
+          color: InfraColors.green,
+          onTap: () =>
+              context.push(AppRoutes.newGovtFund(project.id), extra: project),
+        ),
+      if (permissions.canManageInvestments)
+        QuickActionCard(
+          icon: Icons.savings_outlined,
+          label: 'Add Investment',
+          color: InfraColors.gold,
+          onTap: () =>
+              context.push(AppRoutes.newInvestment(project.id), extra: project),
+        ),
+      if (permissions.canAddNotes)
+        QuickActionCard(
+          icon: Icons.note_add_outlined,
+          label: 'Add Note',
+          color: InfraColors.orange,
+          onTap: () => _addNote(context, project),
+        ),
+    ];
+
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Quick Actions',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+            const Text(
+              'Quick Actions',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+            ),
             const SizedBox(height: 12),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  QuickActionCard(
-                    icon: Icons.add_card_outlined,
-                    label: 'Add Expense',
-                    color: InfraColors.royalBlue,
-                    onTap: () =>
-                        context.push(AppRoutes.newExpense(project.id),
-                            extra: project),
-                  ),
-                  const SizedBox(width: 10),
-                  QuickActionCard(
-                    icon: Icons.account_balance_outlined,
-                    label: 'Add Fund',
-                    color: InfraColors.green,
-                    onTap: () =>
-                        context.push(AppRoutes.newGovtFund(project.id),
-                            extra: project),
-                  ),
-                  const SizedBox(width: 10),
-                  QuickActionCard(
-                    icon: Icons.savings_outlined,
-                    label: 'Add Investment',
-                    color: InfraColors.gold,
-                    onTap: () =>
-                        context.push(AppRoutes.newInvestment(project.id),
-                            extra: project),
-                  ),
-                  const SizedBox(width: 10),
-                  QuickActionCard(
-                    icon: Icons.note_add_outlined,
-                    label: 'Add Note',
-                    color: InfraColors.orange,
-                    onTap: () => _addNote(context, project),
-                  ),
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 10),
+                    actions[i],
+                  ],
                 ],
               ),
             ),
@@ -522,125 +572,480 @@ class _QuickActions extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Investors tab
 // ---------------------------------------------------------------------------
-class _InvestorsTab extends ConsumerWidget {
+class _FinanceSearchBar extends StatelessWidget {
+  const _FinanceSearchBar({
+    required this.controller,
+    required this.hintText,
+    required this.query,
+    required this.totalCount,
+    required this.resultCount,
+    required this.onChanged,
+    required this.onClear,
+    this.onAdd,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final String query;
+  final int totalCount;
+  final int resultCount;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+  final VoidCallback? onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFiltering = query.trim().isNotEmpty;
+    final badgeText = _formatSearchCount(
+      isFiltering ? resultCount : totalCount,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+          final search = _PremiumSearchField(
+            controller: controller,
+            hintText: hintText,
+            isFiltering: isFiltering,
+            badgeText: badgeText,
+            onChanged: onChanged,
+            onClear: onClear,
+          );
+          final addButton = onAdd == null
+              ? null
+              : _PremiumAddButton(onPressed: onAdd!);
+
+          if (compact && addButton != null) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [search, const SizedBox(height: 10), addButton],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: search),
+              if (addButton != null) ...[const SizedBox(width: 10), addButton],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatSearchCount(int count) {
+    if (count > 99) return '99+';
+    return '$count';
+  }
+}
+
+class _PremiumSearchField extends StatelessWidget {
+  const _PremiumSearchField({
+    required this.controller,
+    required this.hintText,
+    required this.isFiltering,
+    required this.badgeText,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool isFiltering;
+  final String badgeText;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: InfraColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: InfraColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.navy.withValues(alpha: 0.07),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: InfraColors.royalBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.search_rounded,
+              color: InfraColors.royalBlue,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              textInputAction: TextInputAction.search,
+              cursorColor: InfraColors.royalBlue,
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: const TextStyle(
+                  color: InfraColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                isCollapsed: true,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(
+                color: InfraColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (isFiltering)
+            Tooltip(
+              message: 'Clear search',
+              child: IconButton(
+                onPressed: onClear,
+                icon: const Icon(Icons.close_rounded, size: 18),
+                color: InfraColors.textSecondary,
+                constraints: const BoxConstraints.tightFor(
+                  width: 34,
+                  height: 34,
+                ),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          Container(
+            constraints: const BoxConstraints(minWidth: 36),
+            height: 34,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: isFiltering
+                  ? InfraColors.navy
+                  : InfraColors.royalBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              badgeText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isFiltering ? Colors.white : InfraColors.royalBlue,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumAddButton extends StatelessWidget {
+  const _PremiumAddButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: InfraColors.navy,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.navy.withValues(alpha: 0.18),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: const Text('Add'),
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          minimumSize: const Size(104, 58),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoFinanceMatches extends StatelessWidget {
+  const _NoFinanceMatches({
+    required this.icon,
+    required this.title,
+    required this.query,
+    required this.messageTail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String query;
+  final String messageTail;
+
+  @override
+  Widget build(BuildContext context) {
+    return EmptyState(
+      icon: icon,
+      title: title,
+      message: 'No results for "$query". $messageTail',
+    );
+  }
+}
+
+bool _matchesFinanceSearch(Iterable<Object?> fields, String rawQuery) {
+  final query = rawQuery.trim().toLowerCase();
+  if (query.isEmpty) return true;
+
+  final haystack = fields
+      .where((value) => value != null)
+      .map((value) => value.toString().toLowerCase())
+      .join(' ');
+
+  return query
+      .split(RegExp(r'\s+'))
+      .where((term) => term.isNotEmpty)
+      .every(haystack.contains);
+}
+
+String _searchDate(DateTime? value) {
+  if (value == null) return '';
+  return '${DateFormat('dd MMM yyyy').format(value)} ${DateFormat('yyyy-MM-dd').format(value)}';
+}
+
+class _InvestorsTab extends ConsumerStatefulWidget {
   const _InvestorsTab({required this.project});
 
   final InfraProject project;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final investmentsAsync = ref.watch(projectInvestmentsProvider(project.id));
+  ConsumerState<_InvestorsTab> createState() => _InvestorsTabState();
+}
+
+class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _setQuery(String value) => setState(() => _query = value);
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() => _query = '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final investmentsAsync = ref.watch(
+      projectInvestmentsProvider(widget.project.id),
+    );
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
-            onPressed: () =>
-                context.push(AppRoutes.newInvestment(project.id),
-                    extra: project),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Investment'),
-          ),
-        ),
         Expanded(
           child: investmentsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => ErrorStateView(
               message: 'Could not load investments: $e',
               onRetry: () =>
-                  ref.invalidate(projectInvestmentsProvider(project.id)),
+                  ref.invalidate(projectInvestmentsProvider(widget.project.id)),
             ),
             data: (investments) {
-              if (investments.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.savings_outlined,
-                  title: 'No investments yet',
-                  message: 'Add an investor contribution to this project.',
-                );
-              }
-              final total = investments.fold<int>(
-                  0, (sum, i) => sum + i.amountPaise);
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+              final filtered = investments
+                  .where(_matchesInvestment)
+                  .toList(growable: false);
+              final total = filtered.fold<int>(
+                0,
+                (sum, i) => sum + i.amountPaise,
+              );
+              return Column(
                 children: [
-                  ...investments.map((inv) => Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Color(0xFFFFF4D6),
-                            child: Icon(Icons.person,
-                                color: InfraColors.gold),
-                          ),
-                          title: Text(inv.investorName ?? 'Investor',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800)),
-                          subtitle: Text(inv.investmentDate == null
-                              ? inv.paymentMode
-                              : DateFormat('dd MMM yyyy')
-                                  .format(inv.investmentDate!)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                  _FinanceSearchBar(
+                    controller: _searchController,
+                    hintText: 'Search investors, name, amount',
+                    query: _query,
+                    totalCount: investments.length,
+                    resultCount: filtered.length,
+                    onChanged: _setQuery,
+                    onClear: _clearSearch,
+                    onAdd: permissions.canManageInvestments
+                        ? () => context.push(
+                            AppRoutes.newInvestment(widget.project.id),
+                            extra: widget.project,
+                          )
+                        : null,
+                  ),
+                  Expanded(
+                    child: investments.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.savings_outlined,
+                            title: 'No investments yet',
+                            message:
+                                'Add an investor contribution to this project.',
+                          )
+                        : filtered.isEmpty
+                        ? _NoFinanceMatches(
+                            icon: Icons.savings_outlined,
+                            title: 'No matching investors',
+                            query: _query,
+                            messageTail:
+                                'Try investor name, payment mode, reference, or amount.',
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                             children: [
-                              AmountText(
-                                paise: inv.amountPaise,
-                                color: InfraColors.gold,
-                              ),
-                              _EntityMenu(
-                                onEdit: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => InvestmentFormScreen(
-                                      project: project,
-                                      investment: inv,
+                              ...filtered.map(
+                                (inv) => Card(
+                                  child: ListTile(
+                                    leading: const CircleAvatar(
+                                      backgroundColor: Color(0xFFFFF4D6),
+                                      child: Icon(
+                                        Icons.person,
+                                        color: InfraColors.gold,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      inv.investorName ?? 'Investor',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      inv.investmentDate == null
+                                          ? inv.paymentMode
+                                          : DateFormat(
+                                              'dd MMM yyyy',
+                                            ).format(inv.investmentDate!),
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        AmountText(
+                                          paise: inv.amountPaise,
+                                          color: InfraColors.gold,
+                                        ),
+                                        if (permissions.canManageInvestments)
+                                          _EntityMenu(
+                                            onEdit: () =>
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute<void>(
+                                                    builder: (_) =>
+                                                        InvestmentFormScreen(
+                                                          project:
+                                                              widget.project,
+                                                          investment: inv,
+                                                        ),
+                                                  ),
+                                                ),
+                                            onDelete: () => _confirmDelete(
+                                              context,
+                                              ref,
+                                              title: 'Delete investment?',
+                                              message:
+                                                  'Remove ${inv.investorName ?? 'this investment'} '
+                                                  '(${Money.fromPaise(inv.amountPaise).formatInr()})?',
+                                              onConfirm: () async {
+                                                await ref
+                                                    .read(
+                                                      infraRepositoryProvider,
+                                                    )
+                                                    .deleteInvestment(inv.id);
+                                                ref.invalidate(
+                                                  projectInvestmentsProvider(
+                                                    widget.project.id,
+                                                  ),
+                                                );
+                                                ref.invalidate(
+                                                  projectFinancialSummaryProvider(
+                                                    widget.project.id,
+                                                  ),
+                                                );
+                                                ref.invalidate(
+                                                  projectsProvider,
+                                                );
+                                                ref.invalidate(
+                                                  dashboardSummaryProvider,
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ),
-                                onDelete: () => _confirmDelete(
-                                  context,
-                                  ref,
-                                  title: 'Delete investment?',
-                                  message:
-                                      'Remove ${inv.investorName ?? 'this investment'} '
-                                      '(${Money.fromPaise(inv.amountPaise).formatInr()})?',
-                                  onConfirm: () async {
-                                    await ref
-                                        .read(infraRepositoryProvider)
-                                        .deleteInvestment(inv.id);
-                                    ref.invalidate(projectInvestmentsProvider(
-                                        project.id));
-                                    ref.invalidate(
-                                        projectFinancialSummaryProvider(
-                                            project.id));
-                                    ref.invalidate(projectsProvider);
-                                    ref.invalidate(dashboardSummaryProvider);
-                                  },
+                              ),
+                              const SizedBox(height: 8),
+                              Card(
+                                color: InfraColors.navy,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _query.trim().isEmpty
+                                            ? 'Total Investment'
+                                            : 'Filtered Investment',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      Text(
+                                        Money.fromPaise(total).formatInr(),
+                                        style: const TextStyle(
+                                          color: InfraColors.gold,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      )),
-                  const SizedBox(height: 8),
-                  Card(
-                    color: InfraColors.navy,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Total Investment',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900)),
-                          Text(
-                            Money.fromPaise(total).formatInr(),
-                            style: const TextStyle(
-                                color: InfraColors.gold,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ],
               );
@@ -650,132 +1055,247 @@ class _InvestorsTab extends ConsumerWidget {
       ],
     );
   }
+
+  bool _matchesInvestment(ProjectInvestment investment) {
+    return _matchesFinanceSearch([
+      investment.investorName ?? 'Investor',
+      investment.paymentMode,
+      investment.referenceNumber,
+      investment.notes,
+      Money.fromPaise(investment.amountPaise).formatInr(),
+      (investment.amountPaise / 100).toStringAsFixed(2),
+      _searchDate(investment.investmentDate),
+    ], _query);
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Government Funds tab
 // ---------------------------------------------------------------------------
-class _GovtFundsTab extends ConsumerWidget {
+class _GovtFundsTab extends ConsumerStatefulWidget {
   const _GovtFundsTab({required this.project});
 
   final InfraProject project;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final fundsAsync = ref.watch(governmentFundsProvider(project.id));
+  ConsumerState<_GovtFundsTab> createState() => _GovtFundsTabState();
+}
+
+class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _setQuery(String value) => setState(() => _query = value);
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() => _query = '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fundsAsync = ref.watch(governmentFundsProvider(widget.project.id));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
-            onPressed: () =>
-                context.push(AppRoutes.newGovtFund(project.id), extra: project),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Sanctioned Fund'),
-          ),
-        ),
         Expanded(
           child: fundsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => ErrorStateView(
               message: 'Could not load funds: $e',
-              onRetry: () => ref.invalidate(governmentFundsProvider(project.id)),
+              onRetry: () =>
+                  ref.invalidate(governmentFundsProvider(widget.project.id)),
             ),
             data: (funds) {
-              if (funds.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.account_balance_outlined,
-                  title: 'No government funds yet',
-                  message: 'Add a sanctioned fund to track receipts.',
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                itemCount: funds.length,
-                itemBuilder: (context, index) {
-                  final fund = funds[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(fund.departmentName,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w900)),
-                              ),
-                              StatusPill(
-                                label: _fundStatusLabel(fund.status),
-                                dbStatus: _fundStatusDb(fund.status),
-                              ),
-                              _EntityMenu(
-                                onEdit: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => GovtFundFormScreen(
-                                      project: project,
-                                      fund: fund,
-                                    ),
+              final filtered = funds
+                  .where(_matchesFund)
+                  .toList(growable: false);
+              return Column(
+                children: [
+                  _FinanceSearchBar(
+                    controller: _searchController,
+                    hintText: 'Search funds, department, scheme',
+                    query: _query,
+                    totalCount: funds.length,
+                    resultCount: filtered.length,
+                    onChanged: _setQuery,
+                    onClear: _clearSearch,
+                    onAdd: permissions.canManageFunds
+                        ? () => context.push(
+                            AppRoutes.newGovtFund(widget.project.id),
+                            extra: widget.project,
+                          )
+                        : null,
+                  ),
+                  Expanded(
+                    child: funds.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.account_balance_outlined,
+                            title: 'No government funds yet',
+                            message: 'Add a sanctioned fund to track receipts.',
+                          )
+                        : filtered.isEmpty
+                        ? _NoFinanceMatches(
+                            icon: Icons.account_balance_outlined,
+                            title: 'No matching funds',
+                            query: _query,
+                            messageTail:
+                                'Try department, scheme, sanction order, status, or amount.',
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final fund = filtered[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              fund.departmentName,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ),
+                                          StatusPill(
+                                            label: _fundStatusLabel(
+                                              fund.status,
+                                            ),
+                                            dbStatus: _fundStatusDb(
+                                              fund.status,
+                                            ),
+                                          ),
+                                          if (permissions.canManageFunds)
+                                            _EntityMenu(
+                                              onEdit: () =>
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute<void>(
+                                                      builder: (_) =>
+                                                          GovtFundFormScreen(
+                                                            project:
+                                                                widget.project,
+                                                            fund: fund,
+                                                          ),
+                                                    ),
+                                                  ),
+                                              onDelete: () => _confirmDelete(
+                                                context,
+                                                ref,
+                                                title:
+                                                    'Delete government fund?',
+                                                message:
+                                                    'This removes "${fund.departmentName}" and all '
+                                                    'its receipts, and reverses the project totals.',
+                                                onConfirm: () async {
+                                                  await ref
+                                                      .read(
+                                                        infraRepositoryProvider,
+                                                      )
+                                                      .deleteGovernmentFund(
+                                                        fund.id,
+                                                      );
+                                                  ref.invalidate(
+                                                    governmentFundsProvider(
+                                                      widget.project.id,
+                                                    ),
+                                                  );
+                                                  ref.invalidate(
+                                                    projectFinancialSummaryProvider(
+                                                      widget.project.id,
+                                                    ),
+                                                  );
+                                                  ref.invalidate(
+                                                    projectsProvider,
+                                                  );
+                                                  ref.invalidate(
+                                                    dashboardSummaryProvider,
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      if ((fund.schemeName ?? '').isNotEmpty)
+                                        Text(
+                                          fund.schemeName!,
+                                          style: const TextStyle(
+                                            color: InfraColors.textSecondary,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      const SizedBox(height: 8),
+                                      _row(
+                                        'Sanctioned',
+                                        fund.amountSanctionedPaise,
+                                      ),
+                                      _row(
+                                        'Received',
+                                        fund.amountReceivedPaise,
+                                        color: InfraColors.green,
+                                      ),
+                                      _row(
+                                        'Pending',
+                                        fund.pendingAmountPaise,
+                                        color: InfraColors.orange,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      if (permissions.canManageFunds)
+                                        OutlinedButton.icon(
+                                          onPressed: () => context.push(
+                                            AppRoutes.newGovtReceipt(
+                                              widget.project.id,
+                                            ),
+                                            extra: fund,
+                                          ),
+                                          icon: const Icon(Icons.add, size: 18),
+                                          label: const Text('Add Receipt'),
+                                        ),
+                                    ],
                                   ),
                                 ),
-                                onDelete: () => _confirmDelete(
-                                  context,
-                                  ref,
-                                  title: 'Delete government fund?',
-                                  message:
-                                      'This removes "${fund.departmentName}" and all '
-                                      'its receipts, and reverses the project totals.',
-                                  onConfirm: () async {
-                                    await ref
-                                        .read(infraRepositoryProvider)
-                                        .deleteGovernmentFund(fund.id);
-                                    ref.invalidate(
-                                        governmentFundsProvider(project.id));
-                                    ref.invalidate(
-                                        projectFinancialSummaryProvider(
-                                            project.id));
-                                    ref.invalidate(projectsProvider);
-                                    ref.invalidate(dashboardSummaryProvider);
-                                  },
-                                ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
-                          if ((fund.schemeName ?? '').isNotEmpty)
-                            Text(fund.schemeName!,
-                                style: const TextStyle(
-                                    color: InfraColors.textSecondary,
-                                    fontSize: 12)),
-                          const SizedBox(height: 8),
-                          _row('Sanctioned', fund.amountSanctionedPaise),
-                          _row('Received', fund.amountReceivedPaise,
-                              color: InfraColors.green),
-                          _row('Pending', fund.pendingAmountPaise,
-                              color: InfraColors.orange),
-                          const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            onPressed: () => context.push(
-                              AppRoutes.newGovtReceipt(project.id),
-                              extra: fund,
-                            ),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Add Receipt'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                  ),
+                ],
               );
             },
           ),
         ),
       ],
     );
+  }
+
+  bool _matchesFund(GovernmentFund fund) {
+    return _matchesFinanceSearch([
+      fund.departmentName,
+      fund.schemeName,
+      fund.sanctionOrderNumber,
+      fund.notes,
+      _fundStatusLabel(fund.status),
+      Money.fromPaise(fund.amountSanctionedPaise).formatInr(),
+      Money.fromPaise(fund.amountReceivedPaise).formatInr(),
+      Money.fromPaise(fund.pendingAmountPaise).formatInr(),
+      (fund.amountSanctionedPaise / 100).toStringAsFixed(2),
+      (fund.amountReceivedPaise / 100).toStringAsFixed(2),
+      _searchDate(fund.sanctionDate),
+      _searchDate(fund.lastReceivedDate),
+    ], _query);
   }
 
   Widget _row(String label, int paise, {Color? color}) {
@@ -785,153 +1305,243 @@ class _GovtFundsTab extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: InfraColors.textSecondary)),
-          Text(Money.fromPaise(paise).formatInr(),
-              style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: color ?? InfraColors.textPrimary)),
+          Text(
+            Money.fromPaise(paise).formatInr(),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: color ?? InfraColors.textPrimary,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  static String _fundStatusLabel(GovtFundStatus s) => switch (s) {
-        GovtFundStatus.sanctioned => 'Sanctioned',
-        GovtFundStatus.partiallyReceived => 'Partial',
-        GovtFundStatus.fullyReceived => 'Received',
-        GovtFundStatus.delayed => 'Delayed',
-        GovtFundStatus.cancelled => 'Cancelled',
-      };
+  String _fundStatusLabel(GovtFundStatus s) => switch (s) {
+    GovtFundStatus.sanctioned => 'Sanctioned',
+    GovtFundStatus.partiallyReceived => 'Partial',
+    GovtFundStatus.fullyReceived => 'Received',
+    GovtFundStatus.delayed => 'Delayed',
+    GovtFundStatus.cancelled => 'Cancelled',
+  };
 
-  static String _fundStatusDb(GovtFundStatus s) => switch (s) {
-        GovtFundStatus.sanctioned => 'sanctioned',
-        GovtFundStatus.partiallyReceived => 'partially_received',
-        GovtFundStatus.fullyReceived => 'fully_received',
-        GovtFundStatus.delayed => 'delayed',
-        GovtFundStatus.cancelled => 'cancelled',
-      };
+  String _fundStatusDb(GovtFundStatus s) => switch (s) {
+    GovtFundStatus.sanctioned => 'sanctioned',
+    GovtFundStatus.partiallyReceived => 'partially_received',
+    GovtFundStatus.fullyReceived => 'fully_received',
+    GovtFundStatus.delayed => 'delayed',
+    GovtFundStatus.cancelled => 'cancelled',
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Expenses tab
 // ---------------------------------------------------------------------------
-class _ExpensesTab extends ConsumerWidget {
+class _ExpensesTab extends ConsumerStatefulWidget {
   const _ExpensesTab({required this.project});
 
   final InfraProject project;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final expensesAsync = ref.watch(projectExpensesProvider(project.id));
+  ConsumerState<_ExpensesTab> createState() => _ExpensesTabState();
+}
+
+class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _setQuery(String value) => setState(() => _query = value);
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() => _query = '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final expensesAsync = ref.watch(projectExpensesProvider(widget.project.id));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
-            onPressed: () =>
-                context.push(AppRoutes.newExpense(project.id), extra: project),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Expense'),
-          ),
-        ),
         Expanded(
           child: expensesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => ErrorStateView(
               message: 'Could not load expenses: $e',
-              onRetry: () => ref.invalidate(projectExpensesProvider(project.id)),
+              onRetry: () =>
+                  ref.invalidate(projectExpensesProvider(widget.project.id)),
             ),
             data: (expenses) {
-              if (expenses.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'No expenses yet',
-                  message: 'Record material, labor, and other project costs.',
-                );
-              }
-              final total =
-                  expenses.fold<int>(0, (sum, e) => sum + e.amountPaise);
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+              final filtered = expenses
+                  .where(_matchesExpense)
+                  .toList(growable: false);
+              final total = filtered.fold<int>(
+                0,
+                (sum, e) => sum + e.amountPaise,
+              );
+              return Column(
                 children: [
-                  Card(
-                    color: InfraColors.navy,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Total Expenses',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900)),
-                          Text(Money.fromPaise(total).formatInr(),
-                              style: const TextStyle(
-                                  color: InfraColors.gold,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16)),
-                        ],
-                      ),
-                    ),
+                  _FinanceSearchBar(
+                    controller: _searchController,
+                    hintText: 'Search expenses, vendor, category',
+                    query: _query,
+                    totalCount: expenses.length,
+                    resultCount: filtered.length,
+                    onChanged: _setQuery,
+                    onClear: _clearSearch,
+                    onAdd: permissions.canAddExpense
+                        ? () => context.push(
+                            AppRoutes.newExpense(widget.project.id),
+                            extra: widget.project,
+                          )
+                        : null,
                   ),
-                  const SizedBox(height: 8),
-                  ...expenses.map((e) => Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                InfraColors.royalBlue.withValues(alpha: 0.1),
-                            child: const Icon(Icons.receipt_long_outlined,
-                                color: InfraColors.royalBlue),
-                          ),
-                          title: Text(e.category,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800)),
-                          subtitle: Text([
-                            if ((e.vendorName ?? '').isNotEmpty) e.vendorName,
-                            if (e.expenseDate != null)
-                              DateFormat('dd MMM yyyy').format(e.expenseDate!),
-                          ].whereType<String>().join(' · ')),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: expenses.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.receipt_long_outlined,
+                            title: 'No expenses yet',
+                            message:
+                                'Record material, labor, and other project costs.',
+                          )
+                        : filtered.isEmpty
+                        ? _NoFinanceMatches(
+                            icon: Icons.receipt_long_outlined,
+                            title: 'No matching expenses',
+                            query: _query,
+                            messageTail:
+                                'Try vendor, category, payment mode, bill number, or amount.',
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                             children: [
-                              AmountText(
-                                paise: e.amountPaise,
-                                color: InfraColors.red,
-                              ),
-                              _EntityMenu(
-                                onEdit: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => ExpenseFormScreen(
-                                      project: project,
-                                      expense: e,
-                                    ),
+                              Card(
+                                color: InfraColors.navy,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _query.trim().isEmpty
+                                            ? 'Total Expenses'
+                                            : 'Filtered Expenses',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      Text(
+                                        Money.fromPaise(total).formatInr(),
+                                        style: const TextStyle(
+                                          color: InfraColors.gold,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                onDelete: () => _confirmDelete(
-                                  context,
-                                  ref,
-                                  title: 'Delete expense?',
-                                  message:
-                                      'Remove ${e.category} '
-                                      '(${Money.fromPaise(e.amountPaise).formatInr()})?',
-                                  onConfirm: () async {
-                                    await ref
-                                        .read(infraRepositoryProvider)
-                                        .deleteExpense(e.id);
-                                    ref.invalidate(
-                                        projectExpensesProvider(project.id));
-                                    ref.invalidate(
-                                        projectFinancialSummaryProvider(
-                                            project.id));
-                                    ref.invalidate(projectsProvider);
-                                    ref.invalidate(dashboardSummaryProvider);
-                                  },
+                              ),
+                              const SizedBox(height: 8),
+                              ...filtered.map(
+                                (e) => Card(
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: InfraColors.royalBlue
+                                          .withValues(alpha: 0.1),
+                                      child: const Icon(
+                                        Icons.receipt_long_outlined,
+                                        color: InfraColors.royalBlue,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      e.category,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      [
+                                        if ((e.vendorName ?? '').isNotEmpty)
+                                          e.vendorName,
+                                        if (e.expenseDate != null)
+                                          DateFormat(
+                                            'dd MMM yyyy',
+                                          ).format(e.expenseDate!),
+                                      ].whereType<String>().join(' · '),
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        AmountText(
+                                          paise: e.amountPaise,
+                                          color: InfraColors.red,
+                                        ),
+                                        _EntityMenu(
+                                          onEdit: permissions.canEditExpense(e)
+                                              ? () =>
+                                                    Navigator.of(context).push(
+                                                      MaterialPageRoute<void>(
+                                                        builder: (_) =>
+                                                            ExpenseFormScreen(
+                                                              project: widget
+                                                                  .project,
+                                                              expense: e,
+                                                            ),
+                                                      ),
+                                                    )
+                                              : null,
+                                          onDelete: permissions.canDeleteExpense
+                                              ? () => _confirmDelete(
+                                                  context,
+                                                  ref,
+                                                  title: 'Delete expense?',
+                                                  message:
+                                                      'Remove ${e.category} '
+                                                      '(${Money.fromPaise(e.amountPaise).formatInr()})?',
+                                                  onConfirm: () async {
+                                                    await ref
+                                                        .read(
+                                                          infraRepositoryProvider,
+                                                        )
+                                                        .deleteExpense(e.id);
+                                                    ref.invalidate(
+                                                      projectExpensesProvider(
+                                                        widget.project.id,
+                                                      ),
+                                                    );
+                                                    ref.invalidate(
+                                                      projectFinancialSummaryProvider(
+                                                        widget.project.id,
+                                                      ),
+                                                    );
+                                                    ref.invalidate(
+                                                      projectsProvider,
+                                                    );
+                                                    ref.invalidate(
+                                                      dashboardSummaryProvider,
+                                                    );
+                                                  },
+                                                )
+                                              : null,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      )),
+                  ),
                 ],
               );
             },
@@ -939,6 +1549,19 @@ class _ExpensesTab extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  bool _matchesExpense(ProjectExpense expense) {
+    return _matchesFinanceSearch([
+      expense.vendorName,
+      expense.category,
+      expense.paymentMode,
+      expense.billNumber,
+      expense.notes,
+      Money.fromPaise(expense.amountPaise).formatInr(),
+      (expense.amountPaise / 100).toStringAsFixed(2),
+      _searchDate(expense.expenseDate),
+    ], _query);
   }
 }
 
@@ -956,8 +1579,10 @@ class _ReportsTab extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       children: [
         FilledButton.icon(
-          onPressed: () => context.push(AppRoutes.projectReports(project.id),
-              extra: project),
+          onPressed: () => context.push(
+            AppRoutes.projectReports(project.id),
+            extra: project,
+          ),
           icon: const Icon(Icons.picture_as_pdf_outlined),
           label: const Text('Open Project Reports'),
         ),
@@ -979,38 +1604,43 @@ class _ReportsTab extends StatelessWidget {
 
 /// Compact 3-dot menu with Edit / Delete actions used on finance rows.
 class _EntityMenu extends StatelessWidget {
-  const _EntityMenu({required this.onEdit, required this.onDelete});
+  const _EntityMenu({this.onEdit, this.onDelete});
 
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
+    if (onEdit == null && onDelete == null) {
+      return const SizedBox.shrink();
+    }
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert, size: 20),
       onSelected: (value) {
-        if (value == 'edit') onEdit();
-        if (value == 'delete') onDelete();
+        if (value == 'edit') onEdit?.call();
+        if (value == 'delete') onDelete?.call();
       },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'edit',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_outlined),
-            title: Text('Edit'),
+      itemBuilder: (context) => [
+        if (onEdit != null)
+          const PopupMenuItem(
+            value: 'edit',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.edit_outlined),
+              title: Text('Edit'),
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.delete_outline, color: InfraColors.red),
-            title: Text('Delete'),
+        if (onDelete != null)
+          const PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.delete_outline, color: InfraColors.red),
+              title: Text('Delete'),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -1048,8 +1678,6 @@ Future<void> _confirmDelete(
     await onConfirm();
     messenger.showSnackBar(const SnackBar(content: Text('Deleted.')));
   } catch (error) {
-    messenger.showSnackBar(
-      SnackBar(content: Text('Could not delete: $error')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text('Could not delete: $error')));
   }
 }
