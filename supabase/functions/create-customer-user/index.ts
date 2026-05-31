@@ -291,6 +291,14 @@ async function deleteCustomer(
     return json({ error: error.message }, 500);
   }
 
+  const { error: deleteUserError } = await adminClient.auth.admin.deleteUser(
+    membership.customer.user_id,
+    true,
+  );
+  if (deleteUserError) {
+    return json({ error: deleteUserError.message }, 500);
+  }
+
   return json({
     user_id: membership.customer.user_id,
     membership_id: membership.customer.id,

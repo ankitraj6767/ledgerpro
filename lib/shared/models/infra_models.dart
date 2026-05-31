@@ -98,6 +98,7 @@ class ExpenseCategories {
     'Site Office',
     'Fuel',
     'Miscellaneous',
+    'Other',
   ];
 }
 

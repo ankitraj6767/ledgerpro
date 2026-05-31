@@ -259,6 +259,8 @@ class _CustomerList extends ConsumerWidget {
                     tooltip: 'Customer actions',
                     onSelected: (action) {
                       switch (action) {
+                        case _CustomerAction.projects:
+                          _showProjectAssignments(context, ref, entry.$2);
                         case _CustomerAction.edit:
                           _showEditCustomer(context, ref, entry.$2);
                         case _CustomerAction.delete:
@@ -266,6 +268,14 @@ class _CustomerList extends ConsumerWidget {
                       }
                     },
                     itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: _CustomerAction.projects,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.assignment_outlined),
+                          title: Text('Projects'),
+                        ),
+                      ),
                       PopupMenuItem(
                         value: _CustomerAction.edit,
                         child: ListTile(
@@ -464,6 +474,124 @@ class _CustomerList extends ConsumerWidget {
     }
   }
 
+  Future<void> _showProjectAssignments(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerMember customer,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repo = ref.read(infraRepositoryProvider);
+    final org = await ref.read(infraWorkspaceProvider.future);
+    final projects = await ref.read(projectsProvider.future);
+    final assignedIds = await repo.fetchCustomerProjectAssignments(
+      organizationId: org.id,
+      customerUserId: customer.userId,
+    );
+    if (!context.mounted) return;
+
+    final selected = assignedIds.toSet();
+    var saving = false;
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> save() async {
+            setDialogState(() => saving = true);
+            try {
+              await repo.setCustomerProjectAssignments(
+                organizationId: org.id,
+                customerUserId: customer.userId,
+                projectIds: selected.toList(),
+              );
+              if (dialogContext.mounted) Navigator.of(dialogContext).pop(true);
+            } catch (error) {
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Could not assign projects: ${_clean(error)}',
+                    ),
+                  ),
+                );
+              }
+            } finally {
+              if (dialogContext.mounted) {
+                setDialogState(() => saving = false);
+              }
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Assign projects'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: projects.isEmpty
+                  ? const Text('No projects available.')
+                  : ListView(
+                      shrinkWrap: true,
+                      children: [
+                        for (final project in projects)
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: selected.contains(project.id),
+                            title: Text(project.name),
+                            subtitle: Text(
+                              [
+                                if ((project.locationCity ?? '').isNotEmpty)
+                                  project.locationCity,
+                                if ((project.locationState ?? '').isNotEmpty)
+                                  project.locationState,
+                              ].whereType<String>().join(', '),
+                            ),
+                            onChanged: saving
+                                ? null
+                                : (checked) {
+                                    setDialogState(() {
+                                      if (checked ?? false) {
+                                        selected.add(project.id);
+                                      } else {
+                                        selected.remove(project.id);
+                                      }
+                                    });
+                                  },
+                          ),
+                      ],
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                onPressed: saving ? null : save,
+                icon: saving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.assignment_turned_in_outlined),
+                label: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (saved == true && context.mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Projects assigned to ${customer.fullName ?? customer.email ?? 'customer'}.',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _confirmDeleteCustomer(
     BuildContext context,
     WidgetRef ref,
@@ -475,8 +603,9 @@ class _CustomerList extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete customer?'),
         content: Text(
-          'This will remove $label from this organization. The auth account is '
-          'kept so it can be restored later if needed.',
+          'This will remove $label from this organization and disable their '
+          'login. Existing app access will stop when their current session '
+          'expires or refreshes.',
         ),
         actions: [
           TextButton(
@@ -536,4 +665,4 @@ class _CustomerList extends ConsumerWidget {
   }
 }
 
-enum _CustomerAction { edit, delete }
+enum _CustomerAction { projects, edit, delete }

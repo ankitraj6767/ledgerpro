@@ -255,6 +255,39 @@ class InfraRepository {
     );
   }
 
+  Future<List<String>> fetchCustomerProjectAssignments({
+    required String organizationId,
+    required String customerUserId,
+  }) async {
+    final rows = await _client.rpc(
+      'list_customer_project_assignments',
+      params: {
+        'p_organization_id': organizationId,
+        'p_customer_user_id': customerUserId,
+      },
+    );
+    return (rows as List)
+        .map<String>(
+          (raw) => Map<String, dynamic>.from(raw)['project_id'] as String,
+        )
+        .toList();
+  }
+
+  Future<void> setCustomerProjectAssignments({
+    required String organizationId,
+    required String customerUserId,
+    required List<String> projectIds,
+  }) async {
+    await _client.rpc(
+      'set_customer_project_assignments',
+      params: {
+        'p_organization_id': organizationId,
+        'p_customer_user_id': customerUserId,
+        'p_project_ids': projectIds,
+      },
+    );
+  }
+
   // --------------------------------------------------------------------------
   // Dashboard / summaries
   // --------------------------------------------------------------------------

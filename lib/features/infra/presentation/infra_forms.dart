@@ -262,6 +262,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   final _amount = TextEditingController();
   final _vendor = TextEditingController();
   final _billNumber = TextEditingController();
+  final _otherCategory = TextEditingController();
   final _notes = TextEditingController();
   String _category = ExpenseCategories.values.first;
   String _paymentMode = 'cash';
@@ -281,6 +282,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       _notes.text = e.notes ?? '';
       if (ExpenseCategories.values.contains(e.category)) {
         _category = e.category;
+      } else {
+        _category = 'Other';
+        _otherCategory.text = e.category;
       }
       _paymentMode = e.paymentMode;
       _date = e.expenseDate ?? DateTime.now();
@@ -292,6 +296,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     _amount.dispose();
     _vendor.dispose();
     _billNumber.dispose();
+    _otherCategory.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -326,6 +331,14 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 .toList(),
             onChanged: (v) => setState(() => _category = v ?? _category),
           ),
+          if (_category == 'Other') ...[
+            const SizedBox(height: 12),
+            _plainField(
+              _otherCategory,
+              'Other category',
+              Icons.edit_note_outlined,
+            ),
+          ],
           const SizedBox(height: 12),
           _amountField(_amount, 'Amount (₹)'),
           const SizedBox(height: 12),
@@ -369,6 +382,15 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       );
       return;
     }
+    final category = _category == 'Other'
+        ? _otherCategory.text.trim()
+        : _category;
+    if (category.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Enter the other category name.')),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       final repo = ref.read(infraRepositoryProvider);
@@ -380,7 +402,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       if (_isEditing) {
         await repo.updateExpense(
           expenseId: widget.expense!.id,
-          category: _category,
+          category: category,
           amountPaise: amount,
           vendorName: vendor,
           date: _date,
@@ -391,7 +413,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       } else {
         await repo.addExpense(
           projectId: widget.project.id,
-          category: _category,
+          category: category,
           amountPaise: amount,
           vendorName: vendor,
           date: _date,
