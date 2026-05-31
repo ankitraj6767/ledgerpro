@@ -39,23 +39,26 @@ class GlobalExpensesScreen extends ConsumerWidget {
                 style: TextStyle(color: InfraColors.textSecondary),
               ),
               const SizedBox(height: 12),
-              ...projects.map((p) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.business_outlined,
-                          color: InfraColors.royalBlue),
-                      title: Text(p.name,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w800)),
-                      subtitle: Text(
-                        'Total expenses: ₹${(p.totalExpensePaise / 100).toStringAsFixed(2)}',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push(
-                        AppRoutes.projectDetail(p.id),
-                        extra: p,
-                      ),
+              ...projects.map(
+                (p) => Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.business_outlined,
+                      color: InfraColors.royalBlue,
                     ),
-                  )),
+                    title: Text(
+                      p.name,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: Text(
+                      'Total expenses: ₹${(p.totalExpensePaise / 100).toStringAsFixed(2)}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () =>
+                        context.push(AppRoutes.projectDetail(p.id), extra: p),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -90,25 +93,29 @@ class GlobalReportsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text('Project reports',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900, fontSize: 16)),
+              const Text(
+                'Project reports',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
               const SizedBox(height: 12),
-              ...projects.map((p) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.picture_as_pdf_outlined,
-                          color: InfraColors.royalBlue),
-                      title: Text(p.name,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w800)),
-                      subtitle: const Text('PDF · CSV'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push(
-                        AppRoutes.projectReports(p.id),
-                        extra: p,
-                      ),
+              ...projects.map(
+                (p) => Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.picture_as_pdf_outlined,
+                      color: InfraColors.royalBlue,
                     ),
-                  )),
+                    title: Text(
+                      p.name,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: const Text('PDF · CSV'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () =>
+                        context.push(AppRoutes.projectReports(p.id), extra: p),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -124,6 +131,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orgAsync = ref.watch(organizationProfileProvider);
+    final permissions = ref.watch(currentOrgPermissionsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
@@ -147,11 +155,16 @@ class ProfileScreen extends ConsumerWidget {
                         Text(
                           orgAsync.value?.name ?? AppConstants.appName,
                           style: const TextStyle(
-                              fontWeight: FontWeight.w900, fontSize: 18),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                          ),
                         ),
-                        Text(orgAsync.value?.ownerName ?? 'Owner',
-                            style: const TextStyle(
-                                color: InfraColors.textSecondary)),
+                        Text(
+                          orgAsync.value?.ownerName ?? 'Owner',
+                          style: const TextStyle(
+                            color: InfraColors.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -160,12 +173,33 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _tile(context, Icons.settings_outlined, 'Settings',
-              AppRoutes.settings),
-          _tile(context, Icons.manage_search_outlined, 'Audit logs',
-              AppRoutes.auditLogs),
-          _tile(context, Icons.sync_outlined, 'Sync queue',
-              AppRoutes.syncQueue),
+          if (permissions.canEditSettings)
+            _tile(
+              context,
+              Icons.settings_outlined,
+              'Settings',
+              AppRoutes.settings,
+            ),
+          if (permissions.canManageUsers)
+            _tile(
+              context,
+              Icons.group_outlined,
+              'Customers',
+              AppRoutes.customers,
+            ),
+          if (permissions.canViewAuditLogs)
+            _tile(
+              context,
+              Icons.manage_search_outlined,
+              'Audit logs',
+              AppRoutes.auditLogs,
+            ),
+          _tile(
+            context,
+            Icons.sync_outlined,
+            'Sync queue',
+            AppRoutes.syncQueue,
+          ),
           _tile(context, Icons.lock_outline, 'App lock', AppRoutes.appLock),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -183,7 +217,11 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _tile(
-      BuildContext context, IconData icon, String label, String route) {
+    BuildContext context,
+    IconData icon,
+    String label,
+    String route,
+  ) {
     return Card(
       child: ListTile(
         leading: Icon(icon, color: InfraColors.navy),

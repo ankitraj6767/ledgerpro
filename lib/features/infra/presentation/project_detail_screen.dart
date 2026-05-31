@@ -25,16 +25,14 @@ class ProjectDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(projectsProvider);
-    final project = projectsAsync.value
-            ?.where((p) => p.id == projectId)
-            .firstOrNull ??
+    final project =
+        projectsAsync.value?.where((p) => p.id == projectId).firstOrNull ??
         initialProject;
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     if (project == null) {
       if (projectsAsync.isLoading) {
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       return Scaffold(
         appBar: AppBar(title: const Text('Project')),
@@ -52,28 +50,43 @@ class ProjectDetailScreen extends ConsumerWidget {
         appBar: AppBar(
           title: const Text('Project Details'),
           actions: [
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') {
-                  context.push(AppRoutes.editProject(project.id),
-                      extra: project);
-                } else if (value == 'progress') {
-                  _showProgressDialog(context, ref, project);
-                } else if (value == 'delete') {
-                  _confirmDeleteProject(context, ref, project);
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit project')),
-                PopupMenuItem(
-                    value: 'progress', child: Text('Update progress')),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete project',
-                      style: TextStyle(color: InfraColors.red)),
-                ),
-              ],
-            ),
+            if (permissions.canManageProjects || permissions.canUpdateProgress)
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit' && permissions.canManageProjects) {
+                    context.push(
+                      AppRoutes.editProject(project.id),
+                      extra: project,
+                    );
+                  } else if (value == 'progress' &&
+                      permissions.canUpdateProgress) {
+                    _showProgressDialog(context, ref, project);
+                  } else if (value == 'delete' &&
+                      permissions.canManageProjects) {
+                    _confirmDeleteProject(context, ref, project);
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (permissions.canManageProjects)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Edit project'),
+                    ),
+                  if (permissions.canUpdateProgress)
+                    const PopupMenuItem(
+                      value: 'progress',
+                      child: Text('Update progress'),
+                    ),
+                  if (permissions.canManageProjects)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete project',
+                        style: TextStyle(color: InfraColors.red),
+                      ),
+                    ),
+                ],
+              ),
           ],
           bottom: const TabBar(
             isScrollable: true,
@@ -115,8 +128,9 @@ class ProjectDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     InfraProject project,
   ) async {
-    final controller =
-        TextEditingController(text: project.progressPercent.toString());
+    final controller = TextEditingController(
+      text: project.progressPercent.toString(),
+    );
     final messenger = ScaffoldMessenger.of(context);
     final result = await showDialog<int>(
       context: context,
@@ -153,7 +167,9 @@ class ProjectDetailScreen extends ConsumerWidget {
       return;
     }
     try {
-      await ref.read(infraRepositoryProvider).updateProgress(project.id, result);
+      await ref
+          .read(infraRepositoryProvider)
+          .updateProgress(project.id, result);
       ref.invalidate(projectsProvider);
       messenger.showSnackBar(
         const SnackBar(content: Text('Progress updated.')),
@@ -224,9 +240,10 @@ class _ProjectHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFmt = DateFormat('dd MMM yyyy');
-    final location = [project.locationCity, project.locationState]
-        .where((e) => (e ?? '').isNotEmpty)
-        .join(', ');
+    final location = [
+      project.locationCity,
+      project.locationState,
+    ].where((e) => (e ?? '').isNotEmpty).join(', ');
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
@@ -247,7 +264,10 @@ class _ProjectHeaderCard extends StatelessWidget {
                   color: InfraColors.royalBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.apartment, color: InfraColors.royalBlue),
+                child: const Icon(
+                  Icons.apartment,
+                  color: InfraColors.royalBlue,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -264,12 +284,18 @@ class _ProjectHeaderCard extends StatelessWidget {
                     if (location.isNotEmpty)
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined,
-                              size: 14, color: InfraColors.textSecondary),
-                          Text(location,
-                              style: const TextStyle(
-                                  color: InfraColors.textSecondary,
-                                  fontSize: 12)),
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 14,
+                            color: InfraColors.textSecondary,
+                          ),
+                          Text(
+                            location,
+                            style: const TextStyle(
+                              color: InfraColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                   ],
@@ -303,31 +329,36 @@ class _ProjectHeaderCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 10, color: InfraColors.textSecondary)),
-        Text(value,
-            style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w800)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: InfraColors.textSecondary,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        ),
       ],
     );
   }
 
   static String _statusLabel(InfraProjectStatus s) => switch (s) {
-        InfraProjectStatus.planning => 'Planning',
-        InfraProjectStatus.active => 'Active',
-        InfraProjectStatus.onHold => 'On Hold',
-        InfraProjectStatus.completed => 'Completed',
-        InfraProjectStatus.cancelled => 'Cancelled',
-      };
+    InfraProjectStatus.planning => 'Planning',
+    InfraProjectStatus.active => 'Active',
+    InfraProjectStatus.onHold => 'On Hold',
+    InfraProjectStatus.completed => 'Completed',
+    InfraProjectStatus.cancelled => 'Cancelled',
+  };
 
   static String _statusDb(InfraProjectStatus s) => switch (s) {
-        InfraProjectStatus.planning => 'planning',
-        InfraProjectStatus.active => 'active',
-        InfraProjectStatus.onHold => 'on_hold',
-        InfraProjectStatus.completed => 'completed',
-        InfraProjectStatus.cancelled => 'cancelled',
-      };
+    InfraProjectStatus.planning => 'planning',
+    InfraProjectStatus.active => 'active',
+    InfraProjectStatus.onHold => 'on_hold',
+    InfraProjectStatus.completed => 'completed',
+    InfraProjectStatus.cancelled => 'cancelled',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -340,9 +371,9 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summaryAsync =
-        ref.watch(projectFinancialSummaryProvider(project.id));
+    final summaryAsync = ref.watch(projectFinancialSummaryProvider(project.id));
     final expensesAsync = ref.watch(projectExpensesProvider(project.id));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
@@ -361,10 +392,16 @@ class _OverviewTab extends ConsumerWidget {
             data: (s) => Column(
               children: [
                 _kv('Amount Sanctioned', s.totalGovtSanctionedPaise),
-                _kv('Received Till Date', s.totalGovtReceivedPaise,
-                    color: InfraColors.green),
-                _kv('Pending Amount', s.pendingGovtPaise,
-                    color: InfraColors.orange),
+                _kv(
+                  'Received Till Date',
+                  s.totalGovtReceivedPaise,
+                  color: InfraColors.green,
+                ),
+                _kv(
+                  'Pending Amount',
+                  s.pendingGovtPaise,
+                  color: InfraColors.orange,
+                ),
               ],
             ),
           ),
@@ -378,13 +415,23 @@ class _OverviewTab extends ConsumerWidget {
             error: (e, _) => Text('Error: $e'),
             data: (s) => Column(
               children: [
-                _kv('Total Investment', s.totalInvestmentPaise,
-                    color: InfraColors.gold),
-                _kv('Total Expenses', s.totalExpensePaise,
-                    color: InfraColors.red),
+                _kv(
+                  'Total Investment',
+                  s.totalInvestmentPaise,
+                  color: InfraColors.gold,
+                ),
+                _kv(
+                  'Total Expenses',
+                  s.totalExpensePaise,
+                  color: InfraColors.red,
+                ),
                 const Divider(),
-                _kv('Available Balance', s.availableBalancePaise,
-                    color: InfraColors.royalBlue, bold: true),
+                _kv(
+                  'Available Balance',
+                  s.availableBalancePaise,
+                  color: InfraColors.royalBlue,
+                  bold: true,
+                ),
               ],
             ),
           ),
@@ -412,19 +459,21 @@ class _OverviewTab extends ConsumerWidget {
                 ..sort((a, b) => b.value.compareTo(a.value));
               final slices = <DonutSlice>[];
               for (var i = 0; i < entries.length; i++) {
-                slices.add(DonutSlice(
-                  label: entries[i].key,
-                  amountPaise: entries[i].value,
-                  color: DonutExpenseChart
-                      .palette[i % DonutExpenseChart.palette.length],
-                ));
+                slices.add(
+                  DonutSlice(
+                    label: entries[i].key,
+                    amountPaise: entries[i].value,
+                    color: DonutExpenseChart
+                        .palette[i % DonutExpenseChart.palette.length],
+                  ),
+                );
               }
               return DonutExpenseChart(slices: slices);
             },
           ),
         ),
         const SizedBox(height: 12),
-        _QuickActions(project: project),
+        _QuickActions(project: project, permissions: permissions),
       ],
     );
   }
@@ -435,10 +484,13 @@ class _OverviewTab extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: InfraColors.textSecondary,
-                  fontWeight: bold ? FontWeight.w900 : FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              color: InfraColors.textSecondary,
+              fontWeight: bold ? FontWeight.w900 : FontWeight.w500,
+            ),
+          ),
           Text(
             Money.fromPaise(paise).formatInr(),
             style: TextStyle(
@@ -453,58 +505,70 @@ class _OverviewTab extends ConsumerWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.project});
+  const _QuickActions({required this.project, required this.permissions});
 
   final InfraProject project;
+  final OrgPermissions permissions;
 
   @override
   Widget build(BuildContext context) {
+    final actions = <Widget>[
+      if (permissions.canAddExpense)
+        QuickActionCard(
+          icon: Icons.add_card_outlined,
+          label: 'Add Expense',
+          color: InfraColors.royalBlue,
+          onTap: () =>
+              context.push(AppRoutes.newExpense(project.id), extra: project),
+        ),
+      if (permissions.canManageFunds)
+        QuickActionCard(
+          icon: Icons.account_balance_outlined,
+          label: 'Add Fund',
+          color: InfraColors.green,
+          onTap: () =>
+              context.push(AppRoutes.newGovtFund(project.id), extra: project),
+        ),
+      if (permissions.canManageInvestments)
+        QuickActionCard(
+          icon: Icons.savings_outlined,
+          label: 'Add Investment',
+          color: InfraColors.gold,
+          onTap: () =>
+              context.push(AppRoutes.newInvestment(project.id), extra: project),
+        ),
+      if (permissions.canAddNotes)
+        QuickActionCard(
+          icon: Icons.note_add_outlined,
+          label: 'Add Note',
+          color: InfraColors.orange,
+          onTap: () => _addNote(context, project),
+        ),
+    ];
+
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Quick Actions',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+            const Text(
+              'Quick Actions',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+            ),
             const SizedBox(height: 12),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  QuickActionCard(
-                    icon: Icons.add_card_outlined,
-                    label: 'Add Expense',
-                    color: InfraColors.royalBlue,
-                    onTap: () =>
-                        context.push(AppRoutes.newExpense(project.id),
-                            extra: project),
-                  ),
-                  const SizedBox(width: 10),
-                  QuickActionCard(
-                    icon: Icons.account_balance_outlined,
-                    label: 'Add Fund',
-                    color: InfraColors.green,
-                    onTap: () =>
-                        context.push(AppRoutes.newGovtFund(project.id),
-                            extra: project),
-                  ),
-                  const SizedBox(width: 10),
-                  QuickActionCard(
-                    icon: Icons.savings_outlined,
-                    label: 'Add Investment',
-                    color: InfraColors.gold,
-                    onTap: () =>
-                        context.push(AppRoutes.newInvestment(project.id),
-                            extra: project),
-                  ),
-                  const SizedBox(width: 10),
-                  QuickActionCard(
-                    icon: Icons.note_add_outlined,
-                    label: 'Add Note',
-                    color: InfraColors.orange,
-                    onTap: () => _addNote(context, project),
-                  ),
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 10),
+                    actions[i],
+                  ],
                 ],
               ),
             ),
@@ -530,19 +594,22 @@ class _InvestorsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final investmentsAsync = ref.watch(projectInvestmentsProvider(project.id));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
-            onPressed: () =>
-                context.push(AppRoutes.newInvestment(project.id),
-                    extra: project),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Investment'),
+        if (permissions.canManageInvestments)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: FilledButton.icon(
+              onPressed: () => context.push(
+                AppRoutes.newInvestment(project.id),
+                extra: project,
+              ),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Investment'),
+            ),
           ),
-        ),
         Expanded(
           child: investmentsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -560,31 +627,38 @@ class _InvestorsTab extends ConsumerWidget {
                 );
               }
               final total = investments.fold<int>(
-                  0, (sum, i) => sum + i.amountPaise);
+                0,
+                (sum, i) => sum + i.amountPaise,
+              );
               return ListView(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                 children: [
-                  ...investments.map((inv) => Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Color(0xFFFFF4D6),
-                            child: Icon(Icons.person,
-                                color: InfraColors.gold),
-                          ),
-                          title: Text(inv.investorName ?? 'Investor',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800)),
-                          subtitle: Text(inv.investmentDate == null
+                  ...investments.map(
+                    (inv) => Card(
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Color(0xFFFFF4D6),
+                          child: Icon(Icons.person, color: InfraColors.gold),
+                        ),
+                        title: Text(
+                          inv.investorName ?? 'Investor',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          inv.investmentDate == null
                               ? inv.paymentMode
-                              : DateFormat('dd MMM yyyy')
-                                  .format(inv.investmentDate!)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AmountText(
-                                paise: inv.amountPaise,
-                                color: InfraColors.gold,
-                              ),
+                              : DateFormat(
+                                  'dd MMM yyyy',
+                                ).format(inv.investmentDate!),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AmountText(
+                              paise: inv.amountPaise,
+                              color: InfraColors.gold,
+                            ),
+                            if (permissions.canManageInvestments)
                               _EntityMenu(
                                 onEdit: () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
@@ -605,20 +679,24 @@ class _InvestorsTab extends ConsumerWidget {
                                     await ref
                                         .read(infraRepositoryProvider)
                                         .deleteInvestment(inv.id);
-                                    ref.invalidate(projectInvestmentsProvider(
-                                        project.id));
                                     ref.invalidate(
-                                        projectFinancialSummaryProvider(
-                                            project.id));
+                                      projectInvestmentsProvider(project.id),
+                                    );
+                                    ref.invalidate(
+                                      projectFinancialSummaryProvider(
+                                        project.id,
+                                      ),
+                                    );
                                     ref.invalidate(projectsProvider);
                                     ref.invalidate(dashboardSummaryProvider);
                                   },
                                 ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
-                      )),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Card(
                     color: InfraColors.navy,
@@ -627,16 +705,20 @@ class _InvestorsTab extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Total Investment',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900)),
+                          const Text(
+                            'Total Investment',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                           Text(
                             Money.fromPaise(total).formatInr(),
                             style: const TextStyle(
-                                color: InfraColors.gold,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16),
+                              color: InfraColors.gold,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
@@ -663,24 +745,29 @@ class _GovtFundsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fundsAsync = ref.watch(governmentFundsProvider(project.id));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
-            onPressed: () =>
-                context.push(AppRoutes.newGovtFund(project.id), extra: project),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Sanctioned Fund'),
+        if (permissions.canManageFunds)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: FilledButton.icon(
+              onPressed: () => context.push(
+                AppRoutes.newGovtFund(project.id),
+                extra: project,
+              ),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Sanctioned Fund'),
+            ),
           ),
-        ),
         Expanded(
           child: fundsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => ErrorStateView(
               message: 'Could not load funds: $e',
-              onRetry: () => ref.invalidate(governmentFundsProvider(project.id)),
+              onRetry: () =>
+                  ref.invalidate(governmentFundsProvider(project.id)),
             ),
             data: (funds) {
               if (funds.isEmpty) {
@@ -705,66 +792,83 @@ class _GovtFundsTab extends ConsumerWidget {
                           Row(
                             children: [
                               Expanded(
-                                child: Text(fund.departmentName,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w900)),
+                                child: Text(
+                                  fund.departmentName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
                               StatusPill(
                                 label: _fundStatusLabel(fund.status),
                                 dbStatus: _fundStatusDb(fund.status),
                               ),
-                              _EntityMenu(
-                                onEdit: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => GovtFundFormScreen(
-                                      project: project,
-                                      fund: fund,
+                              if (permissions.canManageFunds)
+                                _EntityMenu(
+                                  onEdit: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => GovtFundFormScreen(
+                                        project: project,
+                                        fund: fund,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                onDelete: () => _confirmDelete(
-                                  context,
-                                  ref,
-                                  title: 'Delete government fund?',
-                                  message:
-                                      'This removes "${fund.departmentName}" and all '
-                                      'its receipts, and reverses the project totals.',
-                                  onConfirm: () async {
-                                    await ref
-                                        .read(infraRepositoryProvider)
-                                        .deleteGovernmentFund(fund.id);
-                                    ref.invalidate(
-                                        governmentFundsProvider(project.id));
-                                    ref.invalidate(
+                                  onDelete: () => _confirmDelete(
+                                    context,
+                                    ref,
+                                    title: 'Delete government fund?',
+                                    message:
+                                        'This removes "${fund.departmentName}" and all '
+                                        'its receipts, and reverses the project totals.',
+                                    onConfirm: () async {
+                                      await ref
+                                          .read(infraRepositoryProvider)
+                                          .deleteGovernmentFund(fund.id);
+                                      ref.invalidate(
+                                        governmentFundsProvider(project.id),
+                                      );
+                                      ref.invalidate(
                                         projectFinancialSummaryProvider(
-                                            project.id));
-                                    ref.invalidate(projectsProvider);
-                                    ref.invalidate(dashboardSummaryProvider);
-                                  },
+                                          project.id,
+                                        ),
+                                      );
+                                      ref.invalidate(projectsProvider);
+                                      ref.invalidate(dashboardSummaryProvider);
+                                    },
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                           if ((fund.schemeName ?? '').isNotEmpty)
-                            Text(fund.schemeName!,
-                                style: const TextStyle(
-                                    color: InfraColors.textSecondary,
-                                    fontSize: 12)),
+                            Text(
+                              fund.schemeName!,
+                              style: const TextStyle(
+                                color: InfraColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
                           const SizedBox(height: 8),
                           _row('Sanctioned', fund.amountSanctionedPaise),
-                          _row('Received', fund.amountReceivedPaise,
-                              color: InfraColors.green),
-                          _row('Pending', fund.pendingAmountPaise,
-                              color: InfraColors.orange),
-                          const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            onPressed: () => context.push(
-                              AppRoutes.newGovtReceipt(project.id),
-                              extra: fund,
-                            ),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Add Receipt'),
+                          _row(
+                            'Received',
+                            fund.amountReceivedPaise,
+                            color: InfraColors.green,
                           ),
+                          _row(
+                            'Pending',
+                            fund.pendingAmountPaise,
+                            color: InfraColors.orange,
+                          ),
+                          const SizedBox(height: 8),
+                          if (permissions.canManageFunds)
+                            OutlinedButton.icon(
+                              onPressed: () => context.push(
+                                AppRoutes.newGovtReceipt(project.id),
+                                extra: fund,
+                              ),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add Receipt'),
+                            ),
                         ],
                       ),
                     ),
@@ -785,30 +889,33 @@ class _GovtFundsTab extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: InfraColors.textSecondary)),
-          Text(Money.fromPaise(paise).formatInr(),
-              style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: color ?? InfraColors.textPrimary)),
+          Text(
+            Money.fromPaise(paise).formatInr(),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: color ?? InfraColors.textPrimary,
+            ),
+          ),
         ],
       ),
     );
   }
 
   static String _fundStatusLabel(GovtFundStatus s) => switch (s) {
-        GovtFundStatus.sanctioned => 'Sanctioned',
-        GovtFundStatus.partiallyReceived => 'Partial',
-        GovtFundStatus.fullyReceived => 'Received',
-        GovtFundStatus.delayed => 'Delayed',
-        GovtFundStatus.cancelled => 'Cancelled',
-      };
+    GovtFundStatus.sanctioned => 'Sanctioned',
+    GovtFundStatus.partiallyReceived => 'Partial',
+    GovtFundStatus.fullyReceived => 'Received',
+    GovtFundStatus.delayed => 'Delayed',
+    GovtFundStatus.cancelled => 'Cancelled',
+  };
 
   static String _fundStatusDb(GovtFundStatus s) => switch (s) {
-        GovtFundStatus.sanctioned => 'sanctioned',
-        GovtFundStatus.partiallyReceived => 'partially_received',
-        GovtFundStatus.fullyReceived => 'fully_received',
-        GovtFundStatus.delayed => 'delayed',
-        GovtFundStatus.cancelled => 'cancelled',
-      };
+    GovtFundStatus.sanctioned => 'sanctioned',
+    GovtFundStatus.partiallyReceived => 'partially_received',
+    GovtFundStatus.fullyReceived => 'fully_received',
+    GovtFundStatus.delayed => 'delayed',
+    GovtFundStatus.cancelled => 'cancelled',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -822,24 +929,29 @@ class _ExpensesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expensesAsync = ref.watch(projectExpensesProvider(project.id));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
-            onPressed: () =>
-                context.push(AppRoutes.newExpense(project.id), extra: project),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Expense'),
+        if (permissions.canAddExpense)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: FilledButton.icon(
+              onPressed: () => context.push(
+                AppRoutes.newExpense(project.id),
+                extra: project,
+              ),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Expense'),
+            ),
           ),
-        ),
         Expanded(
           child: expensesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => ErrorStateView(
               message: 'Could not load expenses: $e',
-              onRetry: () => ref.invalidate(projectExpensesProvider(project.id)),
+              onRetry: () =>
+                  ref.invalidate(projectExpensesProvider(project.id)),
             ),
             data: (expenses) {
               if (expenses.isEmpty) {
@@ -849,8 +961,10 @@ class _ExpensesTab extends ConsumerWidget {
                   message: 'Record material, labor, and other project costs.',
                 );
               }
-              final total =
-                  expenses.fold<int>(0, (sum, e) => sum + e.amountPaise);
+              final total = expenses.fold<int>(
+                0,
+                (sum, e) => sum + e.amountPaise,
+              );
               return ListView(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                 children: [
@@ -861,77 +975,100 @@ class _ExpensesTab extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Total Expenses',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900)),
-                          Text(Money.fromPaise(total).formatInr(),
-                              style: const TextStyle(
-                                  color: InfraColors.gold,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16)),
+                          const Text(
+                            'Total Expenses',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            Money.fromPaise(total).formatInr(),
+                            style: const TextStyle(
+                              color: InfraColors.gold,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...expenses.map((e) => Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                InfraColors.royalBlue.withValues(alpha: 0.1),
-                            child: const Icon(Icons.receipt_long_outlined,
-                                color: InfraColors.royalBlue),
+                  ...expenses.map(
+                    (e) => Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: InfraColors.royalBlue.withValues(
+                            alpha: 0.1,
                           ),
-                          title: Text(e.category,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800)),
-                          subtitle: Text([
+                          child: const Icon(
+                            Icons.receipt_long_outlined,
+                            color: InfraColors.royalBlue,
+                          ),
+                        ),
+                        title: Text(
+                          e.category,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          [
                             if ((e.vendorName ?? '').isNotEmpty) e.vendorName,
                             if (e.expenseDate != null)
                               DateFormat('dd MMM yyyy').format(e.expenseDate!),
-                          ].whereType<String>().join(' · ')),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AmountText(
-                                paise: e.amountPaise,
-                                color: InfraColors.red,
-                              ),
-                              _EntityMenu(
-                                onEdit: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => ExpenseFormScreen(
-                                      project: project,
-                                      expense: e,
-                                    ),
-                                  ),
-                                ),
-                                onDelete: () => _confirmDelete(
-                                  context,
-                                  ref,
-                                  title: 'Delete expense?',
-                                  message:
-                                      'Remove ${e.category} '
-                                      '(${Money.fromPaise(e.amountPaise).formatInr()})?',
-                                  onConfirm: () async {
-                                    await ref
-                                        .read(infraRepositoryProvider)
-                                        .deleteExpense(e.id);
-                                    ref.invalidate(
-                                        projectExpensesProvider(project.id));
-                                    ref.invalidate(
-                                        projectFinancialSummaryProvider(
-                                            project.id));
-                                    ref.invalidate(projectsProvider);
-                                    ref.invalidate(dashboardSummaryProvider);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
+                          ].whereType<String>().join(' · '),
                         ),
-                      )),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AmountText(
+                              paise: e.amountPaise,
+                              color: InfraColors.red,
+                            ),
+                            _EntityMenu(
+                              onEdit: permissions.canEditExpense(e)
+                                  ? () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => ExpenseFormScreen(
+                                          project: project,
+                                          expense: e,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                              onDelete: permissions.canDeleteExpense
+                                  ? () => _confirmDelete(
+                                      context,
+                                      ref,
+                                      title: 'Delete expense?',
+                                      message:
+                                          'Remove ${e.category} '
+                                          '(${Money.fromPaise(e.amountPaise).formatInr()})?',
+                                      onConfirm: () async {
+                                        await ref
+                                            .read(infraRepositoryProvider)
+                                            .deleteExpense(e.id);
+                                        ref.invalidate(
+                                          projectExpensesProvider(project.id),
+                                        );
+                                        ref.invalidate(
+                                          projectFinancialSummaryProvider(
+                                            project.id,
+                                          ),
+                                        );
+                                        ref.invalidate(projectsProvider);
+                                        ref.invalidate(
+                                          dashboardSummaryProvider,
+                                        );
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               );
             },
@@ -956,8 +1093,10 @@ class _ReportsTab extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       children: [
         FilledButton.icon(
-          onPressed: () => context.push(AppRoutes.projectReports(project.id),
-              extra: project),
+          onPressed: () => context.push(
+            AppRoutes.projectReports(project.id),
+            extra: project,
+          ),
           icon: const Icon(Icons.picture_as_pdf_outlined),
           label: const Text('Open Project Reports'),
         ),
@@ -979,38 +1118,43 @@ class _ReportsTab extends StatelessWidget {
 
 /// Compact 3-dot menu with Edit / Delete actions used on finance rows.
 class _EntityMenu extends StatelessWidget {
-  const _EntityMenu({required this.onEdit, required this.onDelete});
+  const _EntityMenu({this.onEdit, this.onDelete});
 
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
+    if (onEdit == null && onDelete == null) {
+      return const SizedBox.shrink();
+    }
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert, size: 20),
       onSelected: (value) {
-        if (value == 'edit') onEdit();
-        if (value == 'delete') onDelete();
+        if (value == 'edit') onEdit?.call();
+        if (value == 'delete') onDelete?.call();
       },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'edit',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_outlined),
-            title: Text('Edit'),
+      itemBuilder: (context) => [
+        if (onEdit != null)
+          const PopupMenuItem(
+            value: 'edit',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.edit_outlined),
+              title: Text('Edit'),
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.delete_outline, color: InfraColors.red),
-            title: Text('Delete'),
+        if (onDelete != null)
+          const PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.delete_outline, color: InfraColors.red),
+              title: Text('Delete'),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -1048,8 +1192,6 @@ Future<void> _confirmDelete(
     await onConfirm();
     messenger.showSnackBar(const SnackBar(content: Text('Deleted.')));
   } catch (error) {
-    messenger.showSnackBar(
-      SnackBar(content: Text('Could not delete: $error')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text('Could not delete: $error')));
   }
 }

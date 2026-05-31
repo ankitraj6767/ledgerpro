@@ -30,18 +30,23 @@ class InfraReportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         build: (context) => [
-          pw.Text(organizationName,
-              style:
-                  pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-          pw.Text('Project Financial Summary',
-              style:
-                  pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            organizationName,
+            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(
+            'Project Financial Summary',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
           pw.SizedBox(height: 4),
-          pw.Text(project.name,
-              style:
-                  pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-          pw.Text('Generated: ${_dateTime.format(DateTime.now())}',
-              style: const pw.TextStyle(fontSize: 10)),
+          pw.Text(
+            project.name,
+            style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(
+            'Generated: ${_dateTime.format(DateTime.now())}',
+            style: const pw.TextStyle(fontSize: 10),
+          ),
           pw.SizedBox(height: 14),
           pw.TableHelper.fromTextArray(
             headers: const ['Metric', 'Amount'],
@@ -55,57 +60,72 @@ class InfraReportService {
             ],
           ),
           pw.SizedBox(height: 16),
-          pw.Text('Investments',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            'Investments',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
           if (investments.isEmpty)
             pw.Text('No investments recorded.')
           else
             pw.TableHelper.fromTextArray(
               headers: const ['Investor', 'Date', 'Amount'],
               data: investments
-                  .map((i) => [
-                        i.investorName ?? 'Investor',
-                        i.investmentDate == null
-                            ? ''
-                            : _date.format(i.investmentDate!),
-                        _inr(i.amountPaise),
-                      ])
+                  .map(
+                    (i) => [
+                      i.investorName ?? 'Investor',
+                      i.investmentDate == null
+                          ? ''
+                          : _date.format(i.investmentDate!),
+                      _inr(i.amountPaise),
+                    ],
+                  )
                   .toList(),
             ),
           pw.SizedBox(height: 16),
-          pw.Text('Government Funds',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            'Government Funds',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
           if (funds.isEmpty)
             pw.Text('No government funds recorded.')
           else
             pw.TableHelper.fromTextArray(
-              headers: const ['Department', 'Sanctioned', 'Received', 'Pending'],
+              headers: const [
+                'Department',
+                'Sanctioned',
+                'Received',
+                'Pending',
+              ],
               data: funds
-                  .map((f) => [
-                        f.departmentName,
-                        _inr(f.amountSanctionedPaise),
-                        _inr(f.amountReceivedPaise),
-                        _inr(f.pendingAmountPaise),
-                      ])
+                  .map(
+                    (f) => [
+                      f.departmentName,
+                      _inr(f.amountSanctionedPaise),
+                      _inr(f.amountReceivedPaise),
+                      _inr(f.pendingAmountPaise),
+                    ],
+                  )
                   .toList(),
             ),
           pw.SizedBox(height: 16),
-          pw.Text('Expenses',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            'Expenses',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
           if (expenses.isEmpty)
             pw.Text('No expenses recorded.')
           else
             pw.TableHelper.fromTextArray(
               headers: const ['Date', 'Category', 'Vendor', 'Amount'],
               data: expenses
-                  .map((e) => [
-                        e.expenseDate == null
-                            ? ''
-                            : _date.format(e.expenseDate!),
-                        e.category,
-                        e.vendorName ?? '',
-                        _inr(e.amountPaise),
-                      ])
+                  .map(
+                    (e) => [
+                      e.expenseDate == null ? '' : _date.format(e.expenseDate!),
+                      e.category,
+                      e.vendorName ?? '',
+                      _inr(e.amountPaise),
+                    ],
+                  )
                   .toList(),
             ),
         ],
@@ -123,14 +143,16 @@ class InfraReportService {
       ['Generated', _dateTime.format(DateTime.now())],
       <dynamic>[],
       ['Date', 'Category', 'Vendor', 'Payment Mode', 'Bill No', 'Amount (INR)'],
-      ...expenses.map((e) => [
-            e.expenseDate == null ? '' : _date.format(e.expenseDate!),
-            e.category,
-            e.vendorName ?? '',
-            e.paymentMode,
-            e.billNumber ?? '',
-            (e.amountPaise / 100).toStringAsFixed(2),
-          ]),
+      ...expenses.map(
+        (e) => [
+          e.expenseDate == null ? '' : _date.format(e.expenseDate!),
+          e.category,
+          e.vendorName ?? '',
+          e.paymentMode,
+          e.billNumber ?? '',
+          (e.amountPaise / 100).toStringAsFixed(2),
+        ],
+      ),
     ];
     final content = csv_lib.csv.encode(rows);
     return _write(project.name, 'expenses', 'csv', content);
@@ -145,13 +167,15 @@ class InfraReportService {
       ['Generated', _dateTime.format(DateTime.now())],
       <dynamic>[],
       ['Investor', 'Date', 'Payment Mode', 'Reference', 'Amount (INR)'],
-      ...investments.map((i) => [
-            i.investorName ?? 'Investor',
-            i.investmentDate == null ? '' : _date.format(i.investmentDate!),
-            i.paymentMode,
-            i.referenceNumber ?? '',
-            (i.amountPaise / 100).toStringAsFixed(2),
-          ]),
+      ...investments.map(
+        (i) => [
+          i.investorName ?? 'Investor',
+          i.investmentDate == null ? '' : _date.format(i.investmentDate!),
+          i.paymentMode,
+          i.referenceNumber ?? '',
+          (i.amountPaise / 100).toStringAsFixed(2),
+        ],
+      ),
     ];
     final content = csv_lib.csv.encode(rows);
     return _write(project.name, 'investors', 'csv', content);
@@ -160,7 +184,7 @@ class InfraReportService {
   Future<void> share(File file, {required bool isPdf}) async {
     await SharePlus.instance.share(
       ShareParams(
-        title: 'Royal Infra report',
+        title: 'Navdream Infra Pvt. Ltd. report',
         files: [
           XFile(file.path, mimeType: isPdf ? 'application/pdf' : 'text/csv'),
         ],
@@ -182,7 +206,7 @@ class InfraReportService {
         .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
     final stamp = DateTime.now().millisecondsSinceEpoch;
-    final file = File('${dir.path}/royalinfra_${safe}_${kind}_$stamp.$ext');
+    final file = File('${dir.path}/navdreaminfra_${safe}_${kind}_$stamp.$ext');
     if (content is String) {
       await file.writeAsString(content, flush: true);
     } else {

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/models/infra_models.dart';
+import '../../../shared/widgets/access_denied_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Add / edit project
@@ -73,6 +74,14 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(currentOrgRoleProvider);
+    if (roleAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!ref.watch(currentOrgPermissionsProvider).canManageProjects) {
+      return const AccessDeniedScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Edit Project' : 'Add Project')),
       body: ListView(
@@ -86,7 +95,9 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _text(_city, 'City', Icons.location_city_outlined)),
+              Expanded(
+                child: _text(_city, 'City', Icons.location_city_outlined),
+              ),
               const SizedBox(width: 8),
               Expanded(child: _text(_state, 'State', Icons.map_outlined)),
             ],
@@ -94,14 +105,24 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           const SizedBox(height: 12),
           _text(_address, 'Address', Icons.place_outlined, maxLines: 2),
           const SizedBox(height: 12),
-          _text(_estimatedCost, 'Estimated cost (₹)', Icons.currency_rupee,
-              keyboard: const TextInputType.numberWithOptions(decimal: true)),
+          _text(
+            _estimatedCost,
+            'Estimated cost (₹)',
+            Icons.currency_rupee,
+            keyboard: const TextInputType.numberWithOptions(decimal: true),
+          ),
           const SizedBox(height: 12),
-          _dateField('Start date', _startDate,
-              (d) => setState(() => _startDate = d)),
+          _dateField(
+            'Start date',
+            _startDate,
+            (d) => setState(() => _startDate = d),
+          ),
           const SizedBox(height: 12),
-          _dateField('Expected end date', _endDate,
-              (d) => setState(() => _endDate = d)),
+          _dateField(
+            'Expected end date',
+            _endDate,
+            (d) => setState(() => _endDate = d),
+          ),
           const SizedBox(height: 12),
           if (_isEditing) ...[
             DropdownButtonFormField<InfraProjectStatus>(
@@ -111,8 +132,12 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                 prefixIcon: Icon(Icons.flag_outlined),
               ),
               items: InfraProjectStatus.values
-                  .map((s) => DropdownMenuItem(
-                      value: s, child: Text(_statusLabel(s))))
+                  .map(
+                    (s) => DropdownMenuItem(
+                      value: s,
+                      child: Text(_statusLabel(s)),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) => setState(() => _status = v ?? _status),
             ),
@@ -125,7 +150,8 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
             icon: _saving
                 ? const SizedBox.square(
                     dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: Text(_isEditing ? 'Update Project' : 'Create Project'),
           ),
@@ -142,11 +168,13 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
       );
       return;
     }
-    if (_startDate != null && _endDate != null &&
+    if (_startDate != null &&
+        _endDate != null &&
         _endDate!.isBefore(_startDate!)) {
       messenger.showSnackBar(
         const SnackBar(
-            content: Text('Expected end date cannot be before start date.')),
+          content: Text('Expected end date cannot be before start date.'),
+        ),
       );
       return;
     }
@@ -177,21 +205,27 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           organizationId: org.id,
           name: _name.text.trim(),
           code: _code.text.trim().isEmpty ? null : _code.text.trim(),
-          category: _category.text.trim().isEmpty ? null : _category.text.trim(),
+          category: _category.text.trim().isEmpty
+              ? null
+              : _category.text.trim(),
           city: _city.text.trim().isEmpty ? null : _city.text.trim(),
           state: _state.text.trim().isEmpty ? null : _state.text.trim(),
           address: _address.text.trim().isEmpty ? null : _address.text.trim(),
           startDate: _startDate,
           expectedEndDate: _endDate,
           estimatedCostPaise: cost,
-          description:
-              _description.text.trim().isEmpty ? null : _description.text.trim(),
+          description: _description.text.trim().isEmpty
+              ? null
+              : _description.text.trim(),
         );
       }
       ref.invalidate(projectsProvider);
       ref.invalidate(dashboardSummaryProvider);
-      messenger.showSnackBar(SnackBar(
-          content: Text(_isEditing ? 'Project updated.' : 'Project created.')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_isEditing ? 'Project updated.' : 'Project created.'),
+        ),
+      );
       if (mounted) context.pop();
     } catch (error) {
       messenger.showSnackBar(
@@ -203,12 +237,12 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   }
 
   static String _statusLabel(InfraProjectStatus s) => switch (s) {
-        InfraProjectStatus.planning => 'Planning',
-        InfraProjectStatus.active => 'Active',
-        InfraProjectStatus.onHold => 'On Hold',
-        InfraProjectStatus.completed => 'Completed',
-        InfraProjectStatus.cancelled => 'Cancelled',
-      };
+    InfraProjectStatus.planning => 'Planning',
+    InfraProjectStatus.active => 'Active',
+    InfraProjectStatus.onHold => 'On Hold',
+    InfraProjectStatus.completed => 'Completed',
+    InfraProjectStatus.cancelled => 'Cancelled',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -264,6 +298,18 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(currentOrgRoleProvider);
+    if (roleAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final permissions = ref.watch(currentOrgPermissionsProvider);
+    final allowed = _isEditing
+        ? permissions.canEditExpense(widget.expense!)
+        : permissions.canAddExpense;
+    if (!allowed) {
+      return const AccessDeniedScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Edit Expense' : 'Add Expense')),
       body: ListView(
@@ -285,7 +331,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           const SizedBox(height: 12),
           _plainField(_vendor, 'Vendor name', Icons.store_outlined),
           const SizedBox(height: 12),
-          _paymentModeField(_paymentMode, (m) => setState(() => _paymentMode = m)),
+          _paymentModeField(
+            _paymentMode,
+            (m) => setState(() => _paymentMode = m),
+          ),
           const SizedBox(height: 12),
           _plainField(_billNumber, 'Bill number', Icons.numbers_outlined),
           const SizedBox(height: 12),
@@ -298,7 +347,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             icon: _saving
                 ? const SizedBox.square(
                     dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: Text(_isEditing ? 'Update Expense' : 'Save Expense'),
           ),
@@ -323,8 +373,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     try {
       final repo = ref.read(infraRepositoryProvider);
       final vendor = _vendor.text.trim().isEmpty ? null : _vendor.text.trim();
-      final bill =
-          _billNumber.text.trim().isEmpty ? null : _billNumber.text.trim();
+      final bill = _billNumber.text.trim().isEmpty
+          ? null
+          : _billNumber.text.trim();
       final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
       if (_isEditing) {
         await repo.updateExpense(
@@ -353,8 +404,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       ref.invalidate(projectFinancialSummaryProvider(widget.project.id));
       ref.invalidate(projectsProvider);
       ref.invalidate(dashboardSummaryProvider);
-      messenger.showSnackBar(SnackBar(
-          content: Text(_isEditing ? 'Expense updated.' : 'Expense saved.')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_isEditing ? 'Expense updated.' : 'Expense saved.'),
+        ),
+      );
       if (mounted) context.pop();
     } catch (error) {
       messenger.showSnackBar(
@@ -416,17 +470,36 @@ class _GovtFundFormScreenState extends ConsumerState<GovtFundFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(currentOrgRoleProvider);
+    if (roleAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!ref.watch(currentOrgPermissionsProvider).canManageFunds) {
+      return const AccessDeniedScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(
-          title: Text(_isEditing ? 'Edit Sanctioned Fund' : 'Add Sanctioned Fund')),
+        title: Text(
+          _isEditing ? 'Edit Sanctioned Fund' : 'Add Sanctioned Fund',
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _plainField(_department, 'Department name', Icons.account_balance_outlined),
+          _plainField(
+            _department,
+            'Department name',
+            Icons.account_balance_outlined,
+          ),
           const SizedBox(height: 12),
           _plainField(_scheme, 'Scheme name', Icons.assignment_outlined),
           const SizedBox(height: 12),
-          _plainField(_orderNumber, 'Sanction order number', Icons.tag_outlined),
+          _plainField(
+            _orderNumber,
+            'Sanction order number',
+            Icons.tag_outlined,
+          ),
           const SizedBox(height: 12),
           _amountField(_amount, 'Sanction amount (₹)'),
           const SizedBox(height: 12),
@@ -439,7 +512,8 @@ class _GovtFundFormScreenState extends ConsumerState<GovtFundFormScreen> {
             icon: _saving
                 ? const SizedBox.square(
                     dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: Text(_isEditing ? 'Update Fund' : 'Save Fund'),
           ),
@@ -469,8 +543,10 @@ class _GovtFundFormScreenState extends ConsumerState<GovtFundFormScreen> {
     if (_isEditing && amount < widget.fund!.amountReceivedPaise) {
       messenger.showSnackBar(
         const SnackBar(
-            content: Text(
-                'Sanctioned amount cannot be less than the amount already received.')),
+          content: Text(
+            'Sanctioned amount cannot be less than the amount already received.',
+          ),
+        ),
       );
       return;
     }
@@ -478,8 +554,9 @@ class _GovtFundFormScreenState extends ConsumerState<GovtFundFormScreen> {
     try {
       final repo = ref.read(infraRepositoryProvider);
       final scheme = _scheme.text.trim().isEmpty ? null : _scheme.text.trim();
-      final order =
-          _orderNumber.text.trim().isEmpty ? null : _orderNumber.text.trim();
+      final order = _orderNumber.text.trim().isEmpty
+          ? null
+          : _orderNumber.text.trim();
       final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
       if (_isEditing) {
         await repo.updateGovernmentFund(
@@ -506,8 +583,9 @@ class _GovtFundFormScreenState extends ConsumerState<GovtFundFormScreen> {
       ref.invalidate(projectFinancialSummaryProvider(widget.project.id));
       ref.invalidate(projectsProvider);
       ref.invalidate(dashboardSummaryProvider);
-      messenger.showSnackBar(SnackBar(
-          content: Text(_isEditing ? 'Fund updated.' : 'Fund saved.')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(_isEditing ? 'Fund updated.' : 'Fund saved.')),
+      );
       if (mounted) context.pop();
     } catch (error) {
       messenger.showSnackBar(
@@ -550,6 +628,14 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(currentOrgRoleProvider);
+    if (roleAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!ref.watch(currentOrgPermissionsProvider).canManageFunds) {
+      return const AccessDeniedScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Add Fund Receipt')),
       body: ListView(
@@ -566,7 +652,10 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
           const SizedBox(height: 12),
           _amountField(_amount, 'Amount received (₹)'),
           const SizedBox(height: 12),
-          _paymentModeField(_paymentMode, (m) => setState(() => _paymentMode = m)),
+          _paymentModeField(
+            _paymentMode,
+            (m) => setState(() => _paymentMode = m),
+          ),
           const SizedBox(height: 12),
           _plainField(_reference, 'Reference number', Icons.tag_outlined),
           const SizedBox(height: 12),
@@ -579,7 +668,8 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
             icon: _saving
                 ? const SizedBox.square(
                     dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: const Text('Save Receipt'),
           ),
@@ -603,19 +693,23 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
     if (amount > widget.fund.pendingAmountPaise) {
       messenger.showSnackBar(
         const SnackBar(
-            content: Text('Receipt cannot exceed the pending sanctioned amount.')),
+          content: Text('Receipt cannot exceed the pending sanctioned amount.'),
+        ),
       );
       return;
     }
     setState(() => _saving = true);
     try {
-      await ref.read(infraRepositoryProvider).addGovernmentReceipt(
+      await ref
+          .read(infraRepositoryProvider)
+          .addGovernmentReceipt(
             governmentFundId: widget.fund.id,
             amountPaise: amount,
             receivedDate: _date,
             paymentMode: _paymentMode,
-            referenceNumber:
-                _reference.text.trim().isEmpty ? null : _reference.text.trim(),
+            referenceNumber: _reference.text.trim().isEmpty
+                ? null
+                : _reference.text.trim(),
             notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
           );
       ref.invalidate(governmentFundsProvider(widget.fund.projectId));
@@ -638,7 +732,11 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
 // Add investment (project-scoped; picks/creates investor)
 // ---------------------------------------------------------------------------
 class InvestmentFormScreen extends ConsumerStatefulWidget {
-  const InvestmentFormScreen({super.key, required this.project, this.investment});
+  const InvestmentFormScreen({
+    super.key,
+    required this.project,
+    this.investment,
+  });
 
   final InfraProject project;
   final ProjectInvestment? investment;
@@ -683,10 +781,20 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(currentOrgRoleProvider);
+    if (roleAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!ref.watch(currentOrgPermissionsProvider).canManageInvestments) {
+      return const AccessDeniedScreen();
+    }
+
     final investorsAsync = ref.watch(investorsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Edit Investment' : 'Add Investment')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Investment' : 'Add Investment'),
+      ),
       body: investorsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Could not load investors: $e')),
@@ -707,8 +815,12 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
                         prefixIcon: Icon(Icons.person_outline),
                       ),
                       items: investors
-                          .map((i) => DropdownMenuItem(
-                              value: i.id, child: Text(i.name)))
+                          .map(
+                            (i) => DropdownMenuItem(
+                              value: i.id,
+                              child: Text(i.name),
+                            ),
+                          )
                           .toList(),
                       onChanged: (v) => setState(() => _investorId = v),
                     ),
@@ -725,12 +837,17 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
               _amountField(_amount, 'Investment amount (₹)'),
               const SizedBox(height: 12),
               _paymentModeField(
-                  _paymentMode, (m) => setState(() => _paymentMode = m)),
+                _paymentMode,
+                (m) => setState(() => _paymentMode = m),
+              ),
               const SizedBox(height: 12),
               _plainField(_reference, 'Reference number', Icons.tag_outlined),
               const SizedBox(height: 12),
-              _dateRow('Investment date', _date,
-                  (d) => setState(() => _date = d)),
+              _dateRow(
+                'Investment date',
+                _date,
+                (d) => setState(() => _date = d),
+              ),
               const SizedBox(height: 12),
               _plainField(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
               const SizedBox(height: 18),
@@ -739,9 +856,12 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
                 icon: _saving
                     ? const SizedBox.square(
                         dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.save_outlined),
-                label: Text(_isEditing ? 'Update Investment' : 'Save Investment'),
+                label: Text(
+                  _isEditing ? 'Update Investment' : 'Save Investment',
+                ),
               ),
               if (investors.isEmpty)
                 const Padding(
@@ -789,8 +909,9 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
     setState(() => _saving = true);
     try {
       final repo = ref.read(infraRepositoryProvider);
-      final reference =
-          _reference.text.trim().isEmpty ? null : _reference.text.trim();
+      final reference = _reference.text.trim().isEmpty
+          ? null
+          : _reference.text.trim();
       final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
       if (_isEditing) {
         await repo.updateInvestment(
@@ -817,9 +938,13 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
       ref.invalidate(projectFinancialSummaryProvider(widget.project.id));
       ref.invalidate(projectsProvider);
       ref.invalidate(dashboardSummaryProvider);
-      messenger.showSnackBar(SnackBar(
-          content:
-              Text(_isEditing ? 'Investment updated.' : 'Investment saved.')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditing ? 'Investment updated.' : 'Investment saved.',
+          ),
+        ),
+      );
       if (mounted) context.pop();
     } catch (error) {
       messenger.showSnackBar(
@@ -866,13 +991,19 @@ class _AddInvestorSheetState extends ConsumerState<_AddInvestorSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('New Investor',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          const Text(
+            'New Investor',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
           const SizedBox(height: 12),
           _plainField(_name, 'Name', Icons.person_outline),
           const SizedBox(height: 8),
-          _plainField(_phone, 'Phone', Icons.phone_outlined,
-              keyboard: TextInputType.phone),
+          _plainField(
+            _phone,
+            'Phone',
+            Icons.phone_outlined,
+            keyboard: TextInputType.phone,
+          ),
           const SizedBox(height: 8),
           _plainField(_email, 'Email', Icons.email_outlined),
           const SizedBox(height: 8),
@@ -883,7 +1014,8 @@ class _AddInvestorSheetState extends ConsumerState<_AddInvestorSheet> {
             child: _saving
                 ? const SizedBox.square(
                     dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text('Save Investor'),
           ),
         ],
@@ -902,7 +1034,9 @@ class _AddInvestorSheetState extends ConsumerState<_AddInvestorSheet> {
     setState(() => _saving = true);
     try {
       final org = await ref.read(infraWorkspaceProvider.future);
-      await ref.read(infraRepositoryProvider).createInvestor(
+      await ref
+          .read(infraRepositoryProvider)
+          .createInvestor(
             organizationId: org.id,
             name: _name.text.trim(),
             phone: _phone.text.trim(),
@@ -943,17 +1077,16 @@ Widget _plainField(
   IconData icon, {
   TextInputType? keyboard,
   int maxLines = 1,
-}) =>
-    _text(c, label, icon, keyboard: keyboard, maxLines: maxLines);
+}) => _text(c, label, icon, keyboard: keyboard, maxLines: maxLines);
 
 Widget _amountField(TextEditingController c, String label) => TextField(
-      controller: c,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.currency_rupee),
-      ),
-    );
+  controller: c,
+  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+  decoration: InputDecoration(
+    labelText: label,
+    prefixIcon: const Icon(Icons.currency_rupee),
+  ),
+);
 
 Widget _paymentModeField(String value, ValueChanged<String> onChanged) {
   const modes = ['cash', 'bank', 'upi', 'cheque', 'card', 'other'];
@@ -964,8 +1097,7 @@ Widget _paymentModeField(String value, ValueChanged<String> onChanged) {
       prefixIcon: Icon(Icons.account_balance_wallet_outlined),
     ),
     items: modes
-        .map((m) =>
-            DropdownMenuItem(value: m, child: Text(m.toUpperCase())))
+        .map((m) => DropdownMenuItem(value: m, child: Text(m.toUpperCase())))
         .toList(),
     onChanged: (v) => onChanged(v ?? value),
   );
@@ -1006,5 +1138,4 @@ Widget _dateRow(
   String label,
   DateTime value,
   ValueChanged<DateTime> onChanged,
-) =>
-    _dateField(label, value, onChanged);
+) => _dateField(label, value, onChanged);

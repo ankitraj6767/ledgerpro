@@ -118,9 +118,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   OutlinedButton.icon(
                     onPressed: () => setState(() => _emailMode = !_emailMode),
                     icon: Icon(
-                        _emailMode ? Icons.sms_outlined : Icons.mail_outline),
+                      _emailMode ? Icons.sms_outlined : Icons.mail_outline,
+                    ),
                     label: Text(
-                        _emailMode ? 'Use phone OTP' : 'Use email sign-in'),
+                      _emailMode ? 'Use phone OTP' : 'Use email sign-in',
+                    ),
                   ),
                 ],
               ),
@@ -144,8 +146,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           password: _passwordController.text,
         );
         signedIn = true;
-        // Provision the organization workspace; router guard handles nav.
-        await container.read(infraRepositoryProvider).ensureWorkspace();
+        try {
+          await container.read(infraRepositoryProvider).getMyWorkspace();
+        } on PostgrestException catch (error) {
+          if (_isMissingWorkspace(error)) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'No workspace found. Set up the owner workspace to continue.',
+                ),
+              ),
+            );
+            if (mounted) context.go(AppRoutes.onboarding);
+            return;
+          }
+          rethrow;
+        }
         container.invalidate(infraWorkspaceProvider);
         container.invalidate(dashboardSummaryProvider);
         container.invalidate(projectsProvider);
@@ -156,21 +172,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (error) {
       final msg = error.toString().toLowerCase();
-      final isPhoneOtpUnavailable = !_emailMode &&
-          (msg.contains('phone otp is not configured') ||
-              (msg.contains('phone') &&
-                  msg.contains('otp') &&
-                  msg.contains('not configured')) ||
-              (msg.contains('provider') && msg.contains('not configured')));
+      final isPhoneOtpUnavailable = !_emailMode && _isPhoneOtpUnavailable(msg);
 
       if (isPhoneOtpUnavailable && mounted) {
         setState(() => _emailMode = true);
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Phone OTP is not enabled for this project. Please use email sign-in.',
-            ),
-          ),
+          SnackBar(content: Text(_phoneOtpFallbackMessage(msg))),
         );
         return;
       }
@@ -178,7 +185,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (error is AuthException) {
         final m = error.message.trim();
         final normalized = m.toLowerCase();
-        if (_emailMode && normalized.contains('invalid') &&
+        if (_emailMode &&
+            normalized.contains('invalid') &&
             normalized.contains('credentials')) {
           messenger.showSnackBar(
             const SnackBar(content: Text('Incorrect email or password.')),
@@ -188,7 +196,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (_emailMode && normalized.contains('email not confirmed')) {
           messenger.showSnackBar(
             const SnackBar(
-              content: Text('Email is not confirmed yet. Please confirm and try again.'),
+              content: Text(
+                'Email is not confirmed yet. Please confirm and try again.',
+              ),
             ),
           );
           return;
@@ -202,14 +212,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (signedIn) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Signed in, but workspace setup failed: ${_clean(error)}'),
+            content: Text(
+              'Signed in, but workspace setup failed: ${_clean(error)}',
+            ),
           ),
         );
         return;
       }
 
       messenger.showSnackBar(
-        const SnackBar(content: Text('Sign-in failed. Please check your credentials.')),
+        const SnackBar(
+          content: Text('Sign-in failed. Please check your credentials.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -219,5 +233,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String _clean(Object error) {
     if (error is PostgrestException) return error.message;
     return error.toString();
+  }
+
+  bool _isMissingWorkspace(PostgrestException error) {
+    return error.message.toLowerCase().contains('no organization access');
+  }
+
+  bool _isPhoneOtpUnavailable(String normalizedMessage) {
+    return normalizedMessage.contains('phone otp is not configured') ||
+        (normalizedMessage.contains('phone') &&
+            normalizedMessage.contains('otp') &&
+            normalizedMessage.contains('not configured')) ||
+        (normalizedMessage.contains('provider') &&
+            normalizedMessage.contains('not configured')) ||
+        normalizedMessage.contains('sms_send_failed') ||
+        normalizedMessage.contains('error sending confirmation otp') ||
+        normalizedMessage.contains('invalid from number') ||
+        normalizedMessage.contains('caller id') ||
+        normalizedMessage.contains('twilio.com/docs/errors/21212');
+  }
+
+  String _phoneOtpFallbackMessage(String normalizedMessage) {
+    if (normalizedMessage.contains('invalid from number') ||
+        normalizedMessage.contains('caller id') ||
+        normalizedMessage.contains('twilio.com/docs/errors/21212')) {
+      return 'Phone OTP provider is misconfigured. Please use email sign-in while SMS is fixed.';
+    }
+    return 'Phone OTP is not enabled for this project. Please use email sign-in.';
   }
 }

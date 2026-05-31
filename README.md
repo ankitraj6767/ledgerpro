@@ -48,6 +48,31 @@ It creates UUID tables, business/book scoping, paise-based money columns, RLS po
 
 Do not place service-role keys or payment gateway secrets in the Flutter app. Future payment gateway webhooks should be implemented with Supabase Edge Functions.
 
+### Navdream Infra Customer Logins
+
+Customer logins are admin-managed. Owners/managers create customers from
+`Profile > Customers`, which calls the `create-customer-user` Edge Function.
+The Flutter app only uses the publishable key; the function uses the Supabase
+service-role key server-side to create Auth users and insert a
+`organization_members.role = customer` membership.
+
+Deploy the function after applying migrations:
+
+```bash
+supabase functions deploy create-customer-user
+```
+
+Required function secrets:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Customers can view organization/project finance data and add or edit their own
+project expenses. They cannot manage projects, investments, government funds,
+receipts, settings, users, audit logs, or delete expenses. Supabase RLS/RPCs are
+the final permission boundary; UI gating only mirrors those database rules.
+
 ## Verification
 
 ```bash

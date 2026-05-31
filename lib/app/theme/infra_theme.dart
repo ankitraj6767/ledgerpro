@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Royal Infra premium design system colors and theme.
+/// Navdream Infra premium design system colors and theme.
 class InfraColors {
   const InfraColors._();
 
@@ -90,7 +90,10 @@ class InfraTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: InfraColors.royalBlue, width: 1.5),
+          borderSide: const BorderSide(
+            color: InfraColors.royalBlue,
+            width: 1.5,
+          ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
