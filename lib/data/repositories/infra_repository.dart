@@ -69,6 +69,13 @@ final investorsProvider = FutureProvider<List<Investor>>((ref) async {
   return ref.watch(infraRepositoryProvider).fetchInvestors(org.id);
 });
 
+final projectInvestorsProvider = FutureProvider.family<List<Investor>, String>((
+  ref,
+  projectId,
+) {
+  return ref.watch(infraRepositoryProvider).fetchProjectInvestors(projectId);
+});
+
 final projectInvestmentsProvider =
     FutureProvider.family<List<ProjectInvestment>, String>((ref, projectId) {
       return ref.watch(infraRepositoryProvider).fetchInvestments(projectId);
@@ -471,6 +478,26 @@ class InfraRepository {
         .toList();
   }
 
+  Future<List<Investor>> fetchProjectInvestors(String projectId) async {
+    final rows = await _client
+        .from('project_investments')
+        .select('investors!inner(*)')
+        .eq('project_id', projectId)
+        .isFilter('deleted_at', null);
+    final byId = <String, Investor>{};
+    for (final raw in rows) {
+      final row = Map<String, dynamic>.from(raw);
+      final investorRaw = row['investors'];
+      if (investorRaw is! Map) continue;
+      final investorRow = Map<String, dynamic>.from(investorRaw);
+      if (investorRow['deleted_at'] != null) continue;
+      final investor = _investorFromRow(investorRow);
+      byId[investor.id] = investor;
+    }
+    return byId.values.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  }
+
   Future<String> createInvestor({
     required String organizationId,
     required String name,
@@ -494,6 +521,64 @@ class InfraRepository {
         .select('id')
         .single();
     return row['id'] as String;
+  }
+
+  Future<Investor> updateInvestor({
+    required String investorId,
+    required String name,
+    String? phone,
+    String? email,
+    String? pan,
+    String? address,
+    String? notes,
+  }) async {
+    final row = await _client
+        .from('investors')
+        .update({
+          'name': name.trim(),
+          'phone': phone?.trim().isEmpty ?? true ? null : phone!.trim(),
+          'email': email?.trim().isEmpty ?? true ? null : email!.trim(),
+          'pan': pan?.trim().isEmpty ?? true ? null : pan!.trim(),
+          'address': address?.trim().isEmpty ?? true ? null : address!.trim(),
+          'notes': notes?.trim().isEmpty ?? true ? null : notes!.trim(),
+        })
+        .eq('id', investorId)
+        .isFilter('deleted_at', null)
+        .select()
+        .single();
+    return _investorFromRow(Map<String, dynamic>.from(row));
+  }
+
+  Future<void> deleteProjectInvestor({
+    required String projectId,
+    required String investorId,
+  }) async {
+    final rows = await _client
+        .from('project_investments')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('investor_id', investorId)
+        .isFilter('deleted_at', null);
+    for (final raw in rows) {
+      final row = Map<String, dynamic>.from(raw);
+      await deleteInvestment(row['id'] as String);
+    }
+    await archiveInvestorIfUnused(investorId);
+  }
+
+  Future<void> archiveInvestorIfUnused(String investorId) async {
+    final activeRows = await _client
+        .from('project_investments')
+        .select('id')
+        .eq('investor_id', investorId)
+        .isFilter('deleted_at', null)
+        .limit(1);
+    if (activeRows.isNotEmpty) return;
+    await _client
+        .from('investors')
+        .update({'deleted_at': DateTime.now().toIso8601String()})
+        .eq('id', investorId)
+        .isFilter('deleted_at', null);
   }
 
   Future<List<ProjectInvestment>> fetchInvestments(String projectId) async {

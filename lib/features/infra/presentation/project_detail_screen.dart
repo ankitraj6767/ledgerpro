@@ -891,7 +891,9 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                   ref.invalidate(projectInvestmentsProvider(widget.project.id)),
             ),
             data: (investments) {
-              final filtered = investments
+              final sortedInvestments = investments.toList()
+                ..sort(_compareInvestmentsByInvestorName);
+              final filtered = sortedInvestments
                   .where(_matchesInvestment)
                   .toList(growable: false);
               final total = filtered.fold<int>(
@@ -937,6 +939,8 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                               ...filtered.map(
                                 (inv) => Card(
                                   child: ListTile(
+                                    onTap: () =>
+                                        _showInvestmentDetails(context, inv),
                                     leading: const CircleAvatar(
                                       backgroundColor: Color(0xFFFFF4D6),
                                       child: Icon(
@@ -996,6 +1000,11 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                                                   ),
                                                 );
                                                 ref.invalidate(
+                                                  projectInvestorsProvider(
+                                                    widget.project.id,
+                                                  ),
+                                                );
+                                                ref.invalidate(
                                                   projectFinancialSummaryProvider(
                                                     widget.project.id,
                                                   ),
@@ -1005,6 +1014,9 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                                                 );
                                                 ref.invalidate(
                                                   dashboardSummaryProvider,
+                                                );
+                                                ref.invalidate(
+                                                  investorsProvider,
                                                 );
                                               },
                                             ),
@@ -1066,6 +1078,19 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
       (investment.amountPaise / 100).toStringAsFixed(2),
       _searchDate(investment.investmentDate),
     ], _query);
+  }
+
+  int _compareInvestmentsByInvestorName(
+    ProjectInvestment a,
+    ProjectInvestment b,
+  ) {
+    final byName = (a.investorName ?? '').toLowerCase().compareTo(
+      (b.investorName ?? '').toLowerCase(),
+    );
+    if (byName != 0) return byName;
+    return (b.investmentDate ?? DateTime(0)).compareTo(
+      a.investmentDate ?? DateTime(0),
+    );
   }
 }
 
@@ -1156,116 +1181,124 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                               final fund = filtered[index];
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 12),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              fund.departmentName,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w900,
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: () =>
+                                      _showGovernmentFundDetails(context, fund),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(14),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                fund.departmentName,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w900,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          StatusPill(
-                                            label: _fundStatusLabel(
-                                              fund.status,
-                                            ),
-                                            dbStatus: _fundStatusDb(
-                                              fund.status,
-                                            ),
-                                          ),
-                                          if (permissions.canManageFunds)
-                                            _EntityMenu(
-                                              onEdit: () =>
-                                                  Navigator.of(context).push(
-                                                    MaterialPageRoute<void>(
-                                                      builder: (_) =>
-                                                          GovtFundFormScreen(
-                                                            project:
-                                                                widget.project,
-                                                            fund: fund,
-                                                          ),
-                                                    ),
-                                                  ),
-                                              onDelete: () => _confirmDelete(
-                                                context,
-                                                ref,
-                                                title:
-                                                    'Delete government fund?',
-                                                message:
-                                                    'This removes "${fund.departmentName}" and all '
-                                                    'its receipts, and reverses the project totals.',
-                                                onConfirm: () async {
-                                                  await ref
-                                                      .read(
-                                                        infraRepositoryProvider,
-                                                      )
-                                                      .deleteGovernmentFund(
-                                                        fund.id,
-                                                      );
-                                                  ref.invalidate(
-                                                    governmentFundsProvider(
-                                                      widget.project.id,
-                                                    ),
-                                                  );
-                                                  ref.invalidate(
-                                                    projectFinancialSummaryProvider(
-                                                      widget.project.id,
-                                                    ),
-                                                  );
-                                                  ref.invalidate(
-                                                    projectsProvider,
-                                                  );
-                                                  ref.invalidate(
-                                                    dashboardSummaryProvider,
-                                                  );
-                                                },
+                                            StatusPill(
+                                              label: _fundStatusLabel(
+                                                fund.status,
+                                              ),
+                                              dbStatus: _fundStatusDb(
+                                                fund.status,
                                               ),
                                             ),
-                                        ],
-                                      ),
-                                      if ((fund.schemeName ?? '').isNotEmpty)
-                                        Text(
-                                          fund.schemeName!,
-                                          style: const TextStyle(
-                                            color: InfraColors.textSecondary,
-                                            fontSize: 12,
-                                          ),
+                                            if (permissions.canManageFunds)
+                                              _EntityMenu(
+                                                onEdit: () =>
+                                                    Navigator.of(context).push(
+                                                      MaterialPageRoute<void>(
+                                                        builder: (_) =>
+                                                            GovtFundFormScreen(
+                                                              project: widget
+                                                                  .project,
+                                                              fund: fund,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                onDelete: () => _confirmDelete(
+                                                  context,
+                                                  ref,
+                                                  title:
+                                                      'Delete government fund?',
+                                                  message:
+                                                      'This removes "${fund.departmentName}" and all '
+                                                      'its receipts, and reverses the project totals.',
+                                                  onConfirm: () async {
+                                                    await ref
+                                                        .read(
+                                                          infraRepositoryProvider,
+                                                        )
+                                                        .deleteGovernmentFund(
+                                                          fund.id,
+                                                        );
+                                                    ref.invalidate(
+                                                      governmentFundsProvider(
+                                                        widget.project.id,
+                                                      ),
+                                                    );
+                                                    ref.invalidate(
+                                                      projectFinancialSummaryProvider(
+                                                        widget.project.id,
+                                                      ),
+                                                    );
+                                                    ref.invalidate(
+                                                      projectsProvider,
+                                                    );
+                                                    ref.invalidate(
+                                                      dashboardSummaryProvider,
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                          ],
                                         ),
-                                      const SizedBox(height: 8),
-                                      _row(
-                                        'Sanctioned',
-                                        fund.amountSanctionedPaise,
-                                      ),
-                                      _row(
-                                        'Received',
-                                        fund.amountReceivedPaise,
-                                        color: InfraColors.green,
-                                      ),
-                                      _row(
-                                        'Pending',
-                                        fund.pendingAmountPaise,
-                                        color: InfraColors.orange,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      if (permissions.canManageFunds)
-                                        OutlinedButton.icon(
-                                          onPressed: () => context.push(
-                                            AppRoutes.newGovtReceipt(
-                                              widget.project.id,
+                                        if ((fund.schemeName ?? '').isNotEmpty)
+                                          Text(
+                                            fund.schemeName!,
+                                            style: const TextStyle(
+                                              color: InfraColors.textSecondary,
+                                              fontSize: 12,
                                             ),
-                                            extra: fund,
                                           ),
-                                          icon: const Icon(Icons.add, size: 18),
-                                          label: const Text('Add Receipt'),
+                                        const SizedBox(height: 8),
+                                        _row(
+                                          'Sanctioned',
+                                          fund.amountSanctionedPaise,
                                         ),
-                                    ],
+                                        _row(
+                                          'Received',
+                                          fund.amountReceivedPaise,
+                                          color: InfraColors.green,
+                                        ),
+                                        _row(
+                                          'Pending',
+                                          fund.pendingAmountPaise,
+                                          color: InfraColors.orange,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        if (permissions.canManageFunds)
+                                          OutlinedButton.icon(
+                                            onPressed: () => context.push(
+                                              AppRoutes.newGovtReceipt(
+                                                widget.project.id,
+                                              ),
+                                              extra: fund,
+                                            ),
+                                            icon: const Icon(
+                                              Icons.add,
+                                              size: 18,
+                                            ),
+                                            label: const Text('Add Receipt'),
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -1455,6 +1488,8 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                               ...filtered.map(
                                 (e) => Card(
                                   child: ListTile(
+                                    onTap: () =>
+                                        _showExpenseDetails(context, e),
                                     leading: CircleAvatar(
                                       backgroundColor: InfraColors.royalBlue
                                           .withValues(alpha: 0.1),
@@ -1565,9 +1600,6 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Reports tab
-// ---------------------------------------------------------------------------
 class _ReportsTab extends StatelessWidget {
   const _ReportsTab({required this.project});
 
@@ -1601,6 +1633,457 @@ class _ReportsTab extends StatelessWidget {
     );
   }
 }
+
+void _showInvestmentDetails(
+  BuildContext context,
+  ProjectInvestment investment,
+) {
+  final investorName = _presentText(investment.investorName, 'Investor');
+  _showFinanceDetailsSheet(
+    context,
+    icon: Icons.savings_outlined,
+    accentColor: InfraColors.gold,
+    title: investorName,
+    subtitle: 'Investor contribution',
+    amountLabel: 'Investment amount',
+    amountPaise: investment.amountPaise,
+    sections: [
+      _FinanceDetailSectionData(
+        title: 'Investment Details',
+        rows: [
+          _FinanceDetailRowData('Investor', investorName),
+          _FinanceDetailRowData(
+            'Investment date',
+            _dateLabel(investment.investmentDate),
+          ),
+          _FinanceDetailRowData(
+            'Payment mode',
+            _humanizeToken(investment.paymentMode),
+          ),
+          _FinanceDetailRowData(
+            'Reference number',
+            _presentText(investment.referenceNumber),
+          ),
+          _FinanceDetailRowData('Notes', _presentText(investment.notes)),
+        ],
+      ),
+      _FinanceDetailSectionData(
+        title: 'Record',
+        rows: [
+          _FinanceDetailRowData(
+            'Created',
+            _dateTimeLabel(investment.createdAt),
+          ),
+          _FinanceDetailRowData(
+            'Updated',
+            _dateTimeLabel(investment.updatedAt),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+void _showGovernmentFundDetails(BuildContext context, GovernmentFund fund) {
+  _showFinanceDetailsSheet(
+    context,
+    icon: Icons.account_balance_outlined,
+    accentColor: InfraColors.green,
+    title: fund.departmentName,
+    subtitle: _presentText(fund.schemeName, 'Government fund'),
+    amountLabel: 'Sanctioned amount',
+    amountPaise: fund.amountSanctionedPaise,
+    sections: [
+      _FinanceDetailSectionData(
+        title: 'Fund Details',
+        rows: [
+          _FinanceDetailRowData('Department', fund.departmentName),
+          _FinanceDetailRowData('Scheme', _presentText(fund.schemeName)),
+          _FinanceDetailRowData(
+            'Status',
+            _governmentFundStatusLabel(fund.status),
+          ),
+          _FinanceDetailRowData(
+            'Sanction order',
+            _presentText(fund.sanctionOrderNumber),
+          ),
+          _FinanceDetailRowData('Sanction date', _dateLabel(fund.sanctionDate)),
+          _FinanceDetailRowData(
+            'Last received',
+            _dateLabel(fund.lastReceivedDate),
+          ),
+          _FinanceDetailRowData('Document', _presentText(fund.documentPath)),
+          _FinanceDetailRowData('Notes', _presentText(fund.notes)),
+        ],
+      ),
+      _FinanceDetailSectionData(
+        title: 'Money Movement',
+        rows: [
+          _FinanceDetailRowData.money('Sanctioned', fund.amountSanctionedPaise),
+          _FinanceDetailRowData.money(
+            'Received',
+            fund.amountReceivedPaise,
+            valueColor: InfraColors.green,
+          ),
+          _FinanceDetailRowData.money(
+            'Pending',
+            fund.pendingAmountPaise,
+            valueColor: InfraColors.orange,
+          ),
+        ],
+      ),
+      _FinanceDetailSectionData(
+        title: 'Record',
+        rows: [
+          _FinanceDetailRowData('Created', _dateTimeLabel(fund.createdAt)),
+          _FinanceDetailRowData('Updated', _dateTimeLabel(fund.updatedAt)),
+        ],
+      ),
+    ],
+  );
+}
+
+void _showExpenseDetails(BuildContext context, ProjectExpense expense) {
+  _showFinanceDetailsSheet(
+    context,
+    icon: Icons.receipt_long_outlined,
+    accentColor: InfraColors.red,
+    title: expense.category,
+    subtitle: _presentText(expense.vendorName, 'Project expense'),
+    amountLabel: 'Expense amount',
+    amountPaise: expense.amountPaise,
+    sections: [
+      _FinanceDetailSectionData(
+        title: 'Expense Details',
+        rows: [
+          _FinanceDetailRowData('Category', expense.category),
+          _FinanceDetailRowData('Vendor', _presentText(expense.vendorName)),
+          _FinanceDetailRowData(
+            'Expense date',
+            _dateLabel(expense.expenseDate),
+          ),
+          _FinanceDetailRowData(
+            'Payment mode',
+            _humanizeToken(expense.paymentMode),
+          ),
+          _FinanceDetailRowData(
+            'Bill number',
+            _presentText(expense.billNumber),
+          ),
+          _FinanceDetailRowData(
+            'Bill image',
+            _presentText(expense.billImagePath),
+          ),
+          _FinanceDetailRowData('Notes', _presentText(expense.notes)),
+          _FinanceDetailRowData('Created by', _presentText(expense.createdBy)),
+        ],
+      ),
+      _FinanceDetailSectionData(
+        title: 'Record',
+        rows: [
+          _FinanceDetailRowData('Created', _dateTimeLabel(expense.createdAt)),
+          _FinanceDetailRowData('Updated', _dateTimeLabel(expense.updatedAt)),
+        ],
+      ),
+    ],
+  );
+}
+
+void _showFinanceDetailsSheet(
+  BuildContext context, {
+  required IconData icon,
+  required Color accentColor,
+  required String title,
+  required String subtitle,
+  required String amountLabel,
+  required int amountPaise,
+  required List<_FinanceDetailSectionData> sections,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      return FractionallySizedBox(
+        heightFactor: 0.82,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: InfraColors.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: InfraColors.border,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 18, 10, 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(icon, color: accentColor, size: 25),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: InfraColors.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: InfraColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  children: [
+                    _FinanceAmountPanel(
+                      label: amountLabel,
+                      amountPaise: amountPaise,
+                      accentColor: accentColor,
+                    ),
+                    const SizedBox(height: 12),
+                    for (final section in sections) ...[
+                      _FinanceDetailSection(section: section),
+                      const SizedBox(height: 12),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _FinanceDetailSectionData {
+  const _FinanceDetailSectionData({required this.title, required this.rows});
+
+  final String title;
+  final List<_FinanceDetailRowData> rows;
+}
+
+class _FinanceDetailRowData {
+  const _FinanceDetailRowData(this.label, this.value, {this.valueColor});
+
+  factory _FinanceDetailRowData.money(
+    String label,
+    int amountPaise, {
+    Color? valueColor,
+  }) {
+    return _FinanceDetailRowData(
+      label,
+      Money.fromPaise(amountPaise).formatInr(),
+      valueColor: valueColor,
+    );
+  }
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+}
+
+class _FinanceAmountPanel extends StatelessWidget {
+  const _FinanceAmountPanel({
+    required this.label,
+    required this.amountPaise,
+    required this.accentColor,
+  });
+
+  final String label;
+  final int amountPaise;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: InfraColors.navy,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.navy.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Text(
+            Money.fromPaise(amountPaise).formatInr(),
+            style: TextStyle(
+              color: accentColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinanceDetailSection extends StatelessWidget {
+  const _FinanceDetailSection({required this.section});
+
+  final _FinanceDetailSectionData section;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: InfraColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: InfraColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              section.title,
+              style: const TextStyle(
+                color: InfraColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (var i = 0; i < section.rows.length; i++) ...[
+              if (i > 0) const Divider(height: 16),
+              _FinanceDetailRow(row: section.rows[i]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FinanceDetailRow extends StatelessWidget {
+  const _FinanceDetailRow({required this.row});
+
+  final _FinanceDetailRowData row;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 116,
+          child: Text(
+            row.label,
+            style: const TextStyle(
+              color: InfraColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            row.value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: row.valueColor ?? InfraColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _presentText(String? value, [String fallback = 'Not recorded']) {
+  final text = value?.trim();
+  if (text == null || text.isEmpty) return fallback;
+  return text;
+}
+
+String _dateLabel(DateTime? value) {
+  if (value == null) return 'Not recorded';
+  return DateFormat('dd MMM yyyy').format(value);
+}
+
+String _dateTimeLabel(DateTime? value) {
+  if (value == null) return 'Not recorded';
+  return DateFormat('dd MMM yyyy, hh:mm a').format(value);
+}
+
+String _humanizeToken(String? value) {
+  final text = value?.trim();
+  if (text == null || text.isEmpty) return 'Not recorded';
+  return text
+      .split(RegExp(r'[_\s-]+'))
+      .where((part) => part.isNotEmpty)
+      .map((part) => part[0].toUpperCase() + part.substring(1).toLowerCase())
+      .join(' ');
+}
+
+String _governmentFundStatusLabel(GovtFundStatus status) => switch (status) {
+  GovtFundStatus.sanctioned => 'Sanctioned',
+  GovtFundStatus.partiallyReceived => 'Partially Received',
+  GovtFundStatus.fullyReceived => 'Fully Received',
+  GovtFundStatus.delayed => 'Delayed',
+  GovtFundStatus.cancelled => 'Cancelled',
+};
 
 /// Compact 3-dot menu with Edit / Delete actions used on finance rows.
 class _EntityMenu extends StatelessWidget {

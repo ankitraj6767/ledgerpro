@@ -773,6 +773,7 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
   final _reference = TextEditingController();
   final _notes = TextEditingController();
   String? _investorId;
+  Investor? _newInvestor;
   String _paymentMode = 'bank';
   DateTime _date = DateTime.now();
   bool _saving = false;
@@ -811,40 +812,44 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
       return const AccessDeniedScreen();
     }
 
-    final investorsAsync = ref.watch(investorsProvider);
+    final projectInvestorsAsync = ref.watch(
+      projectInvestorsProvider(widget.project.id),
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Investment' : 'Add Investment'),
       ),
-      body: investorsAsync.when(
+      body: projectInvestorsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Could not load investors: $e')),
-        data: (investors) {
-          if (investors.isNotEmpty) {
-            _investorId ??= investors.first.id;
-          }
+        error: (e, _) =>
+            Center(child: Text('Could not load project investors: $e')),
+        data: (projectInvestors) {
+          final visibleInvestors =
+              [
+                ...projectInvestors,
+                if (_newInvestor != null &&
+                    !projectInvestors.any((i) => i.id == _newInvestor!.id))
+                  _newInvestor!,
+              ]..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
+          _investorId = visibleInvestors.any((i) => i.id == _investorId)
+              ? _investorId
+              : (visibleInvestors.isEmpty ? null : visibleInvestors.first.id);
+          final selectedInvestor = visibleInvestors
+              .where((i) => i.id == _investorId)
+              .firstOrNull;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _investorId,
-                      decoration: const InputDecoration(
-                        labelText: 'Investor',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      items: investors
-                          .map(
-                            (i) => DropdownMenuItem(
-                              value: i.id,
-                              child: Text(i.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _investorId = v),
+                    child: _InvestorPickerField(
+                      selectedInvestor: selectedInvestor,
+                      enabled: visibleInvestors.isNotEmpty,
+                      onTap: () => _openInvestorPicker(visibleInvestors),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -874,7 +879,7 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
               _plainField(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
               const SizedBox(height: 18),
               FilledButton.icon(
-                onPressed: _saving || investors.isEmpty ? null : _save,
+                onPressed: _saving || visibleInvestors.isEmpty ? null : _save,
                 icon: _saving
                     ? const SizedBox.square(
                         dimension: 18,
@@ -885,7 +890,7 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
                   _isEditing ? 'Update Investment' : 'Save Investment',
                 ),
               ),
-              if (investors.isEmpty)
+              if (visibleInvestors.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 12),
                   child: Text(
@@ -901,12 +906,108 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
   }
 
   Future<void> _addInvestor() async {
-    final created = await showModalBottomSheet<bool>(
+    final created = await showModalBottomSheet<Investor>(
       context: context,
       isScrollControlled: true,
       builder: (_) => const _AddInvestorSheet(),
     );
-    if (created == true) ref.invalidate(investorsProvider);
+    if (created == null) return;
+    if (!mounted) return;
+    setState(() {
+      _newInvestor = created;
+      _investorId = created.id;
+    });
+    ref.invalidate(investorsProvider);
+    ref.invalidate(projectInvestorsProvider(widget.project.id));
+  }
+
+  Future<void> _openInvestorPicker(List<Investor> investors) async {
+    final action = await showModalBottomSheet<_InvestorPickerAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => _InvestorPickerSheet(
+        investors: investors,
+        selectedInvestorId: _investorId,
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action.type) {
+      case _InvestorPickerActionType.select:
+        setState(() => _investorId = action.investor.id);
+      case _InvestorPickerActionType.edit:
+        await _editInvestor(action.investor);
+      case _InvestorPickerActionType.delete:
+        await _deleteInvestor(action.investor);
+    }
+  }
+
+  Future<void> _editInvestor(Investor investor) async {
+    final updated = await showModalBottomSheet<Investor>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _AddInvestorSheet(investor: investor),
+    );
+    if (updated == null) return;
+    if (!mounted) return;
+    if (_newInvestor?.id == updated.id) {
+      setState(() => _newInvestor = updated);
+    }
+    ref.invalidate(investorsProvider);
+    ref.invalidate(projectInvestorsProvider(widget.project.id));
+    ref.invalidate(projectInvestmentsProvider(widget.project.id));
+  }
+
+  Future<void> _deleteInvestor(Investor investor) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete investor?'),
+        content: Text(
+          'Remove ${investor.name} from this project and update investment totals?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final deletesCurrentInvestment =
+          _isEditing && widget.investment!.investorId == investor.id;
+      await ref
+          .read(infraRepositoryProvider)
+          .deleteProjectInvestor(
+            projectId: widget.project.id,
+            investorId: investor.id,
+          );
+      if (!mounted) return;
+      setState(() {
+        if (_newInvestor?.id == investor.id) _newInvestor = null;
+        if (_investorId == investor.id) _investorId = null;
+      });
+      ref.invalidate(projectInvestmentsProvider(widget.project.id));
+      ref.invalidate(projectInvestorsProvider(widget.project.id));
+      ref.invalidate(projectFinancialSummaryProvider(widget.project.id));
+      ref.invalidate(projectsProvider);
+      ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(investorsProvider);
+      messenger.showSnackBar(
+        SnackBar(content: Text('${investor.name} deleted.')),
+      );
+      if (deletesCurrentInvestment && mounted) context.pop();
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not delete investor: $error')),
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -957,9 +1058,11 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
         );
       }
       ref.invalidate(projectInvestmentsProvider(widget.project.id));
+      ref.invalidate(projectInvestorsProvider(widget.project.id));
       ref.invalidate(projectFinancialSummaryProvider(widget.project.id));
       ref.invalidate(projectsProvider);
       ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(investorsProvider);
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -978,8 +1081,172 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
   }
 }
 
+enum _InvestorPickerActionType { select, edit, delete }
+
+class _InvestorPickerAction {
+  const _InvestorPickerAction(this.type, this.investor);
+
+  final _InvestorPickerActionType type;
+  final Investor investor;
+}
+
+class _InvestorPickerField extends StatelessWidget {
+  const _InvestorPickerField({
+    required this.selectedInvestor,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final Investor? selectedInvestor;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: enabled ? onTap : null,
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Investor',
+          prefixIcon: Icon(Icons.person_outline),
+          suffixIcon: Icon(Icons.keyboard_arrow_down_rounded),
+        ),
+        child: Text(
+          selectedInvestor?.name ?? 'Select investor',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: enabled
+                ? Theme.of(context).colorScheme.onSurface
+                : Theme.of(context).disabledColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InvestorPickerSheet extends StatelessWidget {
+  const _InvestorPickerSheet({
+    required this.investors,
+    required this.selectedInvestorId,
+  });
+
+  final List<Investor> investors;
+  final String? selectedInvestorId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final height = MediaQuery.sizeOf(context).height * 0.72;
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: height),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Select Investor',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: investors.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final investor = investors[index];
+                    final selected = investor.id == selectedInvestorId;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      onTap: () => Navigator.pop(
+                        context,
+                        _InvestorPickerAction(
+                          _InvestorPickerActionType.select,
+                          investor,
+                        ),
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: selected
+                            ? theme.colorScheme.primary.withValues(alpha: .12)
+                            : theme.colorScheme.surfaceContainerHighest,
+                        child: Icon(
+                          selected ? Icons.check : Icons.person_outline,
+                          color: selected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      title: Text(
+                        investor.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () => Navigator.pop(
+                              context,
+                              _InvestorPickerAction(
+                                _InvestorPickerActionType.edit,
+                                investor,
+                              ),
+                            ),
+                            icon: const Icon(Icons.edit_outlined),
+                            tooltip: 'Edit',
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(
+                              context,
+                              _InvestorPickerAction(
+                                _InvestorPickerActionType.delete,
+                                investor,
+                              ),
+                            ),
+                            icon: const Icon(Icons.delete_outline),
+                            color: theme.colorScheme.error,
+                            tooltip: 'Delete',
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AddInvestorSheet extends ConsumerStatefulWidget {
-  const _AddInvestorSheet();
+  const _AddInvestorSheet({this.investor});
+
+  final Investor? investor;
 
   @override
   ConsumerState<_AddInvestorSheet> createState() => _AddInvestorSheetState();
@@ -991,6 +1258,19 @@ class _AddInvestorSheetState extends ConsumerState<_AddInvestorSheet> {
   final _email = TextEditingController();
   final _pan = TextEditingController();
   bool _saving = false;
+
+  bool get _isEditing => widget.investor != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final investor = widget.investor;
+    if (investor == null) return;
+    _name.text = investor.name;
+    _phone.text = investor.phone ?? '';
+    _email.text = investor.email ?? '';
+    _pan.text = investor.pan ?? '';
+  }
 
   @override
   void dispose() {
@@ -1013,9 +1293,9 @@ class _AddInvestorSheetState extends ConsumerState<_AddInvestorSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'New Investor',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          Text(
+            _isEditing ? 'Edit Investor' : 'New Investor',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
           ),
           const SizedBox(height: 12),
           _plainField(_name, 'Name', Icons.person_outline),
@@ -1038,7 +1318,7 @@ class _AddInvestorSheetState extends ConsumerState<_AddInvestorSheet> {
                     dimension: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save Investor'),
+                : Text(_isEditing ? 'Update Investor' : 'Save Investor'),
           ),
         ],
       ),
@@ -1056,16 +1336,32 @@ class _AddInvestorSheetState extends ConsumerState<_AddInvestorSheet> {
     setState(() => _saving = true);
     try {
       final org = await ref.read(infraWorkspaceProvider.future);
-      await ref
-          .read(infraRepositoryProvider)
-          .createInvestor(
-            organizationId: org.id,
-            name: _name.text.trim(),
-            phone: _phone.text.trim(),
-            email: _email.text.trim(),
-            pan: _pan.text.trim(),
-          );
-      if (mounted) Navigator.pop(context, true);
+      final repo = ref.read(infraRepositoryProvider);
+      final investor = _isEditing
+          ? await repo.updateInvestor(
+              investorId: widget.investor!.id,
+              name: _name.text.trim(),
+              phone: _phone.text.trim(),
+              email: _email.text.trim(),
+              pan: _pan.text.trim(),
+              address: widget.investor!.address,
+              notes: widget.investor!.notes,
+            )
+          : Investor(
+              id: await repo.createInvestor(
+                organizationId: org.id,
+                name: _name.text.trim(),
+                phone: _phone.text.trim(),
+                email: _email.text.trim(),
+                pan: _pan.text.trim(),
+              ),
+              organizationId: org.id,
+              name: _name.text.trim(),
+              phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+              email: _email.text.trim().isEmpty ? null : _email.text.trim(),
+              pan: _pan.text.trim().isEmpty ? null : _pan.text.trim(),
+            );
+      if (mounted) Navigator.pop(context, investor);
     } catch (error) {
       messenger.showSnackBar(
         SnackBar(content: Text('Could not save investor: $error')),
