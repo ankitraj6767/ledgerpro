@@ -7,6 +7,7 @@ import '../../../app/theme/infra_theme.dart';
 import '../../../core/security/app_session_controller.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
+import '../../../shared/components/navdream_logo.dart';
 
 /// Global expenses tab: pick a project to view/add expenses.
 class GlobalExpensesScreen extends ConsumerWidget {
@@ -109,7 +110,7 @@ class GlobalReportsScreen extends ConsumerWidget {
                       p.name,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
-                    subtitle: const Text('PDF · CSV'),
+                    subtitle: const Text('PDF reports'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () =>
                         context.push(AppRoutes.projectReports(p.id), extra: p),
@@ -142,10 +143,10 @@ class ProfileScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  const CircleAvatar(
-                    radius: 28,
-                    backgroundColor: InfraColors.navy,
-                    child: Icon(Icons.apartment, color: InfraColors.gold),
+                  const NavdreamLogo(
+                    size: 56,
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                    showBorder: true,
                   ),
                   const SizedBox(width: 14),
                   Expanded(

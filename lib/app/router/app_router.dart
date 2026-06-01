@@ -18,6 +18,7 @@ import '../../features/settings/presentation/audit_logs_screen.dart';
 import '../../features/settings/presentation/customer_users_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/settings/presentation/sync_queue_screen.dart';
+import '../../shared/components/navdream_logo.dart';
 import '../../shared/models/infra_models.dart';
 import '../../shared/widgets/infra_shell.dart';
 import '../constants/app_constants.dart';
@@ -255,8 +256,13 @@ class SplashScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Spacer(),
-              const Icon(Icons.apartment, color: Color(0xFFD6A83A), size: 56),
-              const SizedBox(height: 18),
+              const NavdreamLogo(
+                size: 88,
+                borderRadius: BorderRadius.all(Radius.circular(26)),
+                showBorder: true,
+                showShadow: true,
+              ),
+              const SizedBox(height: 20),
               Text(
                 AppConstants.appName,
                 style: const TextStyle(

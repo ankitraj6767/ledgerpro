@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:csv/csv.dart' as csv_lib;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,7 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/money/money.dart';
 import '../../../shared/models/infra_models.dart';
 
-/// Generates project finance reports (PDF + CSV) from real data.
+/// Generates project finance reports from real data.
 class InfraReportService {
   const InfraReportService();
 
@@ -42,16 +41,13 @@ class InfraReportService {
     final logo = await _loadLogo();
     doc.addPage(
       pw.MultiPage(
-        pageTheme: pw.PageTheme(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 32),
-          buildBackground: (context) => pw.Container(color: _white),
-        ),
+        pageTheme: _pageTheme(),
         footer: (context) => _footer(context, generatedAt),
         build: (context) => [
           _coverHeader(
             organizationName: organizationName,
             project: project,
+            reportTitle: 'Project Financial Summary',
             generatedAt: generatedAt,
             logo: logo,
           ),
@@ -161,9 +157,322 @@ class InfraReportService {
     return _write(project.name, 'summary', 'pdf', await doc.save());
   }
 
+  Future<File> investorsPdf({
+    required String organizationName,
+    required InfraProject project,
+    required List<ProjectInvestment> investments,
+  }) async {
+    final doc = pw.Document();
+    final generatedAt = DateTime.now();
+    final logo = await _loadLogo();
+    final sorted = [...investments]
+      ..sort((a, b) => _compareDateDesc(a.investmentDate, b.investmentDate));
+    final total = sorted.fold<int>(0, (sum, item) => sum + item.amountPaise);
+    final uniqueInvestors = sorted
+        .map((item) => (item.investorName ?? item.investorId).trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .length;
+
+    doc.addPage(
+      pw.MultiPage(
+        pageTheme: _pageTheme(),
+        footer: (context) => _footer(context, generatedAt),
+        build: (context) => [
+          _coverHeader(
+            organizationName: organizationName,
+            project: project,
+            reportTitle: 'Investor Contribution Report',
+            generatedAt: generatedAt,
+            logo: logo,
+          ),
+          pw.SizedBox(height: 16),
+          pw.Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _metricCard('Total Investment', _inr(total), _gold),
+              _metricCard('Investment Records', '${sorted.length}', _blue),
+              _metricCard('Investor Names', '$uniqueInvestors', _green),
+              _metricCard(
+                'Latest Contribution',
+                _formatDate(_latestDate(sorted.map((e) => e.investmentDate))),
+                _orange,
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Investor Breakdown',
+            subtitle: 'Contribution totals grouped by investor',
+            accent: _gold,
+          ),
+          if (sorted.isEmpty)
+            _emptySection('No investments recorded.')
+          else
+            _premiumTable(
+              headers: const ['Investor', 'Records', 'Total Amount', 'Share'],
+              rightAlignedColumns: const {1, 2, 3},
+              rows: _investmentBreakdownRows(sorted, total),
+            ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Investment Ledger',
+            subtitle: '${sorted.length} investment transaction(s)',
+            accent: _blue,
+          ),
+          if (sorted.isEmpty)
+            _emptySection('No investment transactions available.')
+          else
+            _premiumTable(
+              headers: const [
+                'Investor',
+                'Date',
+                'Mode',
+                'Reference',
+                'Notes',
+                'Amount',
+              ],
+              rightAlignedColumns: const {5},
+              rows: sorted
+                  .map(
+                    (item) => [
+                      item.investorName ?? 'Investor',
+                      _formatDate(item.investmentDate),
+                      _label(item.paymentMode),
+                      _present(item.referenceNumber),
+                      _present(item.notes),
+                      _inr(item.amountPaise),
+                    ],
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+    return _write(project.name, 'investors', 'pdf', await doc.save());
+  }
+
+  Future<File> expensesPdf({
+    required String organizationName,
+    required InfraProject project,
+    required List<ProjectExpense> expenses,
+  }) async {
+    final doc = pw.Document();
+    final generatedAt = DateTime.now();
+    final logo = await _loadLogo();
+    final sorted = [...expenses]
+      ..sort((a, b) => _compareDateDesc(a.expenseDate, b.expenseDate));
+    final total = sorted.fold<int>(0, (sum, item) => sum + item.amountPaise);
+
+    doc.addPage(
+      pw.MultiPage(
+        pageTheme: _pageTheme(),
+        footer: (context) => _footer(context, generatedAt),
+        build: (context) => [
+          _coverHeader(
+            organizationName: organizationName,
+            project: project,
+            reportTitle: 'Expense Report',
+            generatedAt: generatedAt,
+            logo: logo,
+          ),
+          pw.SizedBox(height: 16),
+          pw.Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _metricCard('Total Expenses', _inr(total), _red),
+              _metricCard('Expense Records', '${sorted.length}', _blue),
+              _metricCard(
+                'Categories Used',
+                '${sorted.map((e) => e.category).toSet().length}',
+                _gold,
+              ),
+              _metricCard(
+                'Latest Expense',
+                _formatDate(_latestDate(sorted.map((e) => e.expenseDate))),
+                _orange,
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Category Breakdown',
+            subtitle: 'Expense distribution by category',
+            accent: _red,
+          ),
+          if (sorted.isEmpty)
+            _emptySection('No expenses recorded.')
+          else
+            _premiumTable(
+              headers: const ['Category', 'Records', 'Total Amount', 'Share'],
+              rightAlignedColumns: const {1, 2, 3},
+              rows: _expenseBreakdownRows(sorted, total),
+            ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Expense Ledger',
+            subtitle: '${sorted.length} expense transaction(s)',
+            accent: _blue,
+          ),
+          if (sorted.isEmpty)
+            _emptySection('No expense transactions available.')
+          else
+            _premiumTable(
+              headers: const [
+                'Date',
+                'Category',
+                'Vendor',
+                'Mode',
+                'Bill',
+                'Amount',
+              ],
+              rightAlignedColumns: const {5},
+              rows: sorted
+                  .map(
+                    (item) => [
+                      _formatDate(item.expenseDate),
+                      item.category,
+                      _present(item.vendorName),
+                      _label(item.paymentMode),
+                      _present(item.billNumber),
+                      _inr(item.amountPaise),
+                    ],
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+    return _write(project.name, 'expenses', 'pdf', await doc.save());
+  }
+
+  Future<File> governmentFundsPdf({
+    required String organizationName,
+    required InfraProject project,
+    required List<GovernmentFund> funds,
+    Map<String, List<GovernmentFundReceipt>> receiptsByFundId = const {},
+  }) async {
+    final doc = pw.Document();
+    final generatedAt = DateTime.now();
+    final logo = await _loadLogo();
+    final sorted = [...funds]
+      ..sort((a, b) => _compareDateDesc(a.sanctionDate, b.sanctionDate));
+    final receipts = [
+      for (final fund in sorted)
+        ...(receiptsByFundId[fund.id] ?? const <GovernmentFundReceipt>[]),
+    ]..sort((a, b) => _compareDateDesc(a.receivedDate, b.receivedDate));
+    final sanctioned = sorted.fold<int>(
+      0,
+      (sum, item) => sum + item.amountSanctionedPaise,
+    );
+    final received = sorted.fold<int>(
+      0,
+      (sum, item) => sum + item.amountReceivedPaise,
+    );
+    final pending = sorted.fold<int>(
+      0,
+      (sum, item) => sum + item.pendingAmountPaise,
+    );
+
+    doc.addPage(
+      pw.MultiPage(
+        pageTheme: _pageTheme(),
+        footer: (context) => _footer(context, generatedAt),
+        build: (context) => [
+          _coverHeader(
+            organizationName: organizationName,
+            project: project,
+            reportTitle: 'Government Funds Report',
+            generatedAt: generatedAt,
+            logo: logo,
+          ),
+          pw.SizedBox(height: 16),
+          pw.Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _metricCard('Total Sanctioned', _inr(sanctioned), _blue),
+              _metricCard('Total Received', _inr(received), _green),
+              _metricCard('Pending Balance', _inr(pending), _orange),
+              _metricCard('Fund Records', '${sorted.length}', _gold),
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Sanction Register',
+            subtitle: '${sorted.length} government fund record(s)',
+            accent: _green,
+          ),
+          if (sorted.isEmpty)
+            _emptySection('No government funds recorded.')
+          else
+            _premiumTable(
+              headers: const [
+                'Department',
+                'Scheme',
+                'Order No.',
+                'Status',
+                'Sanctioned',
+                'Received',
+                'Pending',
+              ],
+              rightAlignedColumns: const {4, 5, 6},
+              rows: sorted
+                  .map(
+                    (item) => [
+                      item.departmentName,
+                      _present(item.schemeName),
+                      _present(item.sanctionOrderNumber),
+                      _fundStatusLabel(item.status),
+                      _inr(item.amountSanctionedPaise),
+                      _inr(item.amountReceivedPaise),
+                      _inr(item.pendingAmountPaise),
+                    ],
+                  )
+                  .toList(),
+            ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Receipt Ledger',
+            subtitle: '${receipts.length} receipt transaction(s)',
+            accent: _blue,
+          ),
+          if (receipts.isEmpty)
+            _emptySection('No receipt transactions recorded.')
+          else
+            _premiumTable(
+              headers: const [
+                'Department',
+                'Date',
+                'Mode',
+                'Reference',
+                'Amount',
+              ],
+              rightAlignedColumns: const {4},
+              rows: receipts
+                  .map(
+                    (receipt) => [
+                      _fundDepartment(sorted, receipt.governmentFundId),
+                      _formatDate(receipt.receivedDate),
+                      _label(receipt.paymentMode),
+                      _present(receipt.referenceNumber),
+                      _inr(receipt.amountPaise),
+                    ],
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+    return _write(project.name, 'government_funds', 'pdf', await doc.save());
+  }
+
   pw.Widget _coverHeader({
     required String organizationName,
     required InfraProject project,
+    required String reportTitle,
     required DateTime generatedAt,
     required pw.MemoryImage? logo,
   }) {
@@ -233,7 +542,7 @@ class InfraReportService {
                     ),
                     pw.SizedBox(height: 6),
                     pw.Text(
-                      'Project Financial Summary',
+                      reportTitle,
                       style: pw.TextStyle(
                         color: _white,
                         fontSize: 23,
@@ -330,6 +639,14 @@ class InfraReportService {
     } catch (_) {
       return null;
     }
+  }
+
+  pw.PageTheme _pageTheme() {
+    return pw.PageTheme(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 32),
+      buildBackground: (context) => pw.Container(color: _white),
+    );
   }
 
   pw.Widget _heroChip(String label, PdfColor color) {
@@ -754,6 +1071,89 @@ class InfraReportService {
     GovtFundStatus.cancelled => 'Cancelled',
   };
 
+  List<List<String>> _investmentBreakdownRows(
+    List<ProjectInvestment> investments,
+    int totalPaise,
+  ) {
+    final buckets = <String, List<int>>{};
+    for (final item in investments) {
+      final name = _present(item.investorName) == '-'
+          ? 'Investor'
+          : item.investorName!.trim();
+      final bucket = buckets.putIfAbsent(name, () => [0, 0]);
+      bucket[0] += 1;
+      bucket[1] += item.amountPaise;
+    }
+    final entries = buckets.entries.toList()
+      ..sort((a, b) => b.value[1].compareTo(a.value[1]));
+    return entries
+        .map(
+          (entry) => [
+            entry.key,
+            '${entry.value[0]}',
+            _inr(entry.value[1]),
+            _percentOf(entry.value[1], totalPaise),
+          ],
+        )
+        .toList();
+  }
+
+  List<List<String>> _expenseBreakdownRows(
+    List<ProjectExpense> expenses,
+    int totalPaise,
+  ) {
+    final buckets = <String, List<int>>{};
+    for (final item in expenses) {
+      final category = item.category.trim().isEmpty
+          ? 'Miscellaneous'
+          : item.category.trim();
+      final bucket = buckets.putIfAbsent(category, () => [0, 0]);
+      bucket[0] += 1;
+      bucket[1] += item.amountPaise;
+    }
+    final entries = buckets.entries.toList()
+      ..sort((a, b) => b.value[1].compareTo(a.value[1]));
+    return entries
+        .map(
+          (entry) => [
+            entry.key,
+            '${entry.value[0]}',
+            _inr(entry.value[1]),
+            _percentOf(entry.value[1], totalPaise),
+          ],
+        )
+        .toList();
+  }
+
+  String _fundDepartment(List<GovernmentFund> funds, String fundId) {
+    for (final fund in funds) {
+      if (fund.id == fundId) return fund.departmentName;
+    }
+    return 'Government fund';
+  }
+
+  DateTime? _latestDate(Iterable<DateTime?> values) {
+    DateTime? latest;
+    for (final value in values) {
+      if (value == null) continue;
+      if (latest == null || value.isAfter(latest)) latest = value;
+    }
+    return latest;
+  }
+
+  int _compareDateDesc(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return b.compareTo(a);
+  }
+
+  String _percentOf(int part, int total) {
+    if (total <= 0) return '0%';
+    final percent = (part / total) * 100;
+    return '${percent.toStringAsFixed(percent >= 10 ? 0 : 1)}%';
+  }
+
   String _projectLocation(InfraProject project) {
     final cityState = [
       project.locationCity,
@@ -780,51 +1180,9 @@ class InfraReportService {
         .join(' ');
   }
 
-  Future<File> expensesCsv({
-    required InfraProject project,
-    required List<ProjectExpense> expenses,
-  }) async {
-    final rows = <List<dynamic>>[
-      ['Project', project.name],
-      ['Generated', _dateTime.format(DateTime.now())],
-      <dynamic>[],
-      ['Date', 'Category', 'Vendor', 'Payment Mode', 'Bill No', 'Amount (INR)'],
-      ...expenses.map(
-        (e) => [
-          e.expenseDate == null ? '' : _date.format(e.expenseDate!),
-          e.category,
-          e.vendorName ?? '',
-          e.paymentMode,
-          e.billNumber ?? '',
-          (e.amountPaise / 100).toStringAsFixed(2),
-        ],
-      ),
-    ];
-    final content = csv_lib.csv.encode(rows);
-    return _write(project.name, 'expenses', 'csv', content);
-  }
-
-  Future<File> investorsCsv({
-    required InfraProject project,
-    required List<ProjectInvestment> investments,
-  }) async {
-    final rows = <List<dynamic>>[
-      ['Project', project.name],
-      ['Generated', _dateTime.format(DateTime.now())],
-      <dynamic>[],
-      ['Investor', 'Date', 'Payment Mode', 'Reference', 'Amount (INR)'],
-      ...investments.map(
-        (i) => [
-          i.investorName ?? 'Investor',
-          i.investmentDate == null ? '' : _date.format(i.investmentDate!),
-          i.paymentMode,
-          i.referenceNumber ?? '',
-          (i.amountPaise / 100).toStringAsFixed(2),
-        ],
-      ),
-    ];
-    final content = csv_lib.csv.encode(rows);
-    return _write(project.name, 'investors', 'csv', content);
+  String _present(String? value) {
+    final trimmed = value?.trim() ?? '';
+    return trimmed.isEmpty ? '-' : trimmed;
   }
 
   Future<void> share(File file, {required bool isPdf}) async {

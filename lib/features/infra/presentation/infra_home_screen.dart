@@ -6,6 +6,7 @@ import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
+import '../../../shared/components/navdream_logo.dart';
 import '../../../shared/models/infra_models.dart';
 
 class InfraHomeScreen extends ConsumerWidget {
@@ -105,8 +106,12 @@ class _HeroHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.apartment, color: InfraColors.gold, size: 28),
-              const SizedBox(width: 10),
+              const NavdreamLogo(
+                size: 42,
+                borderRadius: BorderRadius.all(Radius.circular(13)),
+                showBorder: true,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: FittedBox(
                   alignment: Alignment.centerLeft,

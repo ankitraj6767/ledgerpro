@@ -577,8 +577,6 @@ class _FinanceSearchBar extends StatelessWidget {
     required this.controller,
     required this.hintText,
     required this.query,
-    required this.totalCount,
-    required this.resultCount,
     required this.onChanged,
     required this.onClear,
     this.onAdd,
@@ -587,8 +585,6 @@ class _FinanceSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final String query;
-  final int totalCount;
-  final int resultCount;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
   final VoidCallback? onAdd;
@@ -596,33 +592,22 @@ class _FinanceSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFiltering = query.trim().isNotEmpty;
-    final badgeText = _formatSearchCount(
-      isFiltering ? resultCount : totalCount,
-    );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxWidth < 360;
+          final buttonSize = constraints.maxWidth < 360 ? 60.0 : 66.0;
           final search = _PremiumSearchField(
             controller: controller,
             hintText: hintText,
             isFiltering: isFiltering,
-            badgeText: badgeText,
             onChanged: onChanged,
             onClear: onClear,
           );
           final addButton = onAdd == null
               ? null
-              : _PremiumAddButton(onPressed: onAdd!);
-
-          if (compact && addButton != null) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [search, const SizedBox(height: 10), addButton],
-            );
-          }
+              : _PremiumAddButton(onPressed: onAdd!, size: buttonSize);
 
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -635,11 +620,6 @@ class _FinanceSearchBar extends StatelessWidget {
       ),
     );
   }
-
-  String _formatSearchCount(int count) {
-    if (count > 99) return '99+';
-    return '$count';
-  }
 }
 
 class _PremiumSearchField extends StatelessWidget {
@@ -647,7 +627,6 @@ class _PremiumSearchField extends StatelessWidget {
     required this.controller,
     required this.hintText,
     required this.isFiltering,
-    required this.badgeText,
     required this.onChanged,
     required this.onClear,
   });
@@ -655,43 +634,34 @@ class _PremiumSearchField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final bool isFiltering;
-  final String badgeText;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 58,
-      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      height: 66,
+      padding: const EdgeInsets.fromLTRB(18, 0, 8, 0),
       decoration: BoxDecoration(
         color: InfraColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: InfraColors.border),
         boxShadow: [
           BoxShadow(
-            color: InfraColors.navy.withValues(alpha: 0.07),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: InfraColors.navy.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: InfraColors.royalBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.search_rounded,
-              color: InfraColors.royalBlue,
-              size: 22,
-            ),
+          const Icon(
+            Icons.search_rounded,
+            color: InfraColors.royalBlue,
+            size: 34,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 18),
           Expanded(
             child: TextField(
               controller: controller,
@@ -702,7 +672,8 @@ class _PremiumSearchField extends StatelessWidget {
                 hintText: hintText,
                 hintStyle: const TextStyle(
                   color: InfraColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 20,
                 ),
                 isCollapsed: true,
                 filled: false,
@@ -717,11 +688,10 @@ class _PremiumSearchField extends StatelessWidget {
               style: const TextStyle(
                 color: InfraColors.textPrimary,
                 fontWeight: FontWeight.w700,
-                fontSize: 15,
+                fontSize: 18,
               ),
             ),
           ),
-          const SizedBox(width: 8),
           if (isFiltering)
             Tooltip(
               message: 'Clear search',
@@ -736,28 +706,6 @@ class _PremiumSearchField extends StatelessWidget {
                 padding: EdgeInsets.zero,
               ),
             ),
-          Container(
-            constraints: const BoxConstraints(minWidth: 36),
-            height: 34,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: isFiltering
-                  ? InfraColors.navy
-                  : InfraColors.royalBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              badgeText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isFiltering ? Colors.white : InfraColors.royalBlue,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -765,39 +713,46 @@ class _PremiumSearchField extends StatelessWidget {
 }
 
 class _PremiumAddButton extends StatelessWidget {
-  const _PremiumAddButton({required this.onPressed});
+  const _PremiumAddButton({required this.onPressed, required this.size});
 
   final VoidCallback onPressed;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: InfraColors.navy,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: InfraColors.navy.withValues(alpha: 0.18),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+    return Tooltip(
+      message: 'Add',
+      child: Semantics(
+        button: true,
+        label: 'Add',
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: InfraColors.navy,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: InfraColors.navy.withValues(alpha: 0.24),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: FilledButton.icon(
-        onPressed: onPressed,
-        icon: const Icon(Icons.add_rounded, size: 22),
-        label: const Text('Add'),
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size(104, 58),
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+          child: IconButton(
+            onPressed: onPressed,
+            icon: const Icon(Icons.add_rounded),
+            color: Colors.white,
+            iconSize: 34,
+            splashRadius: size / 2,
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -906,8 +861,6 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                     controller: _searchController,
                     hintText: 'Search investors, name, amount',
                     query: _query,
-                    totalCount: investments.length,
-                    resultCount: filtered.length,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
                     onAdd: permissions.canManageInvestments
@@ -1148,8 +1101,6 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                     controller: _searchController,
                     hintText: 'Search funds, department, scheme',
                     query: _query,
-                    totalCount: funds.length,
-                    resultCount: filtered.length,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
                     onAdd: permissions.canManageFunds
@@ -1425,8 +1376,6 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                     controller: _searchController,
                     hintText: 'Search expenses, vendor, category',
                     query: _query,
-                    totalCount: expenses.length,
-                    resultCount: filtered.length,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
                     onAdd: permissions.canAddExpense
@@ -1625,7 +1574,7 @@ class _ReportsTab extends StatelessWidget {
             title: Text('Reports'),
             subtitle: Text(
               'Generate and share project summary, investor, government fund, '
-              'and expense reports as PDF or CSV.',
+              'and expense reports as PDF.',
             ),
           ),
         ),

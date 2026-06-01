@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../data/repositories/infra_repository.dart';
+import '../../../shared/components/navdream_logo.dart';
 import '../data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -39,8 +40,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.all(24),
           children: [
             const SizedBox(height: 24),
-            const Icon(Icons.apartment, color: InfraColors.gold, size: 48),
-            const SizedBox(height: 14),
+            const NavdreamLogo(
+              size: 76,
+              borderRadius: BorderRadius.all(Radius.circular(22)),
+              showBorder: true,
+              showShadow: true,
+            ),
+            const SizedBox(height: 16),
             Text(
               AppConstants.appName,
               style: const TextStyle(

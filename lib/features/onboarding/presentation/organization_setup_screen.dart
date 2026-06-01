@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/constants/app_constants.dart';
 import '../../../data/repositories/infra_repository.dart';
+import '../../../shared/components/navdream_logo.dart';
 
 /// Real organization setup. Saves org name/owner/phone/address before
 /// continuing. If a workspace already exists, this still updates the details.
@@ -39,14 +40,26 @@ class _OrganizationSetupScreenState
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            'Welcome to ${AppConstants.appName}',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              const NavdreamLogo(
+                size: 58,
+                borderRadius: BorderRadius.all(Radius.circular(17)),
+                showBorder: true,
+                showShadow: true,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  'Welcome to ${AppConstants.appName}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           const Text('Create your organization to start managing projects.'),
           const SizedBox(height: 20),
           TextField(
@@ -90,7 +103,8 @@ class _OrganizationSetupScreenState
             icon: _saving
                 ? const SizedBox.square(
                     dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.arrow_forward),
             label: const Text('Continue'),
           ),

@@ -26,7 +26,10 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final project = ref.watch(projectsProvider).value
+    final project =
+        ref
+            .watch(projectsProvider)
+            .value
             ?.where((p) => p.id == widget.projectId)
             .firstOrNull ??
         widget.project;
@@ -34,7 +37,10 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Project Reports')),
       body: project == null
-          ? const EmptyState(icon: Icons.error_outline, title: 'Project not found')
+          ? const EmptyState(
+              icon: Icons.error_outline,
+              title: 'Project not found',
+            )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -46,15 +52,21 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
                 ),
                 _card(
                   icon: Icons.savings_outlined,
-                  title: 'Investor Report (CSV)',
+                  title: 'Investor Report (PDF)',
                   subtitle: 'All investments for this project',
-                  onTap: () => _investorsCsv(project),
+                  onTap: () => _investorsPdf(project),
+                ),
+                _card(
+                  icon: Icons.account_balance_outlined,
+                  title: 'Government Funds (PDF)',
+                  subtitle: 'Sanctions, receipts, and pending funds',
+                  onTap: () => _governmentFundsPdf(project),
                 ),
                 _card(
                   icon: Icons.receipt_long_outlined,
-                  title: 'Expense Report (CSV)',
+                  title: 'Expense Report (PDF)',
                   subtitle: 'All expenses for this project',
-                  onTap: () => _expensesCsv(project),
+                  onTap: () => _expensesPdf(project),
                 ),
                 if (_busy)
                   const Padding(
@@ -75,8 +87,7 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
     return Card(
       child: ListTile(
         leading: Icon(icon),
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.ios_share_outlined),
         onTap: _busy ? null : onTap,
@@ -105,25 +116,57 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
     });
   }
 
-  Future<void> _investorsCsv(InfraProject project) async {
+  Future<void> _investorsPdf(InfraProject project) async {
     await _run(() async {
       final repo = ref.read(infraRepositoryProvider);
+      final org = await ref.read(infraWorkspaceProvider.future);
       final investments = await repo.fetchInvestments(project.id);
       const service = InfraReportService();
-      final file =
-          await service.investorsCsv(project: project, investments: investments);
-      await service.share(file, isPdf: false);
+      final file = await service.investorsPdf(
+        organizationName: org.name,
+        project: project,
+        investments: investments,
+      );
+      await service.share(file, isPdf: true);
     });
   }
 
-  Future<void> _expensesCsv(InfraProject project) async {
+  Future<void> _governmentFundsPdf(InfraProject project) async {
     await _run(() async {
       final repo = ref.read(infraRepositoryProvider);
+      final org = await ref.read(infraWorkspaceProvider.future);
+      final funds = await repo.fetchGovernmentFunds(project.id);
+      final receiptEntries = await Future.wait(
+        funds.map((fund) async {
+          final receipts = await repo.fetchReceipts(fund.id);
+          return MapEntry(fund.id, receipts);
+        }),
+      );
+      final receiptsByFundId =
+          Map<String, List<GovernmentFundReceipt>>.fromEntries(receiptEntries);
+      const service = InfraReportService();
+      final file = await service.governmentFundsPdf(
+        organizationName: org.name,
+        project: project,
+        funds: funds,
+        receiptsByFundId: receiptsByFundId,
+      );
+      await service.share(file, isPdf: true);
+    });
+  }
+
+  Future<void> _expensesPdf(InfraProject project) async {
+    await _run(() async {
+      final repo = ref.read(infraRepositoryProvider);
+      final org = await ref.read(infraWorkspaceProvider.future);
       final expenses = await repo.fetchExpenses(project.id);
       const service = InfraReportService();
-      final file =
-          await service.expensesCsv(project: project, expenses: expenses);
-      await service.share(file, isPdf: false);
+      final file = await service.expensesPdf(
+        organizationName: org.name,
+        project: project,
+        expenses: expenses,
+      );
+      await service.share(file, isPdf: true);
     });
   }
 
