@@ -55,7 +55,9 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
         // Returned false without throwing (e.g. user dismissed); stay on PIN.
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Biometric unlock was not completed. Enter your PIN.'),
+            content: Text(
+              'Biometric unlock was not completed. Enter your PIN.',
+            ),
           ),
         );
       }
@@ -144,7 +146,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text('Enter your PIN to unlock LedgerPro Mobile.'),
+            const Text('Enter your PIN to unlock NAVDREAM.'),
             const SizedBox(height: 24),
             TextField(
               controller: _pinController,

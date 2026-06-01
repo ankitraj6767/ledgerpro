@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:csv/csv.dart' as csv_lib;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -16,15 +17,16 @@ class InfraReportService {
 
   static final _dateTime = DateFormat('yyyy-MM-dd HH:mm');
   static final _date = DateFormat('yyyy-MM-dd');
-  static const _blue = PdfColor.fromInt(0xFF000000);
-  static const _gold = PdfColor.fromInt(0xFF000000);
-  static const _green = PdfColor.fromInt(0xFF000000);
-  static const _orange = PdfColor.fromInt(0xFF000000);
-  static const _red = PdfColor.fromInt(0xFF000000);
-  static const _ink = PdfColor.fromInt(0xFF000000);
-  static const _muted = PdfColor.fromInt(0xFF000000);
-  static const _line = PdfColor.fromInt(0xFF000000);
-  static const _soft = PdfColor.fromInt(0xFFFFFFFF);
+  static const _blue = PdfColor.fromInt(0xFF0A4F9E);
+  static const _gold = PdfColor.fromInt(0xFFE59B12);
+  static const _green = PdfColor.fromInt(0xFF15803D);
+  static const _orange = PdfColor.fromInt(0xFFF97316);
+  static const _red = PdfColor.fromInt(0xFFB42318);
+  static const _navy = PdfColor.fromInt(0xFF051B36);
+  static const _ink = PdfColor.fromInt(0xFF111827);
+  static const _muted = PdfColor.fromInt(0xFF64748B);
+  static const _line = PdfColor.fromInt(0xFFD7DEE8);
+  static const _soft = PdfColor.fromInt(0xFFF6F8FB);
   static const _white = PdfColor.fromInt(0xFFFFFFFF);
 
   Future<File> projectSummaryPdf({
@@ -37,6 +39,7 @@ class InfraReportService {
   }) async {
     final doc = pw.Document();
     final generatedAt = DateTime.now();
+    final logo = await _loadLogo();
     doc.addPage(
       pw.MultiPage(
         pageTheme: pw.PageTheme(
@@ -50,6 +53,7 @@ class InfraReportService {
             organizationName: organizationName,
             project: project,
             generatedAt: generatedAt,
+            logo: logo,
           ),
           pw.SizedBox(height: 16),
           _projectPulse(project),
@@ -161,17 +165,17 @@ class InfraReportService {
     required String organizationName,
     required InfraProject project,
     required DateTime generatedAt,
+    required pw.MemoryImage? logo,
   }) {
     final orgName = organizationName.trim().isEmpty
-        ? 'Navdream Infra Pvt. Ltd.'
+        ? 'NAVDREAM Infra Pvt. Ltd.'
         : organizationName.trim();
 
     return pw.Container(
-      padding: const pw.EdgeInsets.all(24),
+      padding: const pw.EdgeInsets.all(18),
       decoration: pw.BoxDecoration(
-        color: _white,
-        borderRadius: pw.BorderRadius.circular(18),
-        border: pw.Border.all(color: _line, width: 1.2),
+        color: _navy,
+        border: pw.Border.all(color: _navy, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -183,20 +187,56 @@ class InfraReportService {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
+                    pw.Row(
+                      children: [
+                        if (logo != null) ...[
+                          pw.Container(
+                            width: 44,
+                            height: 44,
+                            child: pw.Image(logo, fit: pw.BoxFit.contain),
+                          ),
+                          pw.SizedBox(width: 10),
+                        ],
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'NAVDREAM',
+                              style: pw.TextStyle(
+                                color: _white,
+                                fontSize: 18,
+                                fontWeight: pw.FontWeight.bold,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            pw.Text(
+                              'INFRA PVT LTD',
+                              style: pw.TextStyle(
+                                color: _gold,
+                                fontSize: 8,
+                                fontWeight: pw.FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    pw.SizedBox(height: 14),
                     pw.Text(
                       orgName,
                       style: pw.TextStyle(
-                        color: _ink,
-                        fontSize: 12,
+                        color: _white,
+                        fontSize: 9,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    pw.SizedBox(height: 10),
+                    pw.SizedBox(height: 6),
                     pw.Text(
                       'Project Financial Summary',
                       style: pw.TextStyle(
-                        color: _ink,
-                        fontSize: 25,
+                        color: _white,
+                        fontSize: 23,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
@@ -204,7 +244,7 @@ class InfraReportService {
                     pw.Text(
                       project.name,
                       style: pw.TextStyle(
-                        color: _ink,
+                        color: _white,
                         fontSize: 15,
                         fontWeight: pw.FontWeight.bold,
                       ),
@@ -212,7 +252,7 @@ class InfraReportService {
                     pw.SizedBox(height: 4),
                     pw.Text(
                       _projectLocation(project),
-                      style: const pw.TextStyle(color: _ink, fontSize: 10),
+                      style: const pw.TextStyle(color: _soft, fontSize: 10),
                     ),
                   ],
                 ),
@@ -222,8 +262,7 @@ class InfraReportService {
                 padding: const pw.EdgeInsets.all(12),
                 decoration: pw.BoxDecoration(
                   color: _white,
-                  borderRadius: pw.BorderRadius.circular(12),
-                  border: pw.Border.all(color: _line),
+                  border: pw.Border.all(color: _line, width: 0.8),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -284,12 +323,20 @@ class InfraReportService {
     );
   }
 
+  Future<pw.MemoryImage?> _loadLogo() async {
+    try {
+      final bytes = await rootBundle.load('assets/branding/navdream_logo.png');
+      return pw.MemoryImage(bytes.buffer.asUint8List());
+    } catch (_) {
+      return null;
+    }
+  }
+
   pw.Widget _heroChip(String label, PdfColor color) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: pw.BoxDecoration(
         color: _white,
-        borderRadius: pw.BorderRadius.circular(999),
         border: pw.Border.all(color: color),
       ),
       child: pw.Text(
@@ -309,7 +356,6 @@ class InfraReportService {
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
         color: _white,
-        borderRadius: pw.BorderRadius.circular(14),
         border: pw.Border.all(color: _line),
       ),
       child: pw.Column(
@@ -398,20 +444,12 @@ class InfraReportService {
       padding: const pw.EdgeInsets.all(14),
       decoration: pw.BoxDecoration(
         color: _white,
-        borderRadius: pw.BorderRadius.circular(14),
         border: pw.Border.all(color: highlighted ? _blue : _line, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Container(
-            width: 28,
-            height: 3,
-            decoration: pw.BoxDecoration(
-              color: accent,
-              borderRadius: pw.BorderRadius.circular(99),
-            ),
-          ),
+          pw.Container(width: 28, height: 3, color: accent),
           pw.SizedBox(height: 12),
           pw.Text(
             label,
@@ -449,7 +487,6 @@ class InfraReportService {
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
         color: _white,
-        borderRadius: pw.BorderRadius.circular(14),
         border: pw.Border.all(color: _line, width: 1),
       ),
       child: pw.Column(
@@ -498,14 +535,7 @@ class InfraReportService {
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Container(
-            width: 5,
-            height: 28,
-            decoration: pw.BoxDecoration(
-              color: accent,
-              borderRadius: pw.BorderRadius.circular(99),
-            ),
-          ),
+          pw.Container(width: 5, height: 28, color: accent),
           pw.SizedBox(width: 9),
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -549,7 +579,7 @@ class InfraReportService {
       ),
       children: [
         pw.TableRow(
-          decoration: const pw.BoxDecoration(color: _white),
+          decoration: const pw.BoxDecoration(color: _navy),
           children: [
             for (var i = 0; i < headers.length; i++)
               _tableCell(
@@ -561,7 +591,9 @@ class InfraReportService {
         ),
         for (var rowIndex = 0; rowIndex < rows.length; rowIndex++)
           pw.TableRow(
-            decoration: const pw.BoxDecoration(color: _white),
+            decoration: pw.BoxDecoration(
+              color: rowIndex.isEven ? _white : _soft,
+            ),
             children: [
               for (var i = 0; i < headers.length; i++)
                 _tableCell(
@@ -585,7 +617,7 @@ class InfraReportService {
         value,
         textAlign: alignRight ? pw.TextAlign.right : pw.TextAlign.left,
         style: pw.TextStyle(
-          color: _ink,
+          color: isHeader ? _white : _ink,
           fontSize: isHeader ? 8.3 : 8,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
         ),
@@ -599,7 +631,6 @@ class InfraReportService {
       padding: const pw.EdgeInsets.all(14),
       decoration: pw.BoxDecoration(
         color: _soft,
-        borderRadius: pw.BorderRadius.circular(12),
         border: pw.Border.all(color: _line),
       ),
       child: pw.Text(
@@ -618,8 +649,7 @@ class InfraReportService {
     return pw.Container(
       height: 8,
       decoration: pw.BoxDecoration(
-        color: _white,
-        borderRadius: pw.BorderRadius.circular(99),
+        color: _soft,
         border: pw.Border.all(color: trackColor, width: 0.7),
       ),
       child: pw.Row(
@@ -627,13 +657,7 @@ class InfraReportService {
           if (safePercent > 0)
             pw.Expanded(
               flex: safePercent,
-              child: pw.Container(
-                height: 8,
-                decoration: pw.BoxDecoration(
-                  color: color,
-                  borderRadius: pw.BorderRadius.circular(99),
-                ),
-              ),
+              child: pw.Container(height: 8, color: color),
             ),
           if (safePercent < 100)
             pw.Expanded(flex: 100 - safePercent, child: pw.SizedBox(height: 8)),
@@ -669,7 +693,7 @@ class InfraReportService {
         children: [
           pw.Expanded(
             child: pw.Text(
-              'Navdream Infra financial report | ${_dateTime.format(generatedAt)}',
+              'NAVDREAM financial report | ${_dateTime.format(generatedAt)}',
               style: const pw.TextStyle(color: _muted, fontSize: 8),
             ),
           ),
@@ -806,7 +830,7 @@ class InfraReportService {
   Future<void> share(File file, {required bool isPdf}) async {
     await SharePlus.instance.share(
       ShareParams(
-        title: 'Navdream Infra Pvt. Ltd. report',
+        title: 'NAVDREAM report',
         files: [
           XFile(file.path, mimeType: isPdf ? 'application/pdf' : 'text/csv'),
         ],

@@ -18,7 +18,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Navdream Infra Pvt. Ltd.'), findsOneWidget);
+    expect(find.text('NAVDREAM'), findsOneWidget);
     expect(find.text('We Build Today, For a Better Tomorrow'), findsOneWidget);
   });
 }

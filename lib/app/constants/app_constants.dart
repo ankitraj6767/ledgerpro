@@ -2,7 +2,7 @@ class AppConstants {
   const AppConstants._();
 
   // Configurable app identity (Phase: keep name configurable).
-  static const appName = 'Navdream Infra Pvt. Ltd.';
+  static const appName = 'NAVDREAM';
   static const appTagline = 'We Build Today, For a Better Tomorrow';
   static const currency = 'INR';
   static const defaultLocale = 'en_IN';

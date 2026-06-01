@@ -65,7 +65,7 @@ class AppLockService {
     final supported = await _localAuth.isDeviceSupported();
     if (!supported) return false;
     return _localAuth.authenticate(
-      localizedReason: 'Unlock LedgerPro Mobile',
+      localizedReason: 'Unlock NAVDREAM',
       // Allow fallback to device PIN/pattern/password so unlock still works on
       // devices without enrolled fingerprints/face. biometricOnly:true would
       // throw on such devices and make the button appear to do nothing.

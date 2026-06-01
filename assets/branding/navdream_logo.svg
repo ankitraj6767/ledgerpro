@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="skyBlue" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#19a7ff"/>
+      <stop offset="1" stop-color="#003b8f"/>
+    </linearGradient>
+    <linearGradient id="roadBlue" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#001947"/>
+      <stop offset="0.45" stop-color="#0d66c7"/>
+      <stop offset="1" stop-color="#00112f"/>
+    </linearGradient>
+    <linearGradient id="sunGold" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffca28"/>
+      <stop offset="1" stop-color="#ff7a00"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="192" fill="#020817"/>
+  <g transform="translate(78 116)">
+    <path d="M245 308a215 215 0 0 1 430 0" fill="none" stroke="url(#sunGold)" stroke-width="30" stroke-linecap="round"/>
+    <g fill="#ffae18">
+      <path d="M460 0l21 103h-42z"/>
+      <path d="M345 34l48 92-39 12z"/>
+      <path d="M575 34l-9 104-39-12z"/>
+      <path d="M244 104l71 76-34 23z"/>
+      <path d="M676 104l-37 99-34-23z"/>
+      <path d="M172 198l90 48-24 33z"/>
+      <path d="M748 198l-66 81-24-33z"/>
+    </g>
+    <g>
+      <path d="M419 143h83v222h-83z" fill="url(#skyBlue)" stroke="#b9e6ff" stroke-width="5"/>
+      <path d="M337 220h65v145h-65z" fill="#06458f" stroke="#69c8ff" stroke-width="4"/>
+      <path d="M520 220h65v145h-65z" fill="#06458f" stroke="#69c8ff" stroke-width="4"/>
+      <path d="M444 164v184M476 164v184M355 244h32M355 270h32M355 296h32M538 244h32M538 270h32M538 296h32" stroke="#d6f4ff" stroke-width="8" opacity=".9"/>
+    </g>
+    <path d="M116 500c190-111 308-103 463-92 118 9 220-16 282-96-40 132-166 212-330 235-164 22-287 7-415-47z" fill="#ff7a00"/>
+    <path d="M81 455c205-139 352-139 528-118 113 13 196-5 270-76-58 134-180 205-356 214-159 8-279-7-442-20z" fill="url(#roadBlue)"/>
+    <path d="M191 419c190-47 353-31 493-20" fill="none" stroke="#e7f7ff" stroke-width="13" stroke-linecap="round"/>
+    <path d="M368 453c35 2 71 3 107 2M552 447c39-3 74-10 107-20" fill="none" stroke="#050914" stroke-width="11" stroke-linecap="round"/>
+  </g>
+  <text x="512" y="780" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="116" font-weight="900" fill="#073a83" letter-spacing="2">NAVDREAM</text>
+  <text x="512" y="852" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="800" fill="#ff8a19" letter-spacing="13">INFRA PVT LTD</text>
+</svg>

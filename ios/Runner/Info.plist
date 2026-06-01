@@ -5,15 +5,15 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>LedgerPro uses the camera to scan product barcodes when adding inventory.</string>
+	<string>NAVDREAM uses the camera to scan product barcodes when adding inventory.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>LedgerPro uses Face ID to unlock the app and protect your ledger data.</string>
+	<string>NAVDREAM uses Face ID to unlock the app and protect your ledger data.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>LedgerPro saves exported statements, invoices, and reports to your device.</string>
+	<string>NAVDREAM saves exported statements, invoices, and reports to your device.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Ledgerpro Mobile</string>
+	<string>NAVDREAM</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>ledgerpro_mobile</string>
+	<string>NAVDREAM</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
