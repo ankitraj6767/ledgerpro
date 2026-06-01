@@ -1400,6 +1400,7 @@ class _ExpensesTab extends ConsumerStatefulWidget {
 class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
   final _searchController = TextEditingController();
   String _query = '';
+  final Set<String> _selectedExpenseIds = {};
 
   @override
   void dispose() {
@@ -1436,6 +1437,32 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     }
   }
 
+  Future<void> _shareSelectedExpensesPdf(List<ProjectExpense> selected) async {
+    try {
+      final org = await ref.read(infraWorkspaceProvider.future);
+      const service = InfraReportService();
+      final file = await service.expensesPdf(
+        organizationName: org.name,
+        project: widget.project,
+        expenses: selected,
+      );
+      await service.share(file, isPdf: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        const SnackBar(content: Text('Selected expenses PDF generated.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(content: Text('Could not generate PDF: $error')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final expensesAsync = ref.watch(projectExpensesProvider(widget.project.id));
@@ -1452,6 +1479,10 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                   ref.invalidate(projectExpensesProvider(widget.project.id)),
             ),
             data: (expenses) {
+              // Cleanup selected IDs that don't exist anymore
+              final expenseIds = expenses.map((e) => e.id).toSet();
+              _selectedExpenseIds.retainAll(expenseIds);
+
               final filtered = expenses
                   .where(_matchesExpense)
                   .toList(growable: false);
@@ -1459,6 +1490,28 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 0,
                 (sum, e) => sum + e.amountPaise,
               );
+
+              final groupedExpenses = <String, List<ProjectExpense>>{};
+              for (final e in filtered) {
+                final cat = e.category.trim();
+                groupedExpenses.putIfAbsent(cat, () => []).add(e);
+              }
+
+              final sortedCategories = groupedExpenses.keys.toList()
+                ..sort((a, b) {
+                  final dateA = groupedExpenses[a]!
+                      .map((e) => e.expenseDate ?? DateTime(0))
+                      .reduce((max, d) => d.isAfter(max) ? d : max);
+                  final dateB = groupedExpenses[b]!
+                      .map((e) => e.expenseDate ?? DateTime(0))
+                      .reduce((max, d) => d.isAfter(max) ? d : max);
+                  return dateB.compareTo(dateA);
+                });
+
+              final isSelectionActive = _selectedExpenseIds.isNotEmpty;
+              final isAllSelected = filtered.isNotEmpty &&
+                  filtered.every((e) => _selectedExpenseIds.contains(e.id));
+
               return Column(
                 children: [
                   _FinanceSearchBar(
@@ -1474,6 +1527,115 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                           )
                         : null,
                   ),
+                  if (isSelectionActive)
+                    Card(
+                      color: InfraColors.royalBlue.withValues(alpha: 0.08),
+                      margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(
+                          color: InfraColors.royalBlue,
+                          width: 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Checkbox(
+                                  activeColor: InfraColors.royalBlue,
+                                  value: isAllSelected,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      if (val == true) {
+                                        _selectedExpenseIds.addAll(
+                                          filtered.map((e) => e.id),
+                                        );
+                                      } else {
+                                        _selectedExpenseIds.removeAll(
+                                          filtered.map((e) => e.id),
+                                        );
+                                      }
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${_selectedExpenseIds.length} Selected',
+                                  style: const TextStyle(
+                                    color: InfraColors.navy,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedExpenseIds.clear();
+                                    });
+                                  },
+                                  child: const Text(
+                                    'Clear',
+                                    style: TextStyle(
+                                      color: InfraColors.textSecondary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: InfraColors.royalBlue,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    final selectedExpenses = filtered
+                                        .where(
+                                          (e) =>
+                                              _selectedExpenseIds.contains(e.id),
+                                        )
+                                        .toList();
+                                    if (selectedExpenses.isNotEmpty) {
+                                      _shareSelectedExpensesPdf(
+                                        selectedExpenses,
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(
+                                    Icons.picture_as_pdf_outlined,
+                                    size: 16,
+                                  ),
+                                  label: const Text(
+                                    'Generate PDF',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: expenses.isEmpty
                         ? const EmptyState(
@@ -1523,98 +1685,188 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              ...filtered.map(
-                                (e) => Card(
-                                  child: ListTile(
-                                    onTap: () => _showExpenseDetails(
-                                      context,
-                                      e,
-                                      onGeneratePdf: () => _shareExpensePdf(e),
-                                    ),
-                                    leading: CircleAvatar(
-                                      backgroundColor: InfraColors.royalBlue
-                                          .withValues(alpha: 0.1),
-                                      child: const Icon(
-                                        Icons.receipt_long_outlined,
-                                        color: InfraColors.royalBlue,
-                                      ),
-                                    ),
+                              ...sortedCategories.map((cat) {
+                                final catExpenses = groupedExpenses[cat]!;
+                                final catTotal = catExpenses.fold<int>(
+                                  0,
+                                  (sum, e) => sum + e.amountPaise,
+                                );
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: ExpansionTile(
+                                    shape: const Border(),
+                                    collapsedShape: const Border(),
+                                    backgroundColor: Colors.transparent,
+                                    collapsedBackgroundColor:
+                                        Colors.transparent,
                                     title: Text(
-                                      e.category,
+                                      cat,
                                       style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
+                                        fontWeight: FontWeight.w900,
+                                        color: InfraColors.textPrimary,
+                                        fontSize: 16,
                                       ),
                                     ),
                                     subtitle: Text(
-                                      [
-                                        if ((e.vendorName ?? '').isNotEmpty)
-                                          e.vendorName,
-                                        if (e.expenseDate != null)
-                                          DateFormat(
-                                            'dd MMM yyyy',
-                                          ).format(e.expenseDate!),
-                                      ].whereType<String>().join(' · '),
+                                      '${catExpenses.length} ${catExpenses.length == 1 ? 'expense' : 'expenses'}',
+                                      style: const TextStyle(
+                                        color: InfraColors.textSecondary,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         AmountText(
-                                          paise: e.amountPaise,
+                                          paise: catTotal,
                                           color: InfraColors.red,
+                                          size: 15,
+                                          weight: FontWeight.w900,
                                         ),
-                                        _EntityMenu(
-                                          onEdit: permissions.canEditExpense(e)
-                                              ? () =>
-                                                    Navigator.of(context).push(
-                                                      MaterialPageRoute<void>(
-                                                        builder: (_) =>
-                                                            ExpenseFormScreen(
-                                                              project: widget
-                                                                  .project,
-                                                              expense: e,
-                                                            ),
-                                                      ),
-                                                    )
-                                              : null,
-                                          onDelete: permissions.canDeleteExpense
-                                              ? () => _confirmDelete(
-                                                  context,
-                                                  ref,
-                                                  title: 'Delete expense?',
-                                                  message:
-                                                      'Remove ${e.category} '
-                                                      '(${Money.fromPaise(e.amountPaise).formatInr()})?',
-                                                  onConfirm: () async {
-                                                    await ref
-                                                        .read(
-                                                          infraRepositoryProvider,
-                                                        )
-                                                        .deleteExpense(e.id);
-                                                    ref.invalidate(
-                                                      projectExpensesProvider(
-                                                        widget.project.id,
-                                                      ),
-                                                    );
-                                                    ref.invalidate(
-                                                      projectFinancialSummaryProvider(
-                                                        widget.project.id,
-                                                      ),
-                                                    );
-                                                    ref.invalidate(
-                                                      projectsProvider,
-                                                    );
-                                                    ref.invalidate(
-                                                      dashboardSummaryProvider,
-                                                    );
-                                                  },
-                                                )
-                                              : null,
+                                        const SizedBox(width: 8),
+                                        const Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          color: InfraColors.textSecondary,
                                         ),
                                       ],
                                     ),
+                                    showTrailingIcon: false,
+                                    children: catExpenses.map((e) {
+                                      final isSelected =
+                                          _selectedExpenseIds.contains(e.id);
+                                      return Container(
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            top: BorderSide(
+                                              color: InfraColors.border,
+                                              width: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        child: ListTile(
+                                          dense: true,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 4,
+                                          ),
+                                          leading: Checkbox(
+                                            activeColor: InfraColors.royalBlue,
+                                            value: isSelected,
+                                            onChanged: (val) {
+                                              setState(() {
+                                                if (val == true) {
+                                                  _selectedExpenseIds.add(e.id);
+                                                } else {
+                                                  _selectedExpenseIds
+                                                      .remove(e.id);
+                                                }
+                                              });
+                                            },
+                                          ),
+                                          title: Text(
+                                            (e.vendorName ?? '').isNotEmpty
+                                                ? e.vendorName!
+                                                : 'General Expense',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          subtitle: Text(
+                                            [
+                                              if (e.expenseDate != null)
+                                                DateFormat('dd MMM yyyy')
+                                                    .format(e.expenseDate!),
+                                              if (e.paymentMode.isNotEmpty)
+                                                _humanizeToken(e.paymentMode),
+                                            ].join(' · '),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                          onTap: () => _showExpenseDetails(
+                                            context,
+                                            e,
+                                            onGeneratePdf: () =>
+                                                _shareExpensePdf(e),
+                                          ),
+                                          trailing: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              AmountText(
+                                                paise: e.amountPaise,
+                                                color: InfraColors.red,
+                                                size: 13,
+                                                weight: FontWeight.w700,
+                                              ),
+                                              _EntityMenu(
+                                                onEdit: permissions
+                                                        .canEditExpense(e)
+                                                    ? () => Navigator.of(
+                                                              context,
+                                                            ).push(
+                                                              MaterialPageRoute<
+                                                                  void>(
+                                                                builder: (_) =>
+                                                                    ExpenseFormScreen(
+                                                                  project:
+                                                                      widget
+                                                                          .project,
+                                                                  expense: e,
+                                                                ),
+                                                              ),
+                                                            )
+                                                    : null,
+                                                onDelete: permissions
+                                                        .canDeleteExpense
+                                                    ? () => _confirmDelete(
+                                                          context,
+                                                          ref,
+                                                          title:
+                                                              'Delete expense?',
+                                                          message:
+                                                              'Remove ${e.category} '
+                                                              '(${Money.fromPaise(e.amountPaise).formatInr()})?',
+                                                          onConfirm: () async {
+                                                            await ref
+                                                                .read(
+                                                                  infraRepositoryProvider,
+                                                                )
+                                                                .deleteExpense(
+                                                                  e.id,
+                                                                );
+                                                            ref.invalidate(
+                                                              projectExpensesProvider(
+                                                                widget
+                                                                    .project.id,
+                                                              ),
+                                                            );
+                                                            ref.invalidate(
+                                                              projectFinancialSummaryProvider(
+                                                                widget
+                                                                    .project.id,
+                                                              ),
+                                                            );
+                                                            ref.invalidate(
+                                                              projectsProvider,
+                                                            );
+                                                            ref.invalidate(
+                                                              dashboardSummaryProvider,
+                                                            );
+                                                          },
+                                                        )
+                                                    : null,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
-                                ),
-                              ),
+                                );
+                              }),
                             ],
                           ),
                   ),
