@@ -10,6 +10,7 @@ import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/donut_expense_chart.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
+import '../data/infra_report_service.dart';
 import 'infra_forms.dart';
 
 class ProjectDetailScreen extends ConsumerWidget {
@@ -597,17 +598,18 @@ class _FinanceSearchBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final buttonSize = constraints.maxWidth < 360 ? 60.0 : 66.0;
+          final controlHeight = constraints.maxWidth < 360 ? 42.0 : 44.0;
           final search = _PremiumSearchField(
             controller: controller,
             hintText: hintText,
+            height: controlHeight,
             isFiltering: isFiltering,
             onChanged: onChanged,
             onClear: onClear,
           );
           final addButton = onAdd == null
               ? null
-              : _PremiumAddButton(onPressed: onAdd!, size: buttonSize);
+              : _PremiumAddButton(onPressed: onAdd!, size: controlHeight);
 
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -626,6 +628,7 @@ class _PremiumSearchField extends StatelessWidget {
   const _PremiumSearchField({
     required this.controller,
     required this.hintText,
+    required this.height,
     required this.isFiltering,
     required this.onChanged,
     required this.onClear,
@@ -633,6 +636,7 @@ class _PremiumSearchField extends StatelessWidget {
 
   final TextEditingController controller;
   final String hintText;
+  final double height;
   final bool isFiltering;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
@@ -640,17 +644,17 @@ class _PremiumSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 66,
-      padding: const EdgeInsets.fromLTRB(18, 0, 8, 0),
+      height: height,
+      padding: const EdgeInsets.fromLTRB(12, 0, 4, 0),
       decoration: BoxDecoration(
         color: InfraColors.surface,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: InfraColors.border),
         boxShadow: [
           BoxShadow(
-            color: InfraColors.navy.withValues(alpha: 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: InfraColors.navy.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -659,36 +663,44 @@ class _PremiumSearchField extends StatelessWidget {
           const Icon(
             Icons.search_rounded,
             color: InfraColors.royalBlue,
-            size: 34,
+            size: 22,
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 9),
           Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              textInputAction: TextInputAction.search,
-              cursorColor: InfraColors.royalBlue,
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: const TextStyle(
-                  color: InfraColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 20,
+            child: MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.0)),
+              child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                textInputAction: TextInputAction.search,
+                cursorColor: InfraColors.royalBlue,
+                cursorHeight: 16,
+                decoration: InputDecoration(
+                  hintText: hintText,
+                  hintStyle: const TextStyle(
+                    color: InfraColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11.5,
+                    height: 1.1,
+                  ),
+                  isCollapsed: true,
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
                 ),
-                isCollapsed: true,
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: const TextStyle(
-                color: InfraColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
+                style: const TextStyle(
+                  color: InfraColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                  height: 1.1,
+                ),
               ),
             ),
           ),
@@ -700,8 +712,8 @@ class _PremiumSearchField extends StatelessWidget {
                 icon: const Icon(Icons.close_rounded, size: 18),
                 color: InfraColors.textSecondary,
                 constraints: const BoxConstraints.tightFor(
-                  width: 34,
-                  height: 34,
+                  width: 28,
+                  height: 28,
                 ),
                 padding: EdgeInsets.zero,
               ),
@@ -730,12 +742,12 @@ class _PremiumAddButton extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             color: InfraColors.navy,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: InfraColors.navy.withValues(alpha: 0.24),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
+                color: InfraColors.navy.withValues(alpha: 0.2),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -743,13 +755,13 @@ class _PremiumAddButton extends StatelessWidget {
             onPressed: onPressed,
             icon: const Icon(Icons.add_rounded),
             color: Colors.white,
-            iconSize: 34,
+            iconSize: 24,
             splashRadius: size / 2,
             style: IconButton.styleFrom(
               backgroundColor: Colors.transparent,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
           ),
@@ -828,6 +840,28 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
     setState(() => _query = '');
   }
 
+  Future<void> _shareInvestmentPdf(ProjectInvestment investment) async {
+    try {
+      final org = await ref.read(infraWorkspaceProvider.future);
+      const service = InfraReportService();
+      final file = await service.investmentDetailPdf(
+        organizationName: org.name,
+        project: widget.project,
+        investment: investment,
+      );
+      await service.share(file, isPdf: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Investment PDF generated.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not generate PDF: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final investmentsAsync = ref.watch(
@@ -892,8 +926,12 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                               ...filtered.map(
                                 (inv) => Card(
                                   child: ListTile(
-                                    onTap: () =>
-                                        _showInvestmentDetails(context, inv),
+                                    onTap: () => _showInvestmentDetails(
+                                      context,
+                                      inv,
+                                      onGeneratePdf: () =>
+                                          _shareInvestmentPdf(inv),
+                                    ),
                                     leading: const CircleAvatar(
                                       backgroundColor: Color(0xFFFFF4D6),
                                       child: Icon(
@@ -1076,6 +1114,31 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
     setState(() => _query = '');
   }
 
+  Future<void> _shareGovernmentFundPdf(GovernmentFund fund) async {
+    try {
+      final repo = ref.read(infraRepositoryProvider);
+      final org = await ref.read(infraWorkspaceProvider.future);
+      final receipts = await repo.fetchReceipts(fund.id);
+      const service = InfraReportService();
+      final file = await service.governmentFundDetailPdf(
+        organizationName: org.name,
+        project: widget.project,
+        fund: fund,
+        receipts: receipts,
+      );
+      await service.share(file, isPdf: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Government fund PDF generated.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not generate PDF: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final fundsAsync = ref.watch(governmentFundsProvider(widget.project.id));
@@ -1134,8 +1197,12 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                                 margin: const EdgeInsets.only(bottom: 12),
                                 clipBehavior: Clip.antiAlias,
                                 child: InkWell(
-                                  onTap: () =>
-                                      _showGovernmentFundDetails(context, fund),
+                                  onTap: () => _showGovernmentFundDetails(
+                                    context,
+                                    fund,
+                                    onGeneratePdf: () =>
+                                        _shareGovernmentFundPdf(fund),
+                                  ),
                                   child: Padding(
                                     padding: const EdgeInsets.all(14),
                                     child: Column(
@@ -1347,6 +1414,28 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     setState(() => _query = '');
   }
 
+  Future<void> _shareExpensePdf(ProjectExpense expense) async {
+    try {
+      final org = await ref.read(infraWorkspaceProvider.future);
+      const service = InfraReportService();
+      final file = await service.expenseDetailPdf(
+        organizationName: org.name,
+        project: widget.project,
+        expense: expense,
+      );
+      await service.share(file, isPdf: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Expense PDF generated.')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not generate PDF: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final expensesAsync = ref.watch(projectExpensesProvider(widget.project.id));
@@ -1437,8 +1526,11 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                               ...filtered.map(
                                 (e) => Card(
                                   child: ListTile(
-                                    onTap: () =>
-                                        _showExpenseDetails(context, e),
+                                    onTap: () => _showExpenseDetails(
+                                      context,
+                                      e,
+                                      onGeneratePdf: () => _shareExpensePdf(e),
+                                    ),
                                     leading: CircleAvatar(
                                       backgroundColor: InfraColors.royalBlue
                                           .withValues(alpha: 0.1),
@@ -1585,8 +1677,9 @@ class _ReportsTab extends StatelessWidget {
 
 void _showInvestmentDetails(
   BuildContext context,
-  ProjectInvestment investment,
-) {
+  ProjectInvestment investment, {
+  required Future<void> Function() onGeneratePdf,
+}) {
   final investorName = _presentText(investment.investorName, 'Investor');
   _showFinanceDetailsSheet(
     context,
@@ -1596,6 +1689,7 @@ void _showInvestmentDetails(
     subtitle: 'Investor contribution',
     amountLabel: 'Investment amount',
     amountPaise: investment.amountPaise,
+    onGeneratePdf: onGeneratePdf,
     sections: [
       _FinanceDetailSectionData(
         title: 'Investment Details',
@@ -1633,7 +1727,11 @@ void _showInvestmentDetails(
   );
 }
 
-void _showGovernmentFundDetails(BuildContext context, GovernmentFund fund) {
+void _showGovernmentFundDetails(
+  BuildContext context,
+  GovernmentFund fund, {
+  required Future<void> Function() onGeneratePdf,
+}) {
   _showFinanceDetailsSheet(
     context,
     icon: Icons.account_balance_outlined,
@@ -1642,6 +1740,7 @@ void _showGovernmentFundDetails(BuildContext context, GovernmentFund fund) {
     subtitle: _presentText(fund.schemeName, 'Government fund'),
     amountLabel: 'Sanctioned amount',
     amountPaise: fund.amountSanctionedPaise,
+    onGeneratePdf: onGeneratePdf,
     sections: [
       _FinanceDetailSectionData(
         title: 'Fund Details',
@@ -1692,7 +1791,11 @@ void _showGovernmentFundDetails(BuildContext context, GovernmentFund fund) {
   );
 }
 
-void _showExpenseDetails(BuildContext context, ProjectExpense expense) {
+void _showExpenseDetails(
+  BuildContext context,
+  ProjectExpense expense, {
+  required Future<void> Function() onGeneratePdf,
+}) {
   _showFinanceDetailsSheet(
     context,
     icon: Icons.receipt_long_outlined,
@@ -1701,6 +1804,7 @@ void _showExpenseDetails(BuildContext context, ProjectExpense expense) {
     subtitle: _presentText(expense.vendorName, 'Project expense'),
     amountLabel: 'Expense amount',
     amountPaise: expense.amountPaise,
+    onGeneratePdf: onGeneratePdf,
     sections: [
       _FinanceDetailSectionData(
         title: 'Expense Details',
@@ -1746,6 +1850,7 @@ void _showFinanceDetailsSheet(
   required String subtitle,
   required String amountLabel,
   required int amountPaise,
+  required Future<void> Function() onGeneratePdf,
   required List<_FinanceDetailSectionData> sections,
 }) {
   showModalBottomSheet<void>(
@@ -1830,6 +1935,8 @@ void _showFinanceDetailsSheet(
                       amountPaise: amountPaise,
                       accentColor: accentColor,
                     ),
+                    const SizedBox(height: 12),
+                    _FinancePdfActionButton(onPressed: onGeneratePdf),
                     const SizedBox(height: 12),
                     for (final section in sections) ...[
                       _FinanceDetailSection(section: section),
@@ -1919,6 +2026,53 @@ class _FinanceAmountPanel extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FinancePdfActionButton extends StatefulWidget {
+  const _FinancePdfActionButton({required this.onPressed});
+
+  final Future<void> Function() onPressed;
+
+  @override
+  State<_FinancePdfActionButton> createState() =>
+      _FinancePdfActionButtonState();
+}
+
+class _FinancePdfActionButtonState extends State<_FinancePdfActionButton> {
+  bool _busy = false;
+
+  Future<void> _run() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.onPressed();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: _busy ? null : _run,
+      icon: _busy
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.picture_as_pdf_outlined),
+      label: Text(_busy ? 'Generating PDF' : 'Generate PDF'),
+      style: FilledButton.styleFrom(
+        backgroundColor: InfraColors.navy,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: InfraColors.navy.withValues(alpha: 0.54),
+        disabledForegroundColor: Colors.white70,
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
       ),
     );
   }

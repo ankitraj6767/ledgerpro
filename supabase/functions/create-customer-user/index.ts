@@ -450,26 +450,17 @@ async function findUserByEmail(
   adminClient: SupabaseClient,
   email: string,
 ): Promise<AuthUserLite | null> {
-  for (let page = 1; page <= 10; page += 1) {
-    const { data, error } = await adminClient.auth.admin.listUsers({
-      page,
-      perPage: 1000,
-    });
-    if (error) {
-      throw error;
-    }
-
-    const match = data.users.find(
-      (user) => (user.email ?? '').toLowerCase() === email.toLowerCase(),
-    );
-    if (match != null) {
-      return { id: match.id, email: match.email ?? email };
-    }
-    if (data.users.length < 1000) {
-      return null;
-    }
+  const { data, error } = await adminClient
+    .rpc('find_auth_user_by_email', { p_email: email })
+    .maybeSingle();
+  if (error) {
+    throw error;
   }
-  return null;
+  if (data == null) return null;
+  return {
+    id: String(data.id),
+    email: data.email == null ? email : String(data.email),
+  };
 }
 
 async function upsertProfile(

@@ -259,12 +259,11 @@ class ExpenseFormScreen extends ConsumerStatefulWidget {
 }
 
 class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
+  final _category = TextEditingController();
   final _amount = TextEditingController();
   final _vendor = TextEditingController();
   final _billNumber = TextEditingController();
-  final _otherCategory = TextEditingController();
   final _notes = TextEditingController();
-  String _category = ExpenseCategories.values.first;
   String _paymentMode = 'cash';
   DateTime _date = DateTime.now();
   bool _saving = false;
@@ -280,12 +279,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       _vendor.text = e.vendorName ?? '';
       _billNumber.text = e.billNumber ?? '';
       _notes.text = e.notes ?? '';
-      if (ExpenseCategories.values.contains(e.category)) {
-        _category = e.category;
-      } else {
-        _category = 'Other';
-        _otherCategory.text = e.category;
-      }
+      _category.text = e.category;
       _paymentMode = e.paymentMode;
       _date = e.expenseDate ?? DateTime.now();
     }
@@ -293,10 +287,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   @override
   void dispose() {
+    _category.dispose();
     _amount.dispose();
     _vendor.dispose();
     _billNumber.dispose();
-    _otherCategory.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -320,25 +314,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          DropdownButtonFormField<String>(
-            initialValue: _category,
-            decoration: const InputDecoration(
-              labelText: 'Category',
-              prefixIcon: Icon(Icons.category_outlined),
-            ),
-            items: ExpenseCategories.values
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
-            onChanged: (v) => setState(() => _category = v ?? _category),
+          _plainField(
+            _category,
+            'Category / use case',
+            Icons.category_outlined,
           ),
-          if (_category == 'Other') ...[
-            const SizedBox(height: 12),
-            _plainField(
-              _otherCategory,
-              'Other category',
-              Icons.edit_note_outlined,
-            ),
-          ],
           const SizedBox(height: 12),
           _amountField(_amount, 'Amount (₹)'),
           const SizedBox(height: 12),
@@ -382,12 +362,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       );
       return;
     }
-    final category = _category == 'Other'
-        ? _otherCategory.text.trim()
-        : _category;
+    final category = _category.text.trim();
     if (category.isEmpty) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Enter the other category name.')),
+        const SnackBar(content: Text('Enter a category or use case.')),
       );
       return;
     }

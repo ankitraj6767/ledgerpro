@@ -469,6 +469,240 @@ class InfraReportService {
     return _write(project.name, 'government_funds', 'pdf', await doc.save());
   }
 
+  Future<File> investmentDetailPdf({
+    required String organizationName,
+    required InfraProject project,
+    required ProjectInvestment investment,
+  }) {
+    final investorName = _present(investment.investorName) == '-'
+        ? 'Investor'
+        : investment.investorName!.trim();
+    return _recordPdf(
+      organizationName: organizationName,
+      project: project,
+      reportTitle: 'Investor Contribution Detail',
+      kind: 'investment_${investment.id}',
+      metrics: [
+        _PdfMetric('Investment Amount', _inr(investment.amountPaise), _gold),
+        _PdfMetric('Investor', investorName, _blue),
+        _PdfMetric('Payment Mode', _label(investment.paymentMode), _green),
+        _PdfMetric(
+          'Investment Date',
+          _formatDate(investment.investmentDate),
+          _orange,
+        ),
+      ],
+      sections: [
+        _PdfDetailSection(
+          title: 'Investment Details',
+          accent: _gold,
+          rows: [
+            ['Investor', investorName],
+            ['Investment Date', _formatDate(investment.investmentDate)],
+            ['Payment Mode', _label(investment.paymentMode)],
+            ['Reference Number', _present(investment.referenceNumber)],
+            ['Notes', _present(investment.notes)],
+          ],
+        ),
+        _PdfDetailSection(
+          title: 'Record',
+          accent: _blue,
+          rows: [
+            ['Created', _formatDateTime(investment.createdAt)],
+            ['Updated', _formatDateTime(investment.updatedAt)],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<File> expenseDetailPdf({
+    required String organizationName,
+    required InfraProject project,
+    required ProjectExpense expense,
+  }) {
+    return _recordPdf(
+      organizationName: organizationName,
+      project: project,
+      reportTitle: 'Expense Detail',
+      kind: 'expense_${expense.id}',
+      metrics: [
+        _PdfMetric('Expense Amount', _inr(expense.amountPaise), _red),
+        _PdfMetric('Category', expense.category, _blue),
+        _PdfMetric('Vendor', _present(expense.vendorName), _gold),
+        _PdfMetric('Expense Date', _formatDate(expense.expenseDate), _orange),
+      ],
+      sections: [
+        _PdfDetailSection(
+          title: 'Expense Details',
+          accent: _red,
+          rows: [
+            ['Category', expense.category],
+            ['Vendor', _present(expense.vendorName)],
+            ['Expense Date', _formatDate(expense.expenseDate)],
+            ['Payment Mode', _label(expense.paymentMode)],
+            ['Bill Number', _present(expense.billNumber)],
+            ['Bill Image', _present(expense.billImagePath)],
+            ['Notes', _present(expense.notes)],
+            ['Created By', _present(expense.createdBy)],
+          ],
+        ),
+        _PdfDetailSection(
+          title: 'Record',
+          accent: _blue,
+          rows: [
+            ['Created', _formatDateTime(expense.createdAt)],
+            ['Updated', _formatDateTime(expense.updatedAt)],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<File> governmentFundDetailPdf({
+    required String organizationName,
+    required InfraProject project,
+    required GovernmentFund fund,
+    List<GovernmentFundReceipt> receipts = const [],
+  }) {
+    final receivedPercent = _percentOf(
+      fund.amountReceivedPaise,
+      fund.amountSanctionedPaise,
+    );
+    final sortedReceipts = [...receipts]
+      ..sort((a, b) => _compareDateDesc(a.receivedDate, b.receivedDate));
+    return _recordPdf(
+      organizationName: organizationName,
+      project: project,
+      reportTitle: 'Government Fund Detail',
+      kind: 'government_fund_${fund.id}',
+      metrics: [
+        _PdfMetric(
+          'Sanctioned Amount',
+          _inr(fund.amountSanctionedPaise),
+          _green,
+        ),
+        _PdfMetric('Received Amount', _inr(fund.amountReceivedPaise), _blue),
+        _PdfMetric('Pending Amount', _inr(fund.pendingAmountPaise), _orange),
+        _PdfMetric('Received %', receivedPercent, _gold),
+      ],
+      sections: [
+        _PdfDetailSection(
+          title: 'Fund Details',
+          accent: _green,
+          rows: [
+            ['Department', fund.departmentName],
+            ['Scheme', _present(fund.schemeName)],
+            ['Status', _fundStatusLabel(fund.status)],
+            ['Sanction Order', _present(fund.sanctionOrderNumber)],
+            ['Sanction Date', _formatDate(fund.sanctionDate)],
+            ['Last Received', _formatDate(fund.lastReceivedDate)],
+            ['Document', _present(fund.documentPath)],
+            ['Notes', _present(fund.notes)],
+          ],
+        ),
+        _PdfDetailSection(
+          title: 'Money Movement',
+          accent: _orange,
+          rows: [
+            ['Sanctioned', _inr(fund.amountSanctionedPaise)],
+            ['Received', _inr(fund.amountReceivedPaise)],
+            ['Pending', _inr(fund.pendingAmountPaise)],
+          ],
+        ),
+        _PdfDetailSection(
+          title: 'Record',
+          accent: _blue,
+          rows: [
+            ['Created', _formatDateTime(fund.createdAt)],
+            ['Updated', _formatDateTime(fund.updatedAt)],
+          ],
+        ),
+      ],
+      extraWidgets: [
+        pw.SizedBox(height: 16),
+        _sectionTitle(
+          title: 'Receipt Ledger',
+          subtitle: '${sortedReceipts.length} receipt transaction(s)',
+          accent: _blue,
+        ),
+        if (sortedReceipts.isEmpty)
+          _emptySection('No receipt transactions recorded.')
+        else
+          _premiumTable(
+            headers: const ['Date', 'Mode', 'Reference', 'Notes', 'Amount'],
+            rightAlignedColumns: const {4},
+            rows: sortedReceipts
+                .map(
+                  (receipt) => [
+                    _formatDate(receipt.receivedDate),
+                    _label(receipt.paymentMode),
+                    _present(receipt.referenceNumber),
+                    _present(receipt.notes),
+                    _inr(receipt.amountPaise),
+                  ],
+                )
+                .toList(),
+          ),
+      ],
+    );
+  }
+
+  Future<File> _recordPdf({
+    required String organizationName,
+    required InfraProject project,
+    required String reportTitle,
+    required String kind,
+    required List<_PdfMetric> metrics,
+    required List<_PdfDetailSection> sections,
+    List<pw.Widget> extraWidgets = const [],
+  }) async {
+    final doc = pw.Document();
+    final generatedAt = DateTime.now();
+    final logo = await _loadLogo();
+
+    doc.addPage(
+      pw.MultiPage(
+        pageTheme: _pageTheme(),
+        footer: (context) => _footer(context, generatedAt),
+        build: (context) => [
+          _coverHeader(
+            organizationName: organizationName,
+            project: project,
+            reportTitle: reportTitle,
+            generatedAt: generatedAt,
+            logo: logo,
+          ),
+          pw.SizedBox(height: 16),
+          pw.Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final metric in metrics)
+                _metricCard(metric.label, metric.value, metric.accent),
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          for (final section in sections) ...[
+            _sectionTitle(
+              title: section.title,
+              subtitle: '${section.rows.length} field(s)',
+              accent: section.accent,
+            ),
+            _premiumTable(
+              headers: const ['Field', 'Value'],
+              rows: section.rows,
+            ),
+            pw.SizedBox(height: 16),
+          ],
+          ...extraWidgets,
+        ],
+      ),
+    );
+
+    return _write(project.name, kind, 'pdf', await doc.save());
+  }
+
   pw.Widget _coverHeader({
     required String organizationName,
     required InfraProject project,
@@ -1169,6 +1403,11 @@ class InfraReportService {
     return _date.format(value);
   }
 
+  String _formatDateTime(DateTime? value) {
+    if (value == null) return '-';
+    return _dateTime.format(value);
+  }
+
   String _label(String value) {
     return value
         .split(RegExp(r'[_\s-]+'))
@@ -1220,4 +1459,24 @@ class InfraReportService {
     }
     return file;
   }
+}
+
+class _PdfMetric {
+  const _PdfMetric(this.label, this.value, this.accent);
+
+  final String label;
+  final String value;
+  final PdfColor accent;
+}
+
+class _PdfDetailSection {
+  const _PdfDetailSection({
+    required this.title,
+    required this.accent,
+    required this.rows,
+  });
+
+  final String title;
+  final PdfColor accent;
+  final List<List<String>> rows;
 }
