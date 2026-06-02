@@ -25,14 +25,20 @@ if [[ ! -d "$app_path" ]]; then
 fi
 
 dist_dir="dist/macos/${architecture}"
-archive_name="${app_name}-macos-${architecture}-release.tar.gz"
+archive_name="${app_name}-macos-${architecture}-release.zip"
 archive_path="${dist_dir}/${archive_name}"
 checksum_path="${archive_path}.sha256"
 
 rm -rf "$dist_dir"
 mkdir -p "$dist_dir"
 
-tar -C "$(dirname "$app_path")" -czf "$archive_path" "$(basename "$app_path")"
+if xcrun stapler validate "$app_path" >/dev/null 2>&1; then
+  echo "Stapled notarization ticket found on ${app_path}."
+else
+  echo "No stapled notarization ticket found on ${app_path}."
+fi
+
+ditto -c -k --sequesterRsrc --keepParent "$app_path" "$archive_path"
 shasum -a 256 "$archive_path" | tee "$checksum_path"
 
 echo "NAVDREAM macOS artifact ready at: ${archive_path}"
