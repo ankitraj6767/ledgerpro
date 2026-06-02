@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/dist/
 
 # Local Supabase env (do not commit real keys)
 supabase/dart_defines.*.json
