@@ -52,7 +52,7 @@ dependencies:
   uuid: ^4.5.3
   intl: ^0.20.2
   qr_flutter: ^4.1.0
-  connectivity_plus: ^7.1.1
+  connectivity_plus: 7.0.0
   shimmer: ^3.0.0
   crypto: ^3.0.7
   csv: ^8.0.0
