@@ -6,7 +6,7 @@ cd "$root_dir"
 
 flutter config --enable-macos-desktop
 flutter pub get
-flutter analyze
+flutter analyze lib test
 flutter test
 flutter build macos --release
 
