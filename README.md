@@ -76,6 +76,23 @@ The release app is written to `build/windows/x64/runner/Release`. GitHub
 Actions can also build the same artifact through the `Windows Desktop Build`
 workflow and uploads it as `NAVDREAM-windows-release`.
 
+macOS desktop builds must run on a macOS host. From Terminal on macOS:
+
+```bash
+./scripts/build_macos_release.sh
+```
+
+The release app bundle is written to
+`build/macos/Build/Products/Release/NAVDREAM.app` and packaged for download at
+`dist/macos/<architecture>/NAVDREAM-macos-<architecture>-release.tar.gz` with a
+matching `.sha256` checksum. GitHub Actions can also build downloadable Intel
+and Apple Silicon artifacts through the `macOS Desktop Build` workflow and
+uploads them as `NAVDREAM-macos-x64-release` and `NAVDREAM-macos-arm64-release`.
+Download the matching artifact, extract the GitHub artifact zip, then extract
+the included `.tar.gz` to preserve the macOS app bundle permissions. These are
+unsigned direct-download builds, so macOS Gatekeeper may require right-clicking
+the app and choosing Open.
+
 Desktop platform folders are generated under `macos/`, `windows/`, and
 `linux/`. Platform-specific capabilities are guarded in Flutter: biometric
 unlock is disabled on unsupported platforms, FCM is skipped where unavailable,

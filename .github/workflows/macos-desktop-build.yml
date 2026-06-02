@@ -1,0 +1,70 @@
+name: macOS Desktop Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/macos-desktop-build.yml"
+      - "analysis_options.yaml"
+      - "assets/**"
+      - "lib/**"
+      - "macos/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "scripts/build_macos_release.sh"
+      - "scripts/package_macos_release.sh"
+      - "test/**"
+
+jobs:
+  build:
+    name: Build NAVDREAM macOS (${{ matrix.architecture }})
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            runner: macos-15
+          - architecture: x64
+            runner: macos-15-intel
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+          cache: true
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build macOS release
+        run: flutter build macos --release
+
+      - name: Package macOS app
+        run: ./scripts/package_macos_release.sh "${{ matrix.architecture }}"
+
+      - name: Upload macOS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: NAVDREAM-macos-${{ matrix.architecture }}-release
+          path: |
+            dist/macos/${{ matrix.architecture }}/NAVDREAM-macos-${{ matrix.architecture }}-release.tar.gz
+            dist/macos/${{ matrix.architecture }}/NAVDREAM-macos-${{ matrix.architecture }}-release.tar.gz.sha256
+          if-no-files-found: error
