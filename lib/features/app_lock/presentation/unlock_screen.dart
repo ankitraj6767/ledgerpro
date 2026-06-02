@@ -37,9 +37,9 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     final controller = ref.read(appSessionControllerProvider);
     final enabled = await controller.lockService.biometricEnabled;
     if (!enabled) return;
-    // Show the biometric button whenever the user enrolled it during setup.
-    if (mounted) setState(() => _biometricAvailable = true);
     final canUse = await controller.lockService.canUseBiometrics();
+    if (!mounted) return;
+    setState(() => _biometricAvailable = canUse);
     if (canUse) await _unlockWithBiometrics(auto: true);
   }
 

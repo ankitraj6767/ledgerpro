@@ -1,6 +1,7 @@
-# LedgerPro Mobile
+# LedgerPro
 
-Private internal-use mobile ledger application for Android-first business bookkeeping.
+Private internal-use ledger and infrastructure finance application for mobile,
+tablet, and desktop.
 
 LedgerPro Mobile is an original fintech ledger app inspired by digital bahi khata workflows. It does not use Khatabook branding, layouts, copy, screenshots, icons, colors, or proprietary flows.
 
@@ -36,6 +37,52 @@ A local (gitignored) file is provided at `supabase/dart_defines.dev.json`. If mi
 `supabase/dart_defines.dev.json.example` as a template. The publishable key is safe to ship in
 the client; never place service-role keys or payment secrets in Flutter.
 
+## Desktop
+
+LedgerPro now uses the same Flutter codebase across Android, iOS, macOS,
+Windows, and Linux. Mobile keeps bottom navigation, tablet uses a navigation
+rail, and desktop uses a permanent sidebar with a command bar, search, quick
+actions, realtime refresh, and sync status.
+
+Run desktop targets:
+
+```bash
+flutter run -d macos --dart-define-from-file=supabase/dart_defines.dev.json
+flutter run -d windows --dart-define-from-file=supabase/dart_defines.dev.json
+flutter run -d linux --dart-define-from-file=supabase/dart_defines.dev.json
+```
+
+Build release desktop targets:
+
+```bash
+flutter build macos --release --dart-define-from-file=supabase/dart_defines.dev.json
+flutter build windows --release --dart-define-from-file=supabase/dart_defines.dev.json
+flutter build linux --release --dart-define-from-file=supabase/dart_defines.dev.json
+```
+
+Windows desktop builds must run on a Windows host. From PowerShell on Windows:
+
+```powershell
+.\scripts\build_windows_release.ps1
+```
+
+Or double-click/run the batch wrapper:
+
+```bat
+scripts\build_windows_release.bat
+```
+
+The release app is written to `build/windows/x64/runner/Release`. GitHub
+Actions can also build the same artifact through the `Windows Desktop Build`
+workflow and uploads it as `NAVDREAM-windows-release`.
+
+Desktop platform folders are generated under `macos/`, `windows/`, and
+`linux/`. Platform-specific capabilities are guarded in Flutter: biometric
+unlock is disabled on unsupported platforms, FCM is skipped where unavailable,
+and scanner-dependent flows should use a manual-entry fallback on desktop.
+Desktop PDF exports are written to `Downloads/NAVDREAM Reports` and then
+revealed in the platform file manager.
+
 ## Supabase
 
 The core schema migration is:
@@ -45,6 +92,11 @@ supabase/migrations/20260527084243_ledgerpro_core_schema.sql
 ```
 
 It creates UUID tables, business/book scoping, paise-based money columns, RLS policies, explicit authenticated grants, audit triggers, soft-delete guardrails for financial records, a private storage bucket, and realtime publication entries.
+
+Infra finance migrations add organization/project finance tables, customer
+project assignment RLS, atomic RPCs for totals, Supabase Realtime publication
+entries, and `infra_sync_mutations` metadata for device mutation replay
+tracking. See `docs/sync_architecture.md`.
 
 Do not place service-role keys or payment gateway secrets in the Flutter app. Future payment gateway webhooks should be implemented with Supabase Edge Functions.
 
@@ -79,6 +131,13 @@ the final permission boundary; UI gating only mirrors those database rules.
 flutter analyze
 flutter test
 cd android && ./gradlew assembleDebug --no-daemon
+```
+
+Desktop smoke checks:
+
+```bash
+flutter build macos --debug
+flutter test test/core/sync/offline_sync_service_test.dart
 ```
 
 Local Supabase migration execution requires Docker/Supabase local services. Docker was not available in this environment, so the migration was generated but not applied locally.

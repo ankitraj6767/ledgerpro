@@ -16,6 +16,17 @@
 - Confirm parties sync before transactions.
 - Confirm attachments sync after transaction rows.
 - Confirm failed mutations remain retryable and do not overwrite remote rows silently.
+- Confirm a mutation remains `failed` if the Supabase write/RPC fails.
+- Confirm a mutation becomes `synced` only after the remote write/RPC succeeds.
+- Confirm Sync Queue shows pending counts, last synced time, and last error.
+
+## Cross-Device Infra Realtime
+
+- Sign in to the same organization on mobile and desktop.
+- Add an expense on mobile and confirm desktop project totals refresh.
+- Add an investment on desktop and confirm mobile project totals refresh.
+- Soft-delete a project record and confirm the other device removes it after Realtime/refetch.
+- Confirm a customer login sees only assigned projects on both devices.
 
 ## Conflict Handling
 
