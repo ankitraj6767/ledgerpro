@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 flutter config --enable-windows-desktop
 flutter pub get
-flutter analyze
+flutter analyze lib test
 flutter test
 flutter build windows --release
 
