@@ -189,7 +189,7 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<LocalPendingMutation>> pendingMutationsInSyncOrder() {
     final priority = CustomExpression<int>(
-      "case entity_type when 'business' then 0 when 'book' then 1 when 'party' then 2 when 'transaction' then 3 when 'attachment' then 4 when 'reminder' then 5 else 6 end",
+      "case entity_type when 'business' then 0 when 'book' then 1 when 'party' then 2 when 'transaction' then 3 when 'attachment' then 4 when 'reminder' then 5 when 'organization' then 6 when 'organizationMember' then 7 when 'organization_member' then 7 when 'infraProject' then 8 when 'infra_project' then 8 when 'investor' then 9 when 'projectInvestment' then 10 when 'project_investment' then 10 when 'governmentFund' then 11 when 'government_fund' then 11 when 'governmentFundReceipt' then 12 when 'government_fund_receipt' then 12 when 'projectExpense' then 13 when 'project_expense' then 13 when 'projectNote' then 14 when 'project_note' then 14 when 'projectDocument' then 15 when 'project_document' then 15 when 'customerProjectAssignment' then 16 when 'customer_project_assignment' then 16 when 'projectProgressUpdate' then 17 when 'project_progress_update' then 17 else 18 end",
     );
     return (select(localPendingMutations)
           ..where((item) => item.status.isIn(['pending', 'failed']))

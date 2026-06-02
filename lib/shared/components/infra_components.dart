@@ -304,10 +304,7 @@ class EmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
             ),
             if (message != null) ...[
               const SizedBox(height: 8),
@@ -340,8 +337,11 @@ class ErrorStateView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_outlined, size: 48,
-                color: InfraColors.textSecondary),
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 48,
+              color: InfraColors.textSecondary,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             if (onRetry != null) ...[

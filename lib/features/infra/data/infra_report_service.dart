@@ -1425,6 +1425,10 @@ class InfraReportService {
   }
 
   Future<void> share(File file, {required bool isPdf}) async {
+    if (_isDesktop) {
+      await _revealInFileManager(file);
+      return;
+    }
     await SharePlus.instance.share(
       ShareParams(
         title: 'NAVDREAM report',
@@ -1433,6 +1437,27 @@ class InfraReportService {
         ],
       ),
     );
+  }
+
+  bool get _isDesktop =>
+      Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+
+  Future<void> _revealInFileManager(File file) async {
+    try {
+      if (Platform.isMacOS) {
+        await Process.run('open', ['-R', file.path]);
+        return;
+      }
+      if (Platform.isWindows) {
+        await Process.run('explorer', ['/select,${file.path}']);
+        return;
+      }
+      if (Platform.isLinux) {
+        await Process.run('xdg-open', [file.parent.path]);
+      }
+    } catch (_) {
+      // The report is already saved. File-manager reveal is best-effort.
+    }
   }
 
   static String _inr(int paise) {
@@ -1445,19 +1470,35 @@ class InfraReportService {
     String ext,
     dynamic content,
   ) async {
-    final dir = await getTemporaryDirectory();
+    final dir = await _reportsDirectory();
     final safe = projectName
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
     final stamp = DateTime.now().millisecondsSinceEpoch;
-    final file = File('${dir.path}/navdreaminfra_${safe}_${kind}_$stamp.$ext');
+    final file = File(
+      '${dir.path}${Platform.pathSeparator}navdreaminfra_${safe}_${kind}_$stamp.$ext',
+    );
     if (content is String) {
       await file.writeAsString(content, flush: true);
     } else {
       await file.writeAsBytes(content as List<int>, flush: true);
     }
     return file;
+  }
+
+  Future<Directory> _reportsDirectory() async {
+    if (!_isDesktop) return getTemporaryDirectory();
+    final base =
+        await getDownloadsDirectory() ??
+        await getApplicationDocumentsDirectory();
+    final dir = Directory(
+      '${base.path}${Platform.pathSeparator}NAVDREAM Reports',
+    );
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
   }
 }
 

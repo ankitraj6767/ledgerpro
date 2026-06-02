@@ -74,9 +74,7 @@ class DonutExpenseChart extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: slices.map((s) {
-              final pct = total == 0
-                  ? 0.0
-                  : (s.amountPaise / total * 100);
+              final pct = total == 0 ? 0.0 : (s.amountPaise / total * 100);
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(

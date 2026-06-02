@@ -335,22 +335,48 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           const SizedBox(height: 12),
           _plainField(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
           const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: Text(_isEditing ? 'Update Expense' : 'Save Expense'),
-          ),
+          if (_isEditing)
+            FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: const Text('Update Expense'),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: const Text('Save Expense'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _saving ? null : () => _save(stayOpen: true),
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('Save + Add'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool stayOpen = false}) async {
     final messenger = ScaffoldMessenger.of(context);
     int amount;
     try {
@@ -409,7 +435,16 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           content: Text(_isEditing ? 'Expense updated.' : 'Expense saved.'),
         ),
       );
-      if (mounted) context.pop();
+      if (stayOpen && mounted) {
+        _amount.clear();
+        _vendor.clear();
+        _billNumber.clear();
+        _notes.clear();
+        _date = DateTime.now();
+        setState(() {});
+      } else if (mounted) {
+        context.pop();
+      }
     } catch (error) {
       messenger.showSnackBar(
         SnackBar(content: Text('Could not save expense: $error')),

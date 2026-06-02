@@ -1448,18 +1448,14 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
       );
       await service.share(file, isPdf: true);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selected expenses PDF generated.')),
       );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(
-        SnackBar(content: Text('Could not generate PDF: $error')),
-      );
+      ).showSnackBar(SnackBar(content: Text('Could not generate PDF: $error')));
     }
   }
 
@@ -1509,7 +1505,8 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 });
 
               final isSelectionActive = _selectedExpenseIds.isNotEmpty;
-              final isAllSelected = filtered.isNotEmpty &&
+              final isAllSelected =
+                  filtered.isNotEmpty &&
                   filtered.every((e) => _selectedExpenseIds.contains(e.id));
 
               return Column(
@@ -1608,8 +1605,9 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                   onPressed: () {
                                     final selectedExpenses = filtered
                                         .where(
-                                          (e) =>
-                                              _selectedExpenseIds.contains(e.id),
+                                          (e) => _selectedExpenseIds.contains(
+                                            e.id,
+                                          ),
                                         )
                                         .toList();
                                     if (selectedExpenses.isNotEmpty) {
@@ -1733,8 +1731,8 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                     ),
                                     showTrailingIcon: false,
                                     children: catExpenses.map((e) {
-                                      final isSelected =
-                                          _selectedExpenseIds.contains(e.id);
+                                      final isSelected = _selectedExpenseIds
+                                          .contains(e.id);
                                       return Container(
                                         decoration: const BoxDecoration(
                                           border: Border(
@@ -1748,9 +1746,9 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                           dense: true,
                                           contentPadding:
                                               const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
+                                                horizontal: 16,
+                                                vertical: 4,
+                                              ),
                                           leading: Checkbox(
                                             activeColor: InfraColors.royalBlue,
                                             value: isSelected,
@@ -1759,8 +1757,9 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                                 if (val == true) {
                                                   _selectedExpenseIds.add(e.id);
                                                 } else {
-                                                  _selectedExpenseIds
-                                                      .remove(e.id);
+                                                  _selectedExpenseIds.remove(
+                                                    e.id,
+                                                  );
                                                 }
                                               });
                                             },
@@ -1777,8 +1776,9 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                           subtitle: Text(
                                             [
                                               if (e.expenseDate != null)
-                                                DateFormat('dd MMM yyyy')
-                                                    .format(e.expenseDate!),
+                                                DateFormat(
+                                                  'dd MMM yyyy',
+                                                ).format(e.expenseDate!),
                                               if (e.paymentMode.isNotEmpty)
                                                 _humanizeToken(e.paymentMode),
                                             ].join(' · '),
@@ -1802,61 +1802,57 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                                 weight: FontWeight.w700,
                                               ),
                                               _EntityMenu(
-                                                onEdit: permissions
-                                                        .canEditExpense(e)
-                                                    ? () => Navigator.of(
-                                                              context,
-                                                            ).push(
-                                                              MaterialPageRoute<
-                                                                  void>(
-                                                                builder: (_) =>
-                                                                    ExpenseFormScreen(
-                                                                  project:
-                                                                      widget
-                                                                          .project,
-                                                                  expense: e,
-                                                                ),
+                                                onEdit:
+                                                    permissions.canEditExpense(
+                                                      e,
+                                                    )
+                                                    ? () => Navigator.of(context).push(
+                                                        MaterialPageRoute<void>(
+                                                          builder: (_) =>
+                                                              ExpenseFormScreen(
+                                                                project: widget
+                                                                    .project,
+                                                                expense: e,
                                                               ),
-                                                            )
+                                                        ),
+                                                      )
                                                     : null,
-                                                onDelete: permissions
-                                                        .canDeleteExpense
+                                                onDelete:
+                                                    permissions.canDeleteExpense
                                                     ? () => _confirmDelete(
-                                                          context,
-                                                          ref,
-                                                          title:
-                                                              'Delete expense?',
-                                                          message:
-                                                              'Remove ${e.category} '
-                                                              '(${Money.fromPaise(e.amountPaise).formatInr()})?',
-                                                          onConfirm: () async {
-                                                            await ref
-                                                                .read(
-                                                                  infraRepositoryProvider,
-                                                                )
-                                                                .deleteExpense(
-                                                                  e.id,
-                                                                );
-                                                            ref.invalidate(
-                                                              projectExpensesProvider(
-                                                                widget
-                                                                    .project.id,
-                                                              ),
-                                                            );
-                                                            ref.invalidate(
-                                                              projectFinancialSummaryProvider(
-                                                                widget
-                                                                    .project.id,
-                                                              ),
-                                                            );
-                                                            ref.invalidate(
-                                                              projectsProvider,
-                                                            );
-                                                            ref.invalidate(
-                                                              dashboardSummaryProvider,
-                                                            );
-                                                          },
-                                                        )
+                                                        context,
+                                                        ref,
+                                                        title:
+                                                            'Delete expense?',
+                                                        message:
+                                                            'Remove ${e.category} '
+                                                            '(${Money.fromPaise(e.amountPaise).formatInr()})?',
+                                                        onConfirm: () async {
+                                                          await ref
+                                                              .read(
+                                                                infraRepositoryProvider,
+                                                              )
+                                                              .deleteExpense(
+                                                                e.id,
+                                                              );
+                                                          ref.invalidate(
+                                                            projectExpensesProvider(
+                                                              widget.project.id,
+                                                            ),
+                                                          );
+                                                          ref.invalidate(
+                                                            projectFinancialSummaryProvider(
+                                                              widget.project.id,
+                                                            ),
+                                                          );
+                                                          ref.invalidate(
+                                                            projectsProvider,
+                                                          );
+                                                          ref.invalidate(
+                                                            dashboardSummaryProvider,
+                                                          );
+                                                        },
+                                                      )
                                                     : null,
                                               ),
                                             ],

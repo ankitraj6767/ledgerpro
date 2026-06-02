@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +18,15 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
   final _pinController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _biometric = true;
+  bool _biometricSupported = false;
+  bool _checkingBiometric = true;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricSupport();
+  }
 
   @override
   void dispose() {
@@ -51,7 +60,7 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
           Text(
             isMandatorySetup
                 ? 'Create a PIN so you can quickly unlock next time without signing in again.'
-                : 'PIN is hashed and stored with salt in secure platform storage.',
+                : 'PIN is stored as a salted hash on this device.',
           ),
           const SizedBox(height: 20),
           TextField(
@@ -80,10 +89,12 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
             ),
           ),
           SwitchListTile(
-            value: _biometric,
-            onChanged: (value) => setState(() => _biometric = value),
-            title: const Text('Enable biometric unlock'),
-            subtitle: const Text('Uses Android biometrics when available.'),
+            value: _biometricSupported && _biometric,
+            onChanged: _biometricSupported
+                ? (value) => setState(() => _biometric = value)
+                : null,
+            title: Text('Enable $_biometricLabel unlock'),
+            subtitle: Text(_biometricSubtitle),
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
@@ -94,7 +105,9 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.lock_outline),
-            label: Text(isMandatorySetup ? 'Save and continue' : 'Save app lock'),
+            label: Text(
+              isMandatorySetup ? 'Save and continue' : 'Save app lock',
+            ),
           ),
         ],
       ),
@@ -119,15 +132,15 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
 
     try {
       await controller.lockService.setPin(pin);
-      await controller.lockService.setBiometricEnabled(enabled: _biometric);
+      await controller.lockService.setBiometricEnabled(
+        enabled: _biometricSupported && _biometric,
+      );
       await controller.refreshLockSettings();
       // Setting a PIN implicitly unlocks the current session.
       controller.markUnlocked();
 
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('App lock saved')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('App lock saved')));
 
       if (wasMandatorySetup) {
         context.go(AppRoutes.home);
@@ -140,5 +153,31 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _loadBiometricSupport() async {
+    final controller = ref.read(appSessionControllerProvider);
+    final supported = await controller.lockService.canUseBiometrics();
+    if (!mounted) return;
+    setState(() {
+      _biometricSupported = supported;
+      _biometric = supported;
+      _checkingBiometric = false;
+    });
+  }
+
+  String get _biometricLabel {
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => 'Touch ID / Face ID',
+      TargetPlatform.windows => 'Windows Hello',
+      TargetPlatform.android => 'biometric',
+      _ => 'biometric',
+    };
+  }
+
+  String get _biometricSubtitle {
+    if (_checkingBiometric) return 'Checking device support...';
+    if (_biometricSupported) return 'Uses $_biometricLabel when available.';
+    return 'Biometric unlock is not available on this device.';
   }
 }
