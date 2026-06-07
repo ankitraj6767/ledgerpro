@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/remote/supabase_ledger_api.dart';
 import '../../data/repositories/infra_repository.dart';
+import '../../data/repositories/material_repository.dart';
 
 final infraRealtimeBridgeProvider = Provider<void>((ref) {
   final api = ref.watch(supabaseLedgerApiProvider);
@@ -27,6 +28,7 @@ void _invalidateInfraProviders(Ref ref, PostgresChangePayload payload) {
   ref.invalidate(investorsProvider);
   ref.invalidate(infraAuditLogsProvider);
   ref.invalidate(customerMembersProvider);
+  invalidateMaterialProvidersFromRef(ref);
 
   final record = payload.newRecord.isNotEmpty
       ? payload.newRecord

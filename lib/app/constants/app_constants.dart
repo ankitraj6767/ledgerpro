@@ -24,8 +24,16 @@ class AppRoutes {
   static const home = '/home';
   static const projects = '/projects';
   static const expenses = '/expenses';
+  static const materials = '/materials';
   static const reports = '/reports';
   static const profile = '/profile';
+
+  // Material reports / operations
+  static const materialStock = '/materials/stock';
+  static const materialIssues = '/materials/issues';
+  static const materialLowStock = '/materials/low-stock';
+  static const schoolMaterialReport = '/materials/schools';
+  static const managerMaterialReport = '/materials/managers';
 
   // Projects
   static const newProject = '/projects/new';

@@ -26,7 +26,7 @@ class InfraShell extends ConsumerWidget {
   static const _routes = [
     AppRoutes.home,
     AppRoutes.projects,
-    AppRoutes.expenses,
+    AppRoutes.materials,
     AppRoutes.reports,
     AppRoutes.profile,
   ];
@@ -34,14 +34,14 @@ class InfraShell extends ConsumerWidget {
   static const _items = [
     _ShellItem(Icons.home_outlined, Icons.home, 'Home'),
     _ShellItem(Icons.business_outlined, Icons.business, 'Projects'),
-    _ShellItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Expenses'),
+    _ShellItem(Icons.inventory_2_outlined, Icons.inventory_2, 'Materials'),
     _ShellItem(Icons.bar_chart_outlined, Icons.bar_chart, 'Reports'),
     _ShellItem(Icons.person_outline, Icons.person, 'Profile'),
   ];
 
-  int _indexFor(String path) {
+  static int indexForPath(String path) {
     if (path.startsWith(AppRoutes.projects)) return 1;
-    if (path.startsWith(AppRoutes.expenses)) return 2;
+    if (path.startsWith(AppRoutes.materials)) return 2;
     if (path.startsWith(AppRoutes.reports)) return 3;
     if (path.startsWith(AppRoutes.profile) ||
         path.startsWith(AppRoutes.settings) ||
@@ -58,7 +58,7 @@ class InfraShell extends ConsumerWidget {
     ref.watch(infraRealtimeBridgeProvider);
     final width = MediaQuery.sizeOf(context).width;
     final path = GoRouterState.of(context).uri.path;
-    final selectedIndex = _indexFor(path);
+    final selectedIndex = indexForPath(path);
 
     if (width <= AdaptiveBreakpoints.mobileMax) {
       return _MobileShell(
