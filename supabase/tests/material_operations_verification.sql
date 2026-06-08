@@ -5,7 +5,7 @@ begin;
 set local role postgres;
 set local search_path = extensions, public, pg_catalog;
 
-select extensions.plan(41);
+select extensions.plan(53);
 
 select extensions.has_table('public', value, 'material table exists: ' || value)
 from unnest(array[
@@ -24,6 +24,12 @@ from unnest(array[
   'create_material_tender', 'create_material_district',
   'create_material_manager', 'create_material_warehouse',
   'create_material_school', 'update_material_school_progress',
+  'update_material_tender', 'delete_material_tender',
+  'update_material_district', 'delete_material_district',
+  'update_material_manager', 'delete_material_manager',
+  'update_material_warehouse', 'delete_material_warehouse',
+  'update_material_school', 'delete_material_school',
+  'update_material_item', 'delete_material_item',
   'receive_material', 'issue_material_to_school',
   'return_material_from_school'
 ]) value;
