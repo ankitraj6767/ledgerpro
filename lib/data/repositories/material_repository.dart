@@ -497,7 +497,7 @@ class MaterialRepository {
     );
   }
 
-  Future<void> addMaterialItem({
+  Future<String> addMaterialItem({
     required String organizationId,
     required String name,
     required String unit,
@@ -505,7 +505,7 @@ class MaterialRepository {
     String? category,
     double lowStockThreshold = 0,
   }) async {
-    await _client.rpc(
+    final result = await _client.rpc(
       'create_material_item',
       params: {
         'p_organization_id': organizationId,
@@ -516,6 +516,7 @@ class MaterialRepository {
         'p_low_stock_threshold': lowStockThreshold,
       },
     );
+    return result.toString();
   }
 
   Future<String> createTender({
@@ -538,6 +539,39 @@ class MaterialRepository {
     return result.toString();
   }
 
+  Future<void> updateTender({
+    required String organizationId,
+    required String tenderId,
+    required String name,
+    String? code,
+    int? year,
+    String status = 'active',
+    String? description,
+  }) async {
+    await _client.rpc(
+      'update_material_tender',
+      params: {
+        'p_organization_id': organizationId,
+        'p_tender_id': tenderId,
+        'p_name': name.trim(),
+        'p_code': code?.trim(),
+        'p_year': year,
+        'p_status': status.trim(),
+        'p_description': description?.trim(),
+      },
+    );
+  }
+
+  Future<void> deleteTender({
+    required String organizationId,
+    required String tenderId,
+  }) async {
+    await _client.rpc(
+      'delete_material_tender',
+      params: {'p_organization_id': organizationId, 'p_tender_id': tenderId},
+    );
+  }
+
   Future<String> createDistrict({
     required String organizationId,
     required String name,
@@ -552,6 +586,36 @@ class MaterialRepository {
       },
     );
     return result.toString();
+  }
+
+  Future<void> updateDistrict({
+    required String organizationId,
+    required String districtId,
+    required String name,
+    String? state,
+  }) async {
+    await _client.rpc(
+      'update_material_district',
+      params: {
+        'p_organization_id': organizationId,
+        'p_district_id': districtId,
+        'p_name': name.trim(),
+        'p_state': state?.trim(),
+      },
+    );
+  }
+
+  Future<void> deleteDistrict({
+    required String organizationId,
+    required String districtId,
+  }) async {
+    await _client.rpc(
+      'delete_material_district',
+      params: {
+        'p_organization_id': organizationId,
+        'p_district_id': districtId,
+      },
+    );
   }
 
   Future<String> createManager({
@@ -572,6 +636,39 @@ class MaterialRepository {
       },
     );
     return result.toString();
+  }
+
+  Future<void> updateManager({
+    required String organizationId,
+    required String managerId,
+    required String fullName,
+    String? phone,
+    String? email,
+    String roleLabel = 'Project Manager',
+    bool active = true,
+  }) async {
+    await _client.rpc(
+      'update_material_manager',
+      params: {
+        'p_organization_id': organizationId,
+        'p_manager_id': managerId,
+        'p_full_name': fullName.trim(),
+        'p_phone': phone?.trim(),
+        'p_email': email?.trim(),
+        'p_role_label': roleLabel.trim(),
+        'p_active': active,
+      },
+    );
+  }
+
+  Future<void> deleteManager({
+    required String organizationId,
+    required String managerId,
+  }) async {
+    await _client.rpc(
+      'delete_material_manager',
+      params: {'p_organization_id': organizationId, 'p_manager_id': managerId},
+    );
   }
 
   Future<String> createWarehouse({
@@ -598,6 +695,44 @@ class MaterialRepository {
     return result.toString();
   }
 
+  Future<void> updateWarehouse({
+    required String organizationId,
+    required String warehouseId,
+    required String name,
+    String? districtId,
+    String? address,
+    String? managerName,
+    String? phone,
+    bool isCentral = false,
+  }) async {
+    await _client.rpc(
+      'update_material_warehouse',
+      params: {
+        'p_organization_id': organizationId,
+        'p_warehouse_id': warehouseId,
+        'p_district_id': districtId,
+        'p_name': name.trim(),
+        'p_address': address?.trim(),
+        'p_manager_name': managerName?.trim(),
+        'p_phone': phone?.trim(),
+        'p_is_central': isCentral,
+      },
+    );
+  }
+
+  Future<void> deleteWarehouse({
+    required String organizationId,
+    required String warehouseId,
+  }) async {
+    await _client.rpc(
+      'delete_material_warehouse',
+      params: {
+        'p_organization_id': organizationId,
+        'p_warehouse_id': warehouseId,
+      },
+    );
+  }
+
   Future<String> createSchool({
     required String organizationId,
     required String tenderId,
@@ -620,6 +755,81 @@ class MaterialRepository {
       },
     );
     return result.toString();
+  }
+
+  Future<void> updateSchool({
+    required String organizationId,
+    required String schoolId,
+    required String tenderId,
+    String? districtId,
+    required String name,
+    String? code,
+    String? address,
+    String status = 'not_started',
+    int progressPercent = 0,
+    String? assignedManagerId,
+  }) async {
+    await _client.rpc(
+      'update_material_school',
+      params: {
+        'p_organization_id': organizationId,
+        'p_school_id': schoolId,
+        'p_tender_id': tenderId,
+        'p_district_id': districtId,
+        'p_name': name.trim(),
+        'p_code': code?.trim(),
+        'p_address': address?.trim(),
+        'p_status': status.trim(),
+        'p_progress_percent': progressPercent,
+        'p_assigned_manager_id': assignedManagerId,
+      },
+    );
+  }
+
+  Future<void> deleteSchool({
+    required String organizationId,
+    required String schoolId,
+  }) async {
+    await _client.rpc(
+      'delete_material_school',
+      params: {'p_organization_id': organizationId, 'p_school_id': schoolId},
+    );
+  }
+
+  Future<void> updateMaterialItem({
+    required String organizationId,
+    required String materialId,
+    required String name,
+    required String unit,
+    String? sku,
+    String? category,
+    double lowStockThreshold = 0,
+  }) async {
+    await _client.rpc(
+      'update_material_item',
+      params: {
+        'p_organization_id': organizationId,
+        'p_material_id': materialId,
+        'p_name': name.trim(),
+        'p_unit': unit.trim(),
+        'p_sku': sku?.trim(),
+        'p_category': category?.trim(),
+        'p_low_stock_threshold': lowStockThreshold,
+      },
+    );
+  }
+
+  Future<void> deleteMaterialItem({
+    required String organizationId,
+    required String materialId,
+  }) async {
+    await _client.rpc(
+      'delete_material_item',
+      params: {
+        'p_organization_id': organizationId,
+        'p_material_id': materialId,
+      },
+    );
   }
 
   Future<void> updateSchoolProgress({

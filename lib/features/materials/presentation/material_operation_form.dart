@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../data/repositories/material_repository.dart';
+import '../../../shared/models/infra_models.dart';
 import '../../../shared/models/material_models.dart';
 import 'material_master_form.dart';
 
@@ -99,6 +100,26 @@ class _MaterialOperationFormState extends ConsumerState<MaterialOperationForm> {
         .firstOrNull;
     final setupStatus = ref.watch(materialSetupStatusProvider);
     final setupReady = _isSetupReady(setupStatus);
+    final permissions = ref.watch(currentOrgPermissionsProvider);
+    final operationAllowed = _isOperationAllowed(permissions);
+
+    if (!operationAllowed) {
+      return SafeArea(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            14,
+            20,
+            20 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          children: [
+            _OperationTitle(operation: widget.operation),
+            const SizedBox(height: 20),
+            const _OperationPermissionWarning(),
+          ],
+        ),
+      );
+    }
 
     return SafeArea(
       child: Form(
@@ -111,32 +132,7 @@ class _MaterialOperationFormState extends ConsumerState<MaterialOperationForm> {
             20 + MediaQuery.viewInsetsOf(context).bottom,
           ),
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: InfraColors.royalBlue.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    widget.operation.icon,
-                    color: InfraColors.royalBlue,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    widget.operation.title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _OperationTitle(operation: widget.operation),
             const SizedBox(height: 20),
             if (!setupReady) ...[
               _OperationSetupWarning(
@@ -362,6 +358,15 @@ class _MaterialOperationFormState extends ConsumerState<MaterialOperationForm> {
     MaterialFormOperation.item => true,
   };
 
+  bool _isOperationAllowed(OrgPermissions permissions) =>
+      switch (widget.operation) {
+        MaterialFormOperation.receive ||
+        MaterialFormOperation.issue ||
+        MaterialFormOperation.materialReturn => permissions.canOperateMaterials,
+        MaterialFormOperation.requirement ||
+        MaterialFormOperation.item => permissions.canManageMaterials,
+      };
+
   String _setupMessage(MaterialSetupStatus status) {
     final missing = <String>[
       if (status.tenders == 0) 'tender',
@@ -505,6 +510,61 @@ class _MaterialOperationFormState extends ConsumerState<MaterialOperationForm> {
 
   String? _required(String? value) =>
       value == null || value.trim().isEmpty ? 'Required' : null;
+}
+
+class _OperationTitle extends StatelessWidget {
+  const _OperationTitle({required this.operation});
+
+  final MaterialFormOperation operation;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: InfraColors.royalBlue.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(operation.icon, color: InfraColors.royalBlue),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          operation.title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
+      ),
+    ],
+  );
+}
+
+class _OperationPermissionWarning extends StatelessWidget {
+  const _OperationPermissionWarning();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: const Color(0xFFEAF2FF),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: InfraColors.royalBlue.withValues(alpha: 0.22)),
+    ),
+    child: const Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.visibility_outlined, color: InfraColors.royalBlue),
+        SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'You have read-only material access. You can view tenders, schools, warehouse stock, and reports, but only admins can create, update, or delete material records.',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _OperationSetupWarning extends StatelessWidget {

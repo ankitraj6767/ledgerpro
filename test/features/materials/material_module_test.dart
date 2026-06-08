@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerpro_mobile/app/constants/app_constants.dart';
 import 'package:ledgerpro_mobile/data/repositories/material_repository.dart';
+import 'package:ledgerpro_mobile/shared/models/infra_models.dart';
 import 'package:ledgerpro_mobile/shared/models/material_models.dart';
 import 'package:ledgerpro_mobile/shared/widgets/infra_shell.dart';
 
@@ -74,5 +75,18 @@ void main() {
     expect(InfraShell.indexForPath(AppRoutes.reports), 3);
     expect(InfraShell.indexForPath(AppRoutes.profile), 4);
     expect(InfraShell.indexForPath(AppRoutes.expenses), 0);
+  });
+
+  test('customer permissions keep materials read-only', () {
+    const customer = OrgPermissions(OrgMemberRole.customer);
+    const siteStaff = OrgPermissions(OrgMemberRole.siteStaff);
+    const admin = OrgPermissions(OrgMemberRole.manager);
+
+    expect(customer.canReadOrg, isTrue);
+    expect(customer.canManageMaterials, isFalse);
+    expect(customer.canOperateMaterials, isFalse);
+    expect(siteStaff.canManageMaterials, isFalse);
+    expect(siteStaff.canOperateMaterials, isTrue);
+    expect(admin.canManageMaterials, isTrue);
   });
 }
