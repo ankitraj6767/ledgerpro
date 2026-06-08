@@ -28,6 +28,7 @@ void main() {
     expect(find.text('Warehouse Stock Summary'), findsOneWidget);
     expect(find.text('Quick Actions'), findsOneWidget);
     expect(find.text('My Schools'), findsOneWidget);
+    expect(find.text('1 GPS photo'), findsOneWidget);
     expect(find.text('Add School'), findsOneWidget);
     expect(find.text('Material\nIssue'), findsOneWidget);
     expect(find.text('Material\nReceive'), findsOneWidget);
@@ -145,6 +146,8 @@ Future<void> _pumpMaterials(
               districtId: 'district',
               status: 'running',
               progressPercent: 75,
+              roomQuantity: 6,
+              gpsPhotoPaths: ['org/material-schools/school/photo.jpg'],
             ),
           ],
         ),
@@ -158,6 +161,8 @@ Future<void> _pumpMaterials(
               districtId: 'district',
               status: 'running',
               progressPercent: 75,
+              roomQuantity: 6,
+              gpsPhotoPaths: ['org/material-schools/school/photo.jpg'],
             ),
           ],
         ),

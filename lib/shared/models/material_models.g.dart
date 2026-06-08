@@ -74,6 +74,18 @@ _School _$SchoolFromJson(Map<String, dynamic> json) => _School(
   status: json['status'] as String? ?? 'not_started',
   progressPercent: (json['progress_percent'] as num?)?.toInt() ?? 0,
   assignedManagerId: json['assigned_manager_id'] as String?,
+  roomQuantity: (json['room_quantity'] as num?)?.toInt() ?? 0,
+  gpsPhotoPaths:
+      (json['gps_photo_paths'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  gpsLatitude: (json['gps_latitude'] as num?)?.toDouble(),
+  gpsLongitude: (json['gps_longitude'] as num?)?.toDouble(),
+  gpsAccuracyMeters: (json['gps_accuracy_meters'] as num?)?.toDouble(),
+  gpsCapturedAt: json['gps_captured_at'] == null
+      ? null
+      : DateTime.parse(json['gps_captured_at'] as String),
 );
 
 Map<String, dynamic> _$SchoolToJson(_School instance) => <String, dynamic>{
@@ -87,6 +99,12 @@ Map<String, dynamic> _$SchoolToJson(_School instance) => <String, dynamic>{
   'status': instance.status,
   'progress_percent': instance.progressPercent,
   'assigned_manager_id': instance.assignedManagerId,
+  'room_quantity': instance.roomQuantity,
+  'gps_photo_paths': instance.gpsPhotoPaths,
+  'gps_latitude': instance.gpsLatitude,
+  'gps_longitude': instance.gpsLongitude,
+  'gps_accuracy_meters': instance.gpsAccuracyMeters,
+  'gps_captured_at': instance.gpsCapturedAt?.toIso8601String(),
 };
 
 _SiteManager _$SiteManagerFromJson(Map<String, dynamic> json) => _SiteManager(

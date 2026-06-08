@@ -122,6 +122,7 @@ class SupabaseLedgerApi implements QueuedMutationRemote {
     'create_material_warehouse',
     'create_material_school',
     'update_material_school_progress',
+    'add_material_school_evidence',
   };
 
   Future<void> upsertParty(Map<String, dynamic> party) async {

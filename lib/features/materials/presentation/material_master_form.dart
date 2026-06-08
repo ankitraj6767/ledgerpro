@@ -5,6 +5,7 @@ import '../../../app/theme/infra_theme.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../data/repositories/material_repository.dart';
 import '../../../shared/models/material_models.dart';
+import 'school_evidence_capture.dart';
 
 enum MaterialMasterType {
   tender,
@@ -106,10 +107,12 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
   final _sku = TextEditingController();
   final _category = TextEditingController();
   final _threshold = TextEditingController(text: '0');
+  final _roomQuantity = TextEditingController(text: '0');
 
   String? _tenderId;
   String? _districtId;
   String? _managerId;
+  final List<CapturedSchoolEvidence> _pendingSchoolPhotos = [];
   String _tenderStatus = 'active';
   String _schoolStatus = 'not_started';
   double _progress = 0;
@@ -141,6 +144,7 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
     _sku.dispose();
     _category.dispose();
     _threshold.dispose();
+    _roomQuantity.dispose();
     super.dispose();
   }
 
@@ -177,6 +181,7 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
       _address.text = initial.address ?? '';
       _schoolStatus = initial.status;
       _progress = initial.progressPercent.toDouble();
+      _roomQuantity.text = '${initial.roomQuantity}';
     } else if (initial is MaterialItem) {
       _name.text = initial.name;
       _unit.text = initial.unit;
@@ -379,6 +384,14 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
             Icons.location_city_outlined,
             maxLines: 2,
           ),
+          _field(
+            _roomQuantity,
+            'Rooms quantity',
+            Icons.meeting_room_outlined,
+            keyboardType: TextInputType.number,
+            validator: _nonNegativeInt,
+          ),
+          _schoolEvidenceSection(),
           if (_editing) ...[
             _statusDropdown(
               label: 'School status',
@@ -420,6 +433,82 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
             },
           ),
         ];
+    }
+  }
+
+  Widget _schoolEvidenceSection() {
+    final school = widget.initial is School ? widget.initial! as School : null;
+    final existingPhotoCount = school?.gpsPhotoPaths.length ?? 0;
+    final totalPhotos = existingPhotoCount + _pendingSchoolPhotos.length;
+    final hasGps = school?.gpsLatitude != null && school?.gpsLongitude != null;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF2FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InfraColors.royalBlue.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.add_a_photo_outlined,
+                color: InfraColors.royalBlue,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  totalPhotos == 0
+                      ? 'No GPS photos attached'
+                      : '$totalPhotos GPS photo${totalPhotos == 1 ? '' : 's'} attached',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          if (hasGps) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Last GPS: ${school!.gpsLatitude!.toStringAsFixed(5)}, ${school.gpsLongitude!.toStringAsFixed(5)}',
+              style: const TextStyle(color: InfraColors.textSecondary),
+            ),
+          ],
+          if (_pendingSchoolPhotos.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              '${_pendingSchoolPhotos.length} new photo${_pendingSchoolPhotos.length == 1 ? '' : 's'} will upload on save.',
+              style: const TextStyle(color: InfraColors.textSecondary),
+            ),
+          ],
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _submitting ? null : _captureSchoolPhoto,
+            icon: const Icon(Icons.my_location_outlined),
+            label: const Text('Capture GPS photo'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _captureSchoolPhoto() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final captured = await captureSchoolEvidencePhoto();
+      if (captured == null) return;
+      if (!mounted) return;
+      setState(() => _pendingSchoolPhotos.add(captured));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('GPS photo ready. Save to upload it.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not capture GPS photo: $error')),
+      );
     }
   }
 
@@ -614,6 +703,7 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
           }
           ref.read(selectedWarehouseProvider.notifier).select(savedId);
         case MaterialMasterType.school:
+          final roomQuantity = int.parse(_roomQuantity.text.trim());
           if (_editing) {
             await repository.updateSchool(
               organizationId: org.id,
@@ -626,6 +716,7 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
               status: _schoolStatus,
               progressPercent: _progress.round(),
               assignedManagerId: _managerId,
+              roomQuantity: roomQuantity,
             );
           } else {
             savedId = await repository.createSchool(
@@ -636,8 +727,14 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
               code: _code.text,
               address: _address.text,
               assignedManagerId: _managerId,
+              roomQuantity: roomQuantity,
             );
           }
+          await _uploadPendingEvidence(
+            repository: repository,
+            organizationId: org.id,
+            schoolId: savedId,
+          );
         case MaterialMasterType.material:
           if (_editing) {
             await repository.updateMaterialItem(
@@ -686,6 +783,34 @@ class _MaterialMasterFormState extends ConsumerState<MaterialMasterForm> {
 
   String? _required(String? value) =>
       value == null || value.trim().isEmpty ? 'Required' : null;
+
+  String? _nonNegativeInt(String? value) {
+    final parsed = int.tryParse(value?.trim() ?? '');
+    return parsed == null || parsed < 0 ? 'Enter zero or more' : null;
+  }
+
+  Future<void> _uploadPendingEvidence({
+    required MaterialRepository repository,
+    required String organizationId,
+    required String schoolId,
+  }) async {
+    final uploaded = await uploadSchoolEvidencePhotos(
+      repository: repository,
+      organizationId: organizationId,
+      schoolId: schoolId,
+      photos: _pendingSchoolPhotos,
+    );
+    if (uploaded == null) return;
+    await repository.addSchoolEvidence(
+      organizationId: organizationId,
+      schoolId: schoolId,
+      photoPaths: uploaded.photoPaths,
+      gpsLatitude: uploaded.latitude,
+      gpsLongitude: uploaded.longitude,
+      gpsAccuracyMeters: uploaded.accuracyMeters,
+      gpsCapturedAt: uploaded.capturedAt,
+    );
+  }
 }
 
 class MaterialSetupSheet extends ConsumerWidget {
@@ -1181,7 +1306,9 @@ String _subtitleFor(Object record) {
     return '${record.roleLabel}${record.active ? '' : ' • inactive'}';
   }
   if (record is School) {
-    return '${_statusLabel(record.status)} • ${record.progressPercent}% progress';
+    final photos =
+        '${record.gpsPhotoPaths.length} GPS photo${record.gpsPhotoPaths.length == 1 ? '' : 's'}';
+    return '${_statusLabel(record.status)} • ${record.progressPercent}% progress • ${record.roomQuantity} rooms • $photos';
   }
   if (record is MaterialItem) {
     return '${record.unit} • Low stock ${formatQuantity(record.lowStockThreshold)}';
