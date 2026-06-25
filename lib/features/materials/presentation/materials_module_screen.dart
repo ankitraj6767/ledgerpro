@@ -26,7 +26,7 @@ class _MaterialsModuleScreenState extends ConsumerState<MaterialsModuleScreen> {
   Widget build(BuildContext context) {
     final permissions = ref.watch(currentOrgPermissionsProvider);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: InfraColors.background,
       body: Column(
         children: [
           const _ModuleHeader(),
@@ -44,9 +44,12 @@ class _MaterialsModuleScreenState extends ConsumerState<MaterialsModuleScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _MaterialBottomBar(
+      bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onSelected: (index) {
+        backgroundColor: InfraColors.navy,
+        indicatorColor: const Color(0xFF0B3E74),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        onDestinationSelected: (index) {
           if (index == 2) {
             if (permissions.canOperateMaterials) {
               showMaterialOperationSheet(context, MaterialFormOperation.issue);
@@ -61,6 +64,32 @@ class _MaterialsModuleScreenState extends ConsumerState<MaterialsModuleScreen> {
           }
           setState(() => _index = index);
         },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined, color: Colors.white70),
+            selectedIcon: Icon(Icons.dashboard, color: InfraColors.gold),
+            label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined, color: Colors.white70),
+            selectedIcon: Icon(Icons.school, color: InfraColors.gold),
+            label: 'Schools',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.add_circle, color: InfraColors.gold, size: 34),
+            label: 'Issue',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.warehouse_outlined, color: Colors.white70),
+            selectedIcon: Icon(Icons.warehouse, color: InfraColors.gold),
+            label: 'Warehouse',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.description_outlined, color: Colors.white70),
+            selectedIcon: Icon(Icons.description, color: InfraColors.gold),
+            label: 'Reports',
+          ),
+        ],
       ),
     );
   }
@@ -75,60 +104,114 @@ class _ModuleHeader extends ConsumerWidget {
     final selectedTender = ref.watch(effectiveTenderIdProvider);
     final lowStock =
         ref.watch(materialDashboardSummaryProvider).value?.lowStockItems ?? 0;
-    final permissions = ref.watch(currentOrgPermissionsProvider);
     return Container(
-      color: Colors.white,
       padding: EdgeInsets.fromLTRB(
         12,
-        MediaQuery.paddingOf(context).top + 8,
+        MediaQuery.paddingOf(context).top + 10,
         12,
-        10,
+        16,
       ),
-      child: Row(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [InfraColors.navy, Color(0xFF0B447E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      child: Column(
         children: [
-          IconButton(
-            tooltip: 'Back to home',
-            onPressed: () => context.go(AppRoutes.home),
-            icon: const Icon(Icons.menu_rounded, color: InfraColors.navy),
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Back to home',
+                onPressed: () => context.go(AppRoutes.home),
+                icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              ),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.inventory_2_outlined,
+                  color: InfraColors.gold,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Material Dashboard',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'Warehouse & School Tracking',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    tooltip: 'Low stock alerts',
+                    onPressed: () => context.push(AppRoutes.materialLowStock),
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (lowStock > 0)
+                    Positioned(
+                      right: 4,
+                      top: 4,
+                      child: CircleAvatar(
+                        radius: 8,
+                        backgroundColor: InfraColors.red,
+                        child: Text(
+                          '$lowStock',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              IconButton(
+                tooltip: 'Material setup',
+                onPressed: () => showMaterialSetupSheet(context),
+                icon: const Icon(Icons.settings_outlined, color: Colors.white),
+              ),
+            ],
           ),
-          Expanded(
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: tenders.any((item) => item.id == selectedTender)
                     ? selectedTender
                     : null,
                 isExpanded: true,
-                hint: Text(
-                  permissions.canManageMaterials
-                      ? 'Create Tender'
-                      : 'No tender assigned',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: InfraColors.navy,
-                  ),
-                ),
-                icon: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: InfraColors.navy,
-                ),
-                selectedItemBuilder: (context) => tenders
-                    .map(
-                      (item) => Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          item.year == null
-                              ? item.name
-                              : '${item.name} - ${item.year}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: InfraColors.navy,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
+                hint: const Text('Select or create a tender'),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded),
                 items: tenders
                     .map(
                       (item) => DropdownMenuItem(
@@ -150,189 +233,20 @@ class _ModuleHeader extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                tooltip: 'Low stock alerts',
-                onPressed: () => context.push(AppRoutes.materialLowStock),
-                icon: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: InfraColors.navy,
+          if (tenders.isEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () =>
+                    showMaterialMasterSheet(context, MaterialMasterType.tender),
+                icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                label: const Text(
+                  'Create your first tender',
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
-              Positioned(
-                right: 7,
-                top: 7,
-                child: CircleAvatar(
-                  radius: 8,
-                  backgroundColor: InfraColors.red,
-                  child: Text(
-                    '${lowStock == 0 ? 0 : lowStock}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 6),
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: () => showMaterialSetupSheet(context),
-            child: const CircleAvatar(
-              radius: 22,
-              backgroundColor: Color(0xFFEAF2FF),
-              child: Icon(Icons.person, color: InfraColors.navy),
             ),
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _MaterialBottomBar extends StatelessWidget {
-  const _MaterialBottomBar({
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _BottomItem(
-              index: 0,
-              selectedIndex: selectedIndex,
-              icon: Icons.dashboard_outlined,
-              selectedIcon: Icons.dashboard,
-              label: 'Dashboard',
-              onTap: onSelected,
-            ),
-            _BottomItem(
-              index: 1,
-              selectedIndex: selectedIndex,
-              icon: Icons.school_outlined,
-              selectedIcon: Icons.school,
-              label: 'Schools',
-              onTap: onSelected,
-            ),
-            _BottomItem(
-              index: 2,
-              selectedIndex: selectedIndex,
-              icon: Icons.add,
-              selectedIcon: Icons.add,
-              label: 'Issue',
-              center: true,
-              onTap: onSelected,
-            ),
-            _BottomItem(
-              index: 3,
-              selectedIndex: selectedIndex,
-              icon: Icons.inventory_2_outlined,
-              selectedIcon: Icons.inventory_2,
-              label: 'Warehouse',
-              onTap: onSelected,
-            ),
-            _BottomItem(
-              index: 4,
-              selectedIndex: selectedIndex,
-              icon: Icons.description_outlined,
-              selectedIcon: Icons.description,
-              label: 'Reports',
-              onTap: onSelected,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomItem extends StatelessWidget {
-  const _BottomItem({
-    required this.index,
-    required this.selectedIndex,
-    required this.icon,
-    required this.selectedIcon,
-    required this.label,
-    required this.onTap,
-    this.center = false,
-  });
-
-  final int index;
-  final int selectedIndex;
-  final IconData icon;
-  final IconData selectedIcon;
-  final String label;
-  final ValueChanged<int> onTap;
-  final bool center;
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = selectedIndex == index;
-    final color = selected ? InfraColors.royalBlue : InfraColors.navy;
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: () => onTap(index),
-      child: SizedBox(
-        width: 62,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: center ? 52 : 36,
-              height: center ? 52 : 36,
-              decoration: center
-                  ? const BoxDecoration(
-                      color: InfraColors.royalBlue,
-                      shape: BoxShape.circle,
-                    )
-                  : null,
-              child: Icon(
-                selected ? selectedIcon : icon,
-                color: center ? Colors.white : color,
-                size: center ? 30 : 25,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -344,17 +258,13 @@ class _SchoolsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final schools = ref.watch(allSchoolsProvider);
-    final permissions = ref.watch(currentOrgPermissionsProvider);
     return _ModuleListPage(
       title: 'Schools',
       subtitle: 'Track work progress and material requirements',
-      actionLabel: permissions.canManageMaterials ? 'Add School' : null,
-      actionIcon: permissions.canManageMaterials
-          ? Icons.add_business_outlined
-          : null,
-      onAction: permissions.canManageMaterials
-          ? () => showMaterialMasterSheet(context, MaterialMasterType.school)
-          : null,
+      actionLabel: 'Add School',
+      actionIcon: Icons.add_business_outlined,
+      onAction: () =>
+          showMaterialMasterSheet(context, MaterialMasterType.school),
       child: schools.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
@@ -441,34 +351,14 @@ class _SchoolCard extends ConsumerWidget {
                   ? InfraColors.green
                   : InfraColors.royalBlue,
             ),
-            Consumer(
-              builder: (context, ref, _) {
-                final permissions = ref.watch(currentOrgPermissionsProvider);
-                if (!permissions.canUpdateProgress) {
-                  return const SizedBox(height: 8);
-                }
-                return Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => _editSchoolProgress(context, ref, school),
-                    icon: const Icon(Icons.edit_outlined, size: 17),
-                    label: const Text('Update progress'),
-                  ),
-                );
-              },
-            ),
-            if (ref.watch(currentOrgPermissionsProvider).canManageMaterials)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => showMaterialManageSheet(
-                    context,
-                    MaterialMasterType.school,
-                  ),
-                  icon: const Icon(Icons.tune_outlined, size: 17),
-                  label: const Text('Manage schools'),
-                ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _editSchoolProgress(context, ref, school),
+                icon: const Icon(Icons.edit_outlined, size: 17),
+                label: const Text('Update progress'),
               ),
+            ),
           ],
         ),
       ),
@@ -543,62 +433,47 @@ class _WarehouseTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final warehouses = ref.watch(allWarehousesProvider);
     final stock = ref.watch(warehouseStockSummaryProvider);
-    final permissions = ref.watch(currentOrgPermissionsProvider);
     return _ModuleListPage(
       title: 'Warehouse',
       subtitle: 'Receive stock and monitor remaining quantities',
-      actionLabel: permissions.canOperateMaterials ? 'Receive' : null,
-      actionIcon: permissions.canOperateMaterials
-          ? Icons.move_to_inbox_outlined
-          : null,
-      onAction: permissions.canOperateMaterials
-          ? () => showMaterialOperationSheet(
-              context,
-              MaterialFormOperation.receive,
-            )
-          : null,
+      actionLabel: 'Receive',
+      actionIcon: Icons.move_to_inbox_outlined,
+      onAction: () =>
+          showMaterialOperationSheet(context, MaterialFormOperation.receive),
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          if (permissions.canManageMaterials || permissions.canOperateMaterials)
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (permissions.canManageMaterials)
-                  ActionChip(
-                    avatar: const Icon(Icons.add_business_outlined, size: 18),
-                    label: const Text('Manage warehouses'),
-                    onPressed: () => showMaterialManageSheet(
-                      context,
-                      MaterialMasterType.warehouse,
-                    ),
-                  ),
-                if (permissions.canManageMaterials)
-                  ActionChip(
-                    avatar: const Icon(Icons.add_box_outlined, size: 18),
-                    label: const Text('Manage materials'),
-                    onPressed: () => showMaterialManageSheet(
-                      context,
-                      MaterialMasterType.material,
-                    ),
-                  ),
-                if (permissions.canOperateMaterials)
-                  ActionChip(
-                    avatar: const Icon(
-                      Icons.assignment_return_outlined,
-                      size: 18,
-                    ),
-                    label: const Text('Return'),
-                    onPressed: () => showMaterialOperationSheet(
-                      context,
-                      MaterialFormOperation.materialReturn,
-                    ),
-                  ),
-              ],
-            ),
-          if (permissions.canManageMaterials || permissions.canOperateMaterials)
-            const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                avatar: const Icon(Icons.add_business_outlined, size: 18),
+                label: const Text('Add warehouse'),
+                onPressed: () => showMaterialMasterSheet(
+                  context,
+                  MaterialMasterType.warehouse,
+                ),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.add_box_outlined, size: 18),
+                label: const Text('Add material'),
+                onPressed: () => showMaterialMasterSheet(
+                  context,
+                  MaterialMasterType.material,
+                ),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.assignment_return_outlined, size: 18),
+                label: const Text('Return'),
+                onPressed: () => showMaterialOperationSheet(
+                  context,
+                  MaterialFormOperation.materialReturn,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Text(
             'Warehouses',
             style: Theme.of(
