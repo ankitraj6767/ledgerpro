@@ -32,6 +32,15 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+# Newer MSVC toolchains (Visual Studio 2022 17.13+ / VS 2026, MSVC 14.4x+)
+# promote the deprecated <experimental/coroutine> header to a hard error
+# (STL1011). Several bundled C++/WinRT plugins (for example local_auth_windows)
+# still include that header, which breaks `flutter build windows`. Define the
+# documented escape hatch project-wide so every target, including plugins,
+# keeps building until those plugins migrate to the C++20 <coroutine> header.
+# This only suppresses the deprecation assertion; it does not change behavior.
+add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by
