@@ -13,8 +13,6 @@ import '../../features/infra/presentation/project_detail_screen.dart';
 import '../../features/infra/presentation/project_notes_screen.dart';
 import '../../features/infra/presentation/project_reports_screen.dart';
 import '../../features/infra/presentation/projects_list_screen.dart';
-import '../../features/materials/presentation/material_report_screens.dart';
-import '../../features/materials/presentation/materials_module_screen.dart';
 import '../../features/onboarding/presentation/organization_setup_screen.dart';
 import '../../features/settings/presentation/audit_logs_screen.dart';
 import '../../features/settings/presentation/customer_users_screen.dart';
@@ -172,30 +170,6 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.syncQueue,
           builder: (context, state) => const SyncQueueScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.materialStock,
-          builder: (context, state) => const MaterialStockScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.materials,
-          builder: (context, state) => const MaterialsModuleScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.materialIssues,
-          builder: (context, state) => const MaterialIssuesScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.materialLowStock,
-          builder: (context, state) => const LowStockScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.schoolMaterialReport,
-          builder: (context, state) => const SchoolMaterialReportScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.managerMaterialReport,
-          builder: (context, state) => const ManagerMaterialReportScreen(),
         ),
       ],
     );

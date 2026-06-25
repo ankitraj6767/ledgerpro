@@ -32,18 +32,6 @@ class SupabaseLedgerApi implements QueuedMutationRemote {
     'project_documents',
     'customer_project_assignments',
     'project_audit_logs',
-    'tenders',
-    'districts',
-    'warehouses',
-    'schools',
-    'site_managers',
-    'material_items',
-    'warehouse_stock',
-    'school_material_requirements',
-    'material_receipts',
-    'material_issues',
-    'material_returns',
-    'material_audit_logs',
   ];
 
   static const _tableByEntity = <String, String>{
@@ -74,24 +62,6 @@ class SupabaseLedgerApi implements QueuedMutationRemote {
     'customer_project_assignment': 'customer_project_assignments',
     'projectProgressUpdate': 'project_progress_updates',
     'project_progress_update': 'project_progress_updates',
-    'tender': 'tenders',
-    'district': 'districts',
-    'warehouse': 'warehouses',
-    'school': 'schools',
-    'siteManager': 'site_managers',
-    'site_manager': 'site_managers',
-    'materialItem': 'material_items',
-    'material_item': 'material_items',
-    'warehouseStock': 'warehouse_stock',
-    'warehouse_stock': 'warehouse_stock',
-    'schoolMaterialRequirement': 'school_material_requirements',
-    'school_material_requirement': 'school_material_requirements',
-    'materialReceipt': 'material_receipts',
-    'material_receipt': 'material_receipts',
-    'materialIssue': 'material_issues',
-    'material_issue': 'material_issues',
-    'materialReturn': 'material_returns',
-    'material_return': 'material_returns',
   };
 
   static const _allowedQueuedRpcs = <String>{
@@ -111,17 +81,6 @@ class SupabaseLedgerApi implements QueuedMutationRemote {
     'update_project_progress',
     'delete_project',
     'set_customer_project_assignments',
-    'receive_material',
-    'issue_material_to_school',
-    'return_material_from_school',
-    'create_material_item',
-    'set_school_material_requirement',
-    'create_material_tender',
-    'create_material_district',
-    'create_material_manager',
-    'create_material_warehouse',
-    'create_material_school',
-    'update_material_school_progress',
   };
 
   Future<void> upsertParty(Map<String, dynamic> party) async {
