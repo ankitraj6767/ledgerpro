@@ -11,6 +11,8 @@ on:
       - "lib/**"
       - "pubspec.yaml"
       - "pubspec.lock"
+      - "scripts/build_windows_release.ps1"
+      - "scripts/package_windows_release.ps1"
       - "windows/**"
 
 jobs:
@@ -42,11 +44,44 @@ jobs:
         run: flutter test
 
       - name: Build Windows release
-        run: flutter build windows --release
+        shell: pwsh
+        env:
+          # Non-sensitive Supabase client config. Set these under
+          # Settings > Secrets and variables > Actions > Variables to target a
+          # specific project. Only the public publishable (anon) key belongs
+          # here, never a service-role key or payment secret.
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          # Inject Supabase config via --dart-define when repo variables are
+          # set. When unset, the app uses the publishable config baked into
+          # lib/app/constants/supabase_config.dart, so downloaded builds always
+          # connect to Supabase (behavior unchanged from before).
+          $flutterArgs = @("build", "windows", "--release")
+          if (-not [string]::IsNullOrWhiteSpace($env:SUPABASE_URL)) {
+            $flutterArgs += "--dart-define=SUPABASE_URL=$($env:SUPABASE_URL)"
+            Write-Host "SUPABASE_URL: provided via repository variable."
+          } else {
+            Write-Host "SUPABASE_URL: using baked-in fallback from supabase_config.dart."
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:SUPABASE_PUBLISHABLE_KEY)) {
+            $flutterArgs += "--dart-define=SUPABASE_PUBLISHABLE_KEY=$($env:SUPABASE_PUBLISHABLE_KEY)"
+            Write-Host "SUPABASE_PUBLISHABLE_KEY: provided via repository variable."
+          } else {
+            Write-Host "SUPABASE_PUBLISHABLE_KEY: using baked-in fallback from supabase_config.dart."
+          }
+          flutter @flutterArgs
+
+      - name: Package Windows release ZIP
+        id: package
+        shell: pwsh
+        run: ./scripts/package_windows_release.ps1
 
       - name: Upload Windows app
         uses: actions/upload-artifact@v4
         with:
-          name: NAVDREAM-windows-release
-          path: build/windows/x64/runner/Release/**
+          name: ${{ steps.package.outputs.artifact_base }}
+          path: |
+            ${{ steps.package.outputs.zip_path }}
+            ${{ steps.package.outputs.checksum_path }}
           if-no-files-found: error
