@@ -592,22 +592,20 @@ class _MobileSchoolCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_on_outlined,
                             size: 15,
                             color: InfraColors.textSecondary,
                           ),
-                          const SizedBox(width: 3),
+                          SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              school.gpsPhotoPaths.isEmpty
-                                  ? 'GPS photo pending'
-                                  : '${school.gpsPhotoPaths.length} GPS photo${school.gpsPhotoPaths.length == 1 ? '' : 's'}',
+                              'Material site',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: InfraColors.textSecondary,
                                 fontSize: 12,
                               ),
@@ -643,7 +641,7 @@ class _MobileSchoolCard extends StatelessWidget {
           const Divider(height: 1, color: InfraColors.border),
           Row(
             children: [
-              _SchoolMetric(label: 'Rooms', value: '${school.roomQuantity}'),
+              _SchoolMetric(label: 'Rooms', value: school.code ?? '-'),
               _SchoolMetric(
                 label: 'Required',
                 value: '${formatQuantity(progress?.requiredPercent ?? 0)}%',

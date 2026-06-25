@@ -67,7 +67,8 @@ class OrgPermissions {
   bool get canManageFunds => canManageProjects;
   bool get canManageInvestments => canManageProjects;
   bool get canManageMaterials => canManageProjects;
-  bool get canOperateMaterials => canManageMaterials;
+  bool get canOperateMaterials =>
+      canManageMaterials || role == OrgMemberRole.siteStaff;
   bool get canUpdateProgress =>
       canManageProjects || role == OrgMemberRole.siteStaff;
   bool get canAddNotes => canManageProjects || role == OrgMemberRole.siteStaff;

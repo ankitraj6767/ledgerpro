@@ -5,9 +5,7 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>NAVDREAM uses the camera to scan product barcodes and capture school GPS evidence photos.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>NAVDREAM records location with school evidence photos for material-site verification.</string>
+	<string>NAVDREAM uses the camera to scan product barcodes when adding inventory.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>NAVDREAM uses Face ID to unlock the app and protect your ledger data.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

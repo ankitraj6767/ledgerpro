@@ -10,7 +10,6 @@ import '../../../shared/models/material_models.dart';
 import 'material_master_form.dart';
 import 'material_operation_form.dart';
 import 'materials_dashboard_screen.dart';
-import 'school_evidence_capture.dart';
 
 class MaterialsModuleScreen extends ConsumerStatefulWidget {
   const MaterialsModuleScreen({super.key});
@@ -442,28 +441,6 @@ class _SchoolCard extends ConsumerWidget {
                   ? InfraColors.green
                   : InfraColors.royalBlue,
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _SchoolInfoChip(
-                  icon: Icons.meeting_room_outlined,
-                  label: '${school.roomQuantity} rooms',
-                ),
-                _SchoolInfoChip(
-                  icon: Icons.add_a_photo_outlined,
-                  label:
-                      '${school.gpsPhotoPaths.length} GPS photo${school.gpsPhotoPaths.length == 1 ? '' : 's'}',
-                ),
-                if (school.gpsLatitude != null && school.gpsLongitude != null)
-                  _SchoolInfoChip(
-                    icon: Icons.my_location_outlined,
-                    label:
-                        '${school.gpsLatitude!.toStringAsFixed(4)}, ${school.gpsLongitude!.toStringAsFixed(4)}',
-                  ),
-              ],
-            ),
             Consumer(
               builder: (context, ref, _) {
                 final permissions = ref.watch(currentOrgPermissionsProvider);
@@ -499,89 +476,32 @@ class _SchoolCard extends ConsumerWidget {
   }
 }
 
-class _SchoolInfoChip extends StatelessWidget {
-  const _SchoolInfoChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Chip(
-    avatar: Icon(icon, size: 16, color: InfraColors.royalBlue),
-    label: Text(label),
-    visualDensity: VisualDensity.compact,
-    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  );
-}
-
 Future<void> _editSchoolProgress(
   BuildContext context,
   WidgetRef ref,
   School school,
 ) async {
   var progress = school.progressPercent.toDouble();
-  final rooms = TextEditingController(text: '${school.roomQuantity}');
-  final photos = <CapturedSchoolEvidence>[];
-  final saved = await showDialog<_SchoolProgressEvidenceUpdate>(
+  final saved = await showDialog<int>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
         title: Text('Update ${school.name}'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${progress.round()}%',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Slider(
-                value: progress,
-                min: 0,
-                max: 100,
-                divisions: 20,
-                onChanged: (value) => setState(() => progress = value),
-              ),
-              TextFormField(
-                controller: rooms,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Rooms quantity',
-                  prefixIcon: Icon(Icons.meeting_room_outlined),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${school.gpsPhotoPaths.length + photos.length} GPS photo${school.gpsPhotoPaths.length + photos.length == 1 ? '' : 's'}',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    final captured = await captureSchoolEvidencePhoto();
-                    if (captured == null) return;
-                    setState(() => photos.add(captured));
-                  } catch (error) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Could not capture GPS photo: $error'),
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.add_a_photo_outlined),
-                label: const Text('Capture GPS photo'),
-              ),
-            ],
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${progress.round()}%',
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            ),
+            Slider(
+              value: progress,
+              min: 0,
+              max: 100,
+              divisions: 20,
+              onChanged: (value) => setState(() => progress = value),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -589,54 +509,23 @@ Future<void> _editSchoolProgress(
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              final roomQuantity = int.tryParse(rooms.text.trim());
-              if (roomQuantity == null || roomQuantity < 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter zero or more rooms.')),
-                );
-                return;
-              }
-              context.pop(
-                _SchoolProgressEvidenceUpdate(
-                  progressPercent: progress.round(),
-                  roomQuantity: roomQuantity,
-                  photos: List.unmodifiable(photos),
-                ),
-              );
-            },
+            onPressed: () => context.pop(progress.round()),
             child: const Text('Save'),
           ),
         ],
       ),
     ),
   );
-  rooms.dispose();
   if (saved == null || !context.mounted) return;
   try {
     final org = await ref.read(infraWorkspaceProvider.future);
-    final repository = ref.read(materialRepositoryProvider);
-    await repository.updateSchoolProgress(
-      organizationId: org.id,
-      schoolId: school.id,
-      progressPercent: saved.progressPercent,
-    );
-    final uploaded = await uploadSchoolEvidencePhotos(
-      repository: repository,
-      organizationId: org.id,
-      schoolId: school.id,
-      photos: saved.photos,
-    );
-    await repository.addSchoolEvidence(
-      organizationId: org.id,
-      schoolId: school.id,
-      roomQuantity: saved.roomQuantity,
-      photoPaths: uploaded?.photoPaths ?? const [],
-      gpsLatitude: uploaded?.latitude,
-      gpsLongitude: uploaded?.longitude,
-      gpsAccuracyMeters: uploaded?.accuracyMeters,
-      gpsCapturedAt: uploaded?.capturedAt,
-    );
+    await ref
+        .read(materialRepositoryProvider)
+        .updateSchoolProgress(
+          organizationId: org.id,
+          schoolId: school.id,
+          progressPercent: saved,
+        );
     invalidateMaterialProviders(ref);
   } catch (error) {
     if (context.mounted) {
@@ -645,18 +534,6 @@ Future<void> _editSchoolProgress(
       );
     }
   }
-}
-
-class _SchoolProgressEvidenceUpdate {
-  const _SchoolProgressEvidenceUpdate({
-    required this.progressPercent,
-    required this.roomQuantity,
-    required this.photos,
-  });
-
-  final int progressPercent;
-  final int roomQuantity;
-  final List<CapturedSchoolEvidence> photos;
 }
 
 class _WarehouseTab extends ConsumerWidget {

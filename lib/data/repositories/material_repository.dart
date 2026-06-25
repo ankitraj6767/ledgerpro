@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -241,8 +239,6 @@ String? validateIssueQuantity(String? input, double available) {
 class MaterialRepository {
   const MaterialRepository(this._client);
   final SupabaseClient _client;
-
-  static const _schoolEvidenceBucket = 'project-documents';
 
   Future<List<Tender>> fetchTenders(String organizationId) async {
     final rows = await _client
@@ -745,7 +741,6 @@ class MaterialRepository {
     String? code,
     String? address,
     String? assignedManagerId,
-    int roomQuantity = 0,
   }) async {
     final result = await _client.rpc(
       'create_material_school',
@@ -757,7 +752,6 @@ class MaterialRepository {
         'p_code': code?.trim(),
         'p_address': address?.trim(),
         'p_assigned_manager_id': assignedManagerId,
-        'p_room_quantity': roomQuantity,
       },
     );
     return result.toString();
@@ -774,7 +768,6 @@ class MaterialRepository {
     String status = 'not_started',
     int progressPercent = 0,
     String? assignedManagerId,
-    int roomQuantity = 0,
   }) async {
     await _client.rpc(
       'update_material_school',
@@ -789,55 +782,6 @@ class MaterialRepository {
         'p_status': status.trim(),
         'p_progress_percent': progressPercent,
         'p_assigned_manager_id': assignedManagerId,
-        'p_room_quantity': roomQuantity,
-      },
-    );
-  }
-
-  Future<String> uploadSchoolEvidencePhoto({
-    required String organizationId,
-    required String schoolId,
-    required Uint8List bytes,
-    required DateTime capturedAt,
-    required String fileName,
-  }) async {
-    final safeName = _safeFileName(fileName);
-    final storagePath =
-        '$organizationId/material-schools/$schoolId/${capturedAt.microsecondsSinceEpoch}-$safeName';
-    await _client.storage
-        .from(_schoolEvidenceBucket)
-        .uploadBinary(
-          storagePath,
-          bytes,
-          fileOptions: const FileOptions(
-            contentType: 'image/jpeg',
-            upsert: true,
-          ),
-        );
-    return storagePath;
-  }
-
-  Future<void> addSchoolEvidence({
-    required String organizationId,
-    required String schoolId,
-    int? roomQuantity,
-    List<String> photoPaths = const [],
-    double? gpsLatitude,
-    double? gpsLongitude,
-    double? gpsAccuracyMeters,
-    DateTime? gpsCapturedAt,
-  }) async {
-    await _client.rpc(
-      'add_material_school_evidence',
-      params: {
-        'p_organization_id': organizationId,
-        'p_school_id': schoolId,
-        'p_room_quantity': roomQuantity,
-        'p_photo_paths': photoPaths,
-        'p_gps_latitude': gpsLatitude,
-        'p_gps_longitude': gpsLongitude,
-        'p_gps_accuracy_meters': gpsAccuracyMeters,
-        'p_gps_captured_at': gpsCapturedAt?.toUtc().toIso8601String(),
       },
     );
   }
@@ -932,14 +876,6 @@ class MaterialRepository {
 
   static String _date(DateTime? value) =>
       (value ?? DateTime.now()).toIso8601String().split('T').first;
-
-  static String _safeFileName(String value) {
-    final cleaned = value.trim().replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    if (cleaned.isEmpty) return 'school-evidence.jpg';
-    final lower = cleaned.toLowerCase();
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return cleaned;
-    return '$cleaned.jpg';
-  }
 }
 
 class MaterialSetupStatus {

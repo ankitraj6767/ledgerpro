@@ -5,7 +5,7 @@ begin;
 set local role postgres;
 set local search_path = extensions, public, pg_catalog;
 
-select extensions.plan(38);
+select extensions.plan(34);
 
 create temporary table material_test_context (
   organization_id uuid not null,
@@ -31,10 +31,7 @@ create temporary table material_delete_context (
 ) on commit drop;
 
 create temporary table material_permission_context (
-  customer_update_blocked boolean not null,
-  site_staff_receive_blocked boolean not null,
-  site_staff_issue_blocked boolean not null,
-  site_staff_return_blocked boolean not null
+  customer_update_blocked boolean not null
 ) on commit drop;
 
 create temporary table material_cascade_context (
@@ -128,44 +125,12 @@ begin
 end;
 $$;
 
-do $$
-declare
-  owner_user_id uuid := gen_random_uuid();
-  org_id uuid := gen_random_uuid();
-begin
-  insert into auth.users (
-    id, aud, role, email, email_confirmed_at, created_at, updated_at
-  ) values (
-    owner_user_id,
-    'authenticated',
-    'authenticated',
-    'material-owner-' || owner_user_id || '@example.test',
-    now(),
-    now(),
-    now()
-  );
-
-  insert into public.profiles (id, full_name, default_language)
-  values (owner_user_id, 'Material Owner', 'en');
-
-  perform set_config('request.jwt.claim.sub', owner_user_id::text, true);
-
-  insert into public.organizations (
-    id, owner_id, name, owner_name, created_by, updated_by
-  ) values (
-    org_id, owner_user_id, 'Material Verification Org', 'Material Owner',
-    owner_user_id, owner_user_id
-  );
-
-  insert into public.organization_members (
-    organization_id, user_id, role, created_by, updated_by
-  ) values (
-    org_id, owner_user_id, 'owner', owner_user_id, owner_user_id
-  );
-
-  insert into material_test_context (organization_id, user_id)
-  values (org_id, owner_user_id);
-end $$;
+insert into material_test_context (organization_id, user_id)
+select organization_id, user_id
+from public.organization_members
+where deleted_at is null
+  and role in ('owner', 'manager', 'accountant')
+limit 1;
 
 select extensions.ok(
   exists (select 1 from material_test_context),
@@ -225,8 +190,7 @@ set school_id = public.create_material_school(
   'Verification School',
   null,
   null,
-  manager_id,
-  8
+  manager_id
 );
 
 update material_test_context
@@ -273,7 +237,7 @@ begin
   );
   perform public.update_material_school(
     c.organization_id, c.school_id, c.tender_id, c.district_id,
-    'Verification School Updated', null, null, 'running', 40, c.manager_id, 12
+    'Verification School Updated', null, null, 'running', 40, c.manager_id
   );
   perform public.update_material_item(
     c.organization_id, c.material_id, 'Verification Item Updated',
@@ -309,12 +273,6 @@ select extensions.is(
   (select progress_percent from public.schools s join material_test_context c on c.school_id = s.id),
   40,
   'updates school'
-);
-
-select extensions.is(
-  (select room_quantity from public.schools s join material_test_context c on c.school_id = s.id),
-  12,
-  'updates school room quantity'
 );
 
 select extensions.is(
@@ -379,16 +337,6 @@ begin
   perform public.update_material_school_progress(
     c.organization_id, c.school_id, 50, null
   );
-  perform public.add_material_school_evidence(
-    c.organization_id,
-    c.school_id,
-    14,
-    array['org/material-schools/school/photo-1.jpg', 'org/material-schools/school/photo-2.jpg'],
-    26.1234567,
-    85.1234567,
-    8.5,
-    now()
-  );
 end $$;
 
 select extensions.is(
@@ -399,26 +347,6 @@ select extensions.is(
   ),
   50,
   'school progress update works'
-);
-
-select extensions.is(
-  (
-    select room_quantity
-    from public.schools s
-    join material_test_context c on c.school_id = s.id
-  ),
-  14,
-  'school evidence update stores room quantity'
-);
-
-select extensions.is(
-  (
-    select cardinality(gps_photo_paths)
-    from public.schools s
-    join material_test_context c on c.school_id = s.id
-  ),
-  2,
-  'school evidence update stores all GPS photo paths'
 );
 
 insert into material_cascade_context
@@ -672,8 +600,7 @@ set school_id = public.create_material_school(
   'Disposable School ' || substr(gen_random_uuid()::text, 1, 8),
   null,
   null,
-  manager_id,
-  0
+  manager_id
 );
 
 update material_delete_context
@@ -733,11 +660,7 @@ do $$
 declare
   c material_test_context%rowtype;
   customer_user_id uuid := gen_random_uuid();
-  site_staff_user_id uuid := gen_random_uuid();
   blocked boolean := false;
-  receive_blocked boolean := false;
-  issue_blocked boolean := false;
-  return_blocked boolean := false;
 begin
   select * into c from material_test_context;
 
@@ -762,27 +685,6 @@ begin
     c.organization_id, customer_user_id, 'customer', c.user_id, c.user_id
   );
 
-  insert into auth.users (
-    id, aud, role, email, email_confirmed_at, created_at, updated_at
-  ) values (
-    site_staff_user_id,
-    'authenticated',
-    'authenticated',
-    'material-site-staff-' || site_staff_user_id || '@example.test',
-    now(),
-    now(),
-    now()
-  );
-
-  insert into public.profiles (id, full_name, default_language)
-  values (site_staff_user_id, 'Material Site Staff', 'en');
-
-  insert into public.organization_members (
-    organization_id, user_id, role, created_by, updated_by
-  ) values (
-    c.organization_id, site_staff_user_id, 'site_staff', c.user_id, c.user_id
-  );
-
   perform set_config('request.jwt.claim.sub', customer_user_id::text, true);
   begin
     perform public.update_material_tender(
@@ -796,86 +698,15 @@ begin
       raise;
     end if;
   end;
-
-  perform set_config('request.jwt.claim.sub', site_staff_user_id::text, true);
-  begin
-    perform public.receive_material(
-      c.organization_id, c.tender_id, c.warehouse_id, c.material_id, 1,
-      null, null, current_date, null
-    );
-  exception when others then
-    if sqlerrm = 'Not permitted to receive material' then
-      receive_blocked := true;
-    else
-      raise;
-    end if;
-  end;
-  begin
-    perform public.issue_material_to_school(
-      c.organization_id, c.tender_id, c.warehouse_id, c.school_id,
-      c.manager_id, c.material_id, 1, current_date, null
-    );
-  exception when others then
-    if sqlerrm = 'Not permitted to issue material' then
-      issue_blocked := true;
-    else
-      raise;
-    end if;
-  end;
-  begin
-    perform public.return_material_from_school(
-      c.organization_id, c.tender_id, c.warehouse_id, c.school_id,
-      c.manager_id, c.material_id, 1, current_date, 'Site staff return', null
-    );
-  exception when others then
-    if sqlerrm = 'Not permitted to return material' then
-      return_blocked := true;
-    else
-      raise;
-    end if;
-  end;
-
-  perform public.update_material_school_progress(
-    c.organization_id, c.school_id, 55, null
-  );
-  perform public.add_material_school_evidence(
-    c.organization_id,
-    c.school_id,
-    15,
-    array['org/material-schools/school/site-staff-photo.jpg'],
-    26.2234567,
-    85.2234567,
-    7.5,
-    now()
-  );
   perform set_config('request.jwt.claim.sub', c.user_id::text, true);
 
-  insert into material_permission_context (
-    customer_update_blocked,
-    site_staff_receive_blocked,
-    site_staff_issue_blocked,
-    site_staff_return_blocked
-  ) values (
-    blocked,
-    receive_blocked,
-    issue_blocked,
-    return_blocked
-  );
+  insert into material_permission_context (customer_update_blocked)
+  values (blocked);
 end $$;
 
 select extensions.ok(
   (select customer_update_blocked from material_permission_context),
   'customer members are read-only for material master writes'
-);
-
-select extensions.ok(
-  (
-    select site_staff_receive_blocked
-      and site_staff_issue_blocked
-      and site_staff_return_blocked
-    from material_permission_context
-  ),
-  'site staff can view/update site evidence but cannot mutate material stock'
 );
 
 select * from extensions.finish();

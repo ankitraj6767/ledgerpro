@@ -24,26 +24,6 @@ void main() {
       expect(summary.lowStockItems, 4);
       expect(summary.totalIssuedQuantity, 725.5);
     });
-
-    test('maps school room and GPS evidence fields', () {
-      final school = School.fromJson({
-        'id': 'school',
-        'organization_id': 'org',
-        'tender_id': 'tender',
-        'name': 'Sartha School',
-        'room_quantity': 8,
-        'gps_photo_paths': ['org/material-schools/school/photo.jpg'],
-        'gps_latitude': 26.12345,
-        'gps_longitude': 85.12345,
-        'gps_accuracy_meters': 9.5,
-        'gps_captured_at': '2026-06-08T03:00:00Z',
-      });
-
-      expect(school.roomQuantity, 8);
-      expect(school.gpsPhotoPaths, hasLength(1));
-      expect(school.gpsLatitude, 26.12345);
-      expect(school.gpsLongitude, 85.12345);
-    });
   });
 
   group('quantity validation', () {
@@ -106,8 +86,7 @@ void main() {
     expect(customer.canManageMaterials, isFalse);
     expect(customer.canOperateMaterials, isFalse);
     expect(siteStaff.canManageMaterials, isFalse);
-    expect(siteStaff.canOperateMaterials, isFalse);
-    expect(siteStaff.canUpdateProgress, isTrue);
+    expect(siteStaff.canOperateMaterials, isTrue);
     expect(admin.canManageMaterials, isTrue);
   });
 }

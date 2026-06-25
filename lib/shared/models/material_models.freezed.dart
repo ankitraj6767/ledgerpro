@@ -852,7 +852,7 @@ as bool,
 /// @nodoc
 mixin _$School {
 
- String get id; String get organizationId; String get tenderId; String get name; String? get districtId; String? get code; String? get address; String get status; int get progressPercent; String? get assignedManagerId; int get roomQuantity; List<String> get gpsPhotoPaths; double? get gpsLatitude; double? get gpsLongitude; double? get gpsAccuracyMeters; DateTime? get gpsCapturedAt;
+ String get id; String get organizationId; String get tenderId; String get name; String? get districtId; String? get code; String? get address; String get status; int get progressPercent; String? get assignedManagerId;
 /// Create a copy of School
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -865,16 +865,16 @@ $SchoolCopyWith<School> get copyWith => _$SchoolCopyWithImpl<School>(this as Sch
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is School&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.tenderId, tenderId) || other.tenderId == tenderId)&&(identical(other.name, name) || other.name == name)&&(identical(other.districtId, districtId) || other.districtId == districtId)&&(identical(other.code, code) || other.code == code)&&(identical(other.address, address) || other.address == address)&&(identical(other.status, status) || other.status == status)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.assignedManagerId, assignedManagerId) || other.assignedManagerId == assignedManagerId)&&(identical(other.roomQuantity, roomQuantity) || other.roomQuantity == roomQuantity)&&const DeepCollectionEquality().equals(other.gpsPhotoPaths, gpsPhotoPaths)&&(identical(other.gpsLatitude, gpsLatitude) || other.gpsLatitude == gpsLatitude)&&(identical(other.gpsLongitude, gpsLongitude) || other.gpsLongitude == gpsLongitude)&&(identical(other.gpsAccuracyMeters, gpsAccuracyMeters) || other.gpsAccuracyMeters == gpsAccuracyMeters)&&(identical(other.gpsCapturedAt, gpsCapturedAt) || other.gpsCapturedAt == gpsCapturedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is School&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.tenderId, tenderId) || other.tenderId == tenderId)&&(identical(other.name, name) || other.name == name)&&(identical(other.districtId, districtId) || other.districtId == districtId)&&(identical(other.code, code) || other.code == code)&&(identical(other.address, address) || other.address == address)&&(identical(other.status, status) || other.status == status)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.assignedManagerId, assignedManagerId) || other.assignedManagerId == assignedManagerId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,organizationId,tenderId,name,districtId,code,address,status,progressPercent,assignedManagerId,roomQuantity,const DeepCollectionEquality().hash(gpsPhotoPaths),gpsLatitude,gpsLongitude,gpsAccuracyMeters,gpsCapturedAt);
+int get hashCode => Object.hash(runtimeType,id,organizationId,tenderId,name,districtId,code,address,status,progressPercent,assignedManagerId);
 
 @override
 String toString() {
-  return 'School(id: $id, organizationId: $organizationId, tenderId: $tenderId, name: $name, districtId: $districtId, code: $code, address: $address, status: $status, progressPercent: $progressPercent, assignedManagerId: $assignedManagerId, roomQuantity: $roomQuantity, gpsPhotoPaths: $gpsPhotoPaths, gpsLatitude: $gpsLatitude, gpsLongitude: $gpsLongitude, gpsAccuracyMeters: $gpsAccuracyMeters, gpsCapturedAt: $gpsCapturedAt)';
+  return 'School(id: $id, organizationId: $organizationId, tenderId: $tenderId, name: $name, districtId: $districtId, code: $code, address: $address, status: $status, progressPercent: $progressPercent, assignedManagerId: $assignedManagerId)';
 }
 
 
@@ -885,7 +885,7 @@ abstract mixin class $SchoolCopyWith<$Res>  {
   factory $SchoolCopyWith(School value, $Res Function(School) _then) = _$SchoolCopyWithImpl;
 @useResult
 $Res call({
- String id, String organizationId, String tenderId, String name, String? districtId, String? code, String? address, String status, int progressPercent, String? assignedManagerId, int roomQuantity, List<String> gpsPhotoPaths, double? gpsLatitude, double? gpsLongitude, double? gpsAccuracyMeters, DateTime? gpsCapturedAt
+ String id, String organizationId, String tenderId, String name, String? districtId, String? code, String? address, String status, int progressPercent, String? assignedManagerId
 });
 
 
@@ -902,7 +902,7 @@ class _$SchoolCopyWithImpl<$Res>
 
 /// Create a copy of School
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? organizationId = null,Object? tenderId = null,Object? name = null,Object? districtId = freezed,Object? code = freezed,Object? address = freezed,Object? status = null,Object? progressPercent = null,Object? assignedManagerId = freezed,Object? roomQuantity = null,Object? gpsPhotoPaths = null,Object? gpsLatitude = freezed,Object? gpsLongitude = freezed,Object? gpsAccuracyMeters = freezed,Object? gpsCapturedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? organizationId = null,Object? tenderId = null,Object? name = null,Object? districtId = freezed,Object? code = freezed,Object? address = freezed,Object? status = null,Object? progressPercent = null,Object? assignedManagerId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
@@ -914,13 +914,7 @@ as String?,address: freezed == address ? _self.address : address // ignore: cast
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,progressPercent: null == progressPercent ? _self.progressPercent : progressPercent // ignore: cast_nullable_to_non_nullable
 as int,assignedManagerId: freezed == assignedManagerId ? _self.assignedManagerId : assignedManagerId // ignore: cast_nullable_to_non_nullable
-as String?,roomQuantity: null == roomQuantity ? _self.roomQuantity : roomQuantity // ignore: cast_nullable_to_non_nullable
-as int,gpsPhotoPaths: null == gpsPhotoPaths ? _self.gpsPhotoPaths : gpsPhotoPaths // ignore: cast_nullable_to_non_nullable
-as List<String>,gpsLatitude: freezed == gpsLatitude ? _self.gpsLatitude : gpsLatitude // ignore: cast_nullable_to_non_nullable
-as double?,gpsLongitude: freezed == gpsLongitude ? _self.gpsLongitude : gpsLongitude // ignore: cast_nullable_to_non_nullable
-as double?,gpsAccuracyMeters: freezed == gpsAccuracyMeters ? _self.gpsAccuracyMeters : gpsAccuracyMeters // ignore: cast_nullable_to_non_nullable
-as double?,gpsCapturedAt: freezed == gpsCapturedAt ? _self.gpsCapturedAt : gpsCapturedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as String?,
   ));
 }
 
@@ -1005,10 +999,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String organizationId,  String tenderId,  String name,  String? districtId,  String? code,  String? address,  String status,  int progressPercent,  String? assignedManagerId,  int roomQuantity,  List<String> gpsPhotoPaths,  double? gpsLatitude,  double? gpsLongitude,  double? gpsAccuracyMeters,  DateTime? gpsCapturedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String organizationId,  String tenderId,  String name,  String? districtId,  String? code,  String? address,  String status,  int progressPercent,  String? assignedManagerId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _School() when $default != null:
-return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.districtId,_that.code,_that.address,_that.status,_that.progressPercent,_that.assignedManagerId,_that.roomQuantity,_that.gpsPhotoPaths,_that.gpsLatitude,_that.gpsLongitude,_that.gpsAccuracyMeters,_that.gpsCapturedAt);case _:
+return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.districtId,_that.code,_that.address,_that.status,_that.progressPercent,_that.assignedManagerId);case _:
   return orElse();
 
 }
@@ -1026,10 +1020,10 @@ return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.di
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String organizationId,  String tenderId,  String name,  String? districtId,  String? code,  String? address,  String status,  int progressPercent,  String? assignedManagerId,  int roomQuantity,  List<String> gpsPhotoPaths,  double? gpsLatitude,  double? gpsLongitude,  double? gpsAccuracyMeters,  DateTime? gpsCapturedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String organizationId,  String tenderId,  String name,  String? districtId,  String? code,  String? address,  String status,  int progressPercent,  String? assignedManagerId)  $default,) {final _that = this;
 switch (_that) {
 case _School():
-return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.districtId,_that.code,_that.address,_that.status,_that.progressPercent,_that.assignedManagerId,_that.roomQuantity,_that.gpsPhotoPaths,_that.gpsLatitude,_that.gpsLongitude,_that.gpsAccuracyMeters,_that.gpsCapturedAt);case _:
+return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.districtId,_that.code,_that.address,_that.status,_that.progressPercent,_that.assignedManagerId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1046,10 +1040,10 @@ return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.di
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String organizationId,  String tenderId,  String name,  String? districtId,  String? code,  String? address,  String status,  int progressPercent,  String? assignedManagerId,  int roomQuantity,  List<String> gpsPhotoPaths,  double? gpsLatitude,  double? gpsLongitude,  double? gpsAccuracyMeters,  DateTime? gpsCapturedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String organizationId,  String tenderId,  String name,  String? districtId,  String? code,  String? address,  String status,  int progressPercent,  String? assignedManagerId)?  $default,) {final _that = this;
 switch (_that) {
 case _School() when $default != null:
-return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.districtId,_that.code,_that.address,_that.status,_that.progressPercent,_that.assignedManagerId,_that.roomQuantity,_that.gpsPhotoPaths,_that.gpsLatitude,_that.gpsLongitude,_that.gpsAccuracyMeters,_that.gpsCapturedAt);case _:
+return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.districtId,_that.code,_that.address,_that.status,_that.progressPercent,_that.assignedManagerId);case _:
   return null;
 
 }
@@ -1061,7 +1055,7 @@ return $default(_that.id,_that.organizationId,_that.tenderId,_that.name,_that.di
 
 @JsonSerializable(fieldRename: FieldRename.snake)
 class _School implements School {
-  const _School({required this.id, required this.organizationId, required this.tenderId, required this.name, this.districtId, this.code, this.address, this.status = 'not_started', this.progressPercent = 0, this.assignedManagerId, this.roomQuantity = 0, final  List<String> gpsPhotoPaths = const <String>[], this.gpsLatitude, this.gpsLongitude, this.gpsAccuracyMeters, this.gpsCapturedAt}): _gpsPhotoPaths = gpsPhotoPaths;
+  const _School({required this.id, required this.organizationId, required this.tenderId, required this.name, this.districtId, this.code, this.address, this.status = 'not_started', this.progressPercent = 0, this.assignedManagerId});
   factory _School.fromJson(Map<String, dynamic> json) => _$SchoolFromJson(json);
 
 @override final  String id;
@@ -1074,18 +1068,6 @@ class _School implements School {
 @override@JsonKey() final  String status;
 @override@JsonKey() final  int progressPercent;
 @override final  String? assignedManagerId;
-@override@JsonKey() final  int roomQuantity;
- final  List<String> _gpsPhotoPaths;
-@override@JsonKey() List<String> get gpsPhotoPaths {
-  if (_gpsPhotoPaths is EqualUnmodifiableListView) return _gpsPhotoPaths;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_gpsPhotoPaths);
-}
-
-@override final  double? gpsLatitude;
-@override final  double? gpsLongitude;
-@override final  double? gpsAccuracyMeters;
-@override final  DateTime? gpsCapturedAt;
 
 /// Create a copy of School
 /// with the given fields replaced by the non-null parameter values.
@@ -1100,16 +1082,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _School&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.tenderId, tenderId) || other.tenderId == tenderId)&&(identical(other.name, name) || other.name == name)&&(identical(other.districtId, districtId) || other.districtId == districtId)&&(identical(other.code, code) || other.code == code)&&(identical(other.address, address) || other.address == address)&&(identical(other.status, status) || other.status == status)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.assignedManagerId, assignedManagerId) || other.assignedManagerId == assignedManagerId)&&(identical(other.roomQuantity, roomQuantity) || other.roomQuantity == roomQuantity)&&const DeepCollectionEquality().equals(other._gpsPhotoPaths, _gpsPhotoPaths)&&(identical(other.gpsLatitude, gpsLatitude) || other.gpsLatitude == gpsLatitude)&&(identical(other.gpsLongitude, gpsLongitude) || other.gpsLongitude == gpsLongitude)&&(identical(other.gpsAccuracyMeters, gpsAccuracyMeters) || other.gpsAccuracyMeters == gpsAccuracyMeters)&&(identical(other.gpsCapturedAt, gpsCapturedAt) || other.gpsCapturedAt == gpsCapturedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _School&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.tenderId, tenderId) || other.tenderId == tenderId)&&(identical(other.name, name) || other.name == name)&&(identical(other.districtId, districtId) || other.districtId == districtId)&&(identical(other.code, code) || other.code == code)&&(identical(other.address, address) || other.address == address)&&(identical(other.status, status) || other.status == status)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.assignedManagerId, assignedManagerId) || other.assignedManagerId == assignedManagerId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,organizationId,tenderId,name,districtId,code,address,status,progressPercent,assignedManagerId,roomQuantity,const DeepCollectionEquality().hash(_gpsPhotoPaths),gpsLatitude,gpsLongitude,gpsAccuracyMeters,gpsCapturedAt);
+int get hashCode => Object.hash(runtimeType,id,organizationId,tenderId,name,districtId,code,address,status,progressPercent,assignedManagerId);
 
 @override
 String toString() {
-  return 'School(id: $id, organizationId: $organizationId, tenderId: $tenderId, name: $name, districtId: $districtId, code: $code, address: $address, status: $status, progressPercent: $progressPercent, assignedManagerId: $assignedManagerId, roomQuantity: $roomQuantity, gpsPhotoPaths: $gpsPhotoPaths, gpsLatitude: $gpsLatitude, gpsLongitude: $gpsLongitude, gpsAccuracyMeters: $gpsAccuracyMeters, gpsCapturedAt: $gpsCapturedAt)';
+  return 'School(id: $id, organizationId: $organizationId, tenderId: $tenderId, name: $name, districtId: $districtId, code: $code, address: $address, status: $status, progressPercent: $progressPercent, assignedManagerId: $assignedManagerId)';
 }
 
 
@@ -1120,7 +1102,7 @@ abstract mixin class _$SchoolCopyWith<$Res> implements $SchoolCopyWith<$Res> {
   factory _$SchoolCopyWith(_School value, $Res Function(_School) _then) = __$SchoolCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String organizationId, String tenderId, String name, String? districtId, String? code, String? address, String status, int progressPercent, String? assignedManagerId, int roomQuantity, List<String> gpsPhotoPaths, double? gpsLatitude, double? gpsLongitude, double? gpsAccuracyMeters, DateTime? gpsCapturedAt
+ String id, String organizationId, String tenderId, String name, String? districtId, String? code, String? address, String status, int progressPercent, String? assignedManagerId
 });
 
 
@@ -1137,7 +1119,7 @@ class __$SchoolCopyWithImpl<$Res>
 
 /// Create a copy of School
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? organizationId = null,Object? tenderId = null,Object? name = null,Object? districtId = freezed,Object? code = freezed,Object? address = freezed,Object? status = null,Object? progressPercent = null,Object? assignedManagerId = freezed,Object? roomQuantity = null,Object? gpsPhotoPaths = null,Object? gpsLatitude = freezed,Object? gpsLongitude = freezed,Object? gpsAccuracyMeters = freezed,Object? gpsCapturedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? organizationId = null,Object? tenderId = null,Object? name = null,Object? districtId = freezed,Object? code = freezed,Object? address = freezed,Object? status = null,Object? progressPercent = null,Object? assignedManagerId = freezed,}) {
   return _then(_School(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
@@ -1149,13 +1131,7 @@ as String?,address: freezed == address ? _self.address : address // ignore: cast
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,progressPercent: null == progressPercent ? _self.progressPercent : progressPercent // ignore: cast_nullable_to_non_nullable
 as int,assignedManagerId: freezed == assignedManagerId ? _self.assignedManagerId : assignedManagerId // ignore: cast_nullable_to_non_nullable
-as String?,roomQuantity: null == roomQuantity ? _self.roomQuantity : roomQuantity // ignore: cast_nullable_to_non_nullable
-as int,gpsPhotoPaths: null == gpsPhotoPaths ? _self._gpsPhotoPaths : gpsPhotoPaths // ignore: cast_nullable_to_non_nullable
-as List<String>,gpsLatitude: freezed == gpsLatitude ? _self.gpsLatitude : gpsLatitude // ignore: cast_nullable_to_non_nullable
-as double?,gpsLongitude: freezed == gpsLongitude ? _self.gpsLongitude : gpsLongitude // ignore: cast_nullable_to_non_nullable
-as double?,gpsAccuracyMeters: freezed == gpsAccuracyMeters ? _self.gpsAccuracyMeters : gpsAccuracyMeters // ignore: cast_nullable_to_non_nullable
-as double?,gpsCapturedAt: freezed == gpsCapturedAt ? _self.gpsCapturedAt : gpsCapturedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as String?,
   ));
 }
 

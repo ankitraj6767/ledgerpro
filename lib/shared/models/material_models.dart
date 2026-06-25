@@ -67,12 +67,6 @@ abstract class School with _$School {
     @Default('not_started') String status,
     @Default(0) int progressPercent,
     String? assignedManagerId,
-    @Default(0) int roomQuantity,
-    @Default(<String>[]) List<String> gpsPhotoPaths,
-    double? gpsLatitude,
-    double? gpsLongitude,
-    double? gpsAccuracyMeters,
-    DateTime? gpsCapturedAt,
   }) = _School;
 
   factory School.fromJson(Map<String, dynamic> json) => _$SchoolFromJson(json);
