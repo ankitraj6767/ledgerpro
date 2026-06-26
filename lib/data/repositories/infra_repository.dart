@@ -82,6 +82,13 @@ final projectInvestmentsProvider =
       return ref.watch(infraRepositoryProvider).fetchInvestments(projectId);
     });
 
+final investmentReturnsProvider =
+    FutureProvider.family<List<InvestmentReturn>, String>((ref, projectId) {
+      return ref
+          .watch(infraRepositoryProvider)
+          .fetchInvestmentReturns(projectId);
+    });
+
 final governmentFundsProvider =
     FutureProvider.family<List<GovernmentFund>, String>((ref, projectId) {
       return ref.watch(infraRepositoryProvider).fetchGovernmentFunds(projectId);
@@ -639,6 +646,8 @@ class InfraRepository {
         referenceNumber: r['reference_number']?.toString(),
         notes: r['notes']?.toString(),
         investorName: investor?['name']?.toString(),
+        createdAt: DateTime.tryParse(r['created_at']?.toString() ?? ''),
+        updatedAt: DateTime.tryParse(r['updated_at']?.toString() ?? ''),
       );
     }).toList();
   }
@@ -700,6 +709,73 @@ class InfraRepository {
       'delete_project_investment',
       params: {'p_investment_id': investmentId},
     );
+  }
+
+  // --------------------------------------------------------------------------
+  // Investment returns
+  // --------------------------------------------------------------------------
+  Future<List<InvestmentReturn>> fetchInvestmentReturns(
+    String projectId,
+  ) async {
+    final rows = await _client
+        .from('investment_returns')
+        .select('*, investors(name)')
+        .eq('project_id', projectId)
+        .isFilter('deleted_at', null)
+        .order('return_date', ascending: false);
+    return rows.map<InvestmentReturn>((raw) {
+      final r = Map<String, dynamic>.from(raw);
+      final investor = r['investors'] is Map
+          ? Map<String, dynamic>.from(r['investors'] as Map)
+          : null;
+      return InvestmentReturn(
+        id: r['id'] as String,
+        projectId: r['project_id'] as String,
+        investorId: r['investor_id'] as String,
+        amountPaise: (r['amount_paise'] as num?)?.toInt() ?? 0,
+        returnDate: DateTime.tryParse(r['return_date']?.toString() ?? ''),
+        paymentMode: r['payment_mode']?.toString() ?? 'bank',
+        referenceNumber: r['reference_number']?.toString(),
+        notes: r['notes']?.toString(),
+        investorName: investor?['name']?.toString(),
+        createdAt: DateTime.tryParse(r['created_at']?.toString() ?? ''),
+        updatedAt: DateTime.tryParse(r['updated_at']?.toString() ?? ''),
+      );
+    }).toList();
+  }
+
+  Future<void> addInvestmentReturn({
+    required String projectId,
+    required String investorId,
+    required int amountPaise,
+    DateTime? date,
+    String paymentMode = 'bank',
+    String? referenceNumber,
+    String? notes,
+  }) async {
+    final org = await _client
+        .from('infra_projects')
+        .select('organization_id')
+        .eq('id', projectId)
+        .single();
+    await _client.from('investment_returns').insert({
+      'organization_id': org['organization_id'] as String,
+      'project_id': projectId,
+      'investor_id': investorId,
+      'amount_paise': amountPaise,
+      'return_date':
+          (date ?? DateTime.now()).toIso8601String().split('T').first,
+      'payment_mode': paymentMode,
+      'reference_number': referenceNumber,
+      'notes': notes,
+    });
+  }
+
+  Future<void> deleteInvestmentReturn(String returnId) async {
+    await _client
+        .from('investment_returns')
+        .update({'deleted_at': DateTime.now().toIso8601String()})
+        .eq('id', returnId);
   }
 
   // --------------------------------------------------------------------------

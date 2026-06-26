@@ -3246,4 +3246,297 @@ as int,
 
 }
 
+
+/// @nodoc
+mixin _$InvestmentReturn {
+
+ String get id; String get projectId; String get investorId; int get amountPaise; DateTime? get returnDate; String get paymentMode; String? get referenceNumber; String? get notes; String? get investorName; DateTime? get createdAt; DateTime? get updatedAt;
+/// Create a copy of InvestmentReturn
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$InvestmentReturnCopyWith<InvestmentReturn> get copyWith => _$InvestmentReturnCopyWithImpl<InvestmentReturn>(this as InvestmentReturn, _$identity);
+
+  /// Serializes this InvestmentReturn to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvestmentReturn&&(identical(other.id, id) || other.id == id)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.investorId, investorId) || other.investorId == investorId)&&(identical(other.amountPaise, amountPaise) || other.amountPaise == amountPaise)&&(identical(other.returnDate, returnDate) || other.returnDate == returnDate)&&(identical(other.paymentMode, paymentMode) || other.paymentMode == paymentMode)&&(identical(other.referenceNumber, referenceNumber) || other.referenceNumber == referenceNumber)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.investorName, investorName) || other.investorName == investorName)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,projectId,investorId,amountPaise,returnDate,paymentMode,referenceNumber,notes,investorName,createdAt,updatedAt);
+
+@override
+String toString() {
+  return 'InvestmentReturn(id: $id, projectId: $projectId, investorId: $investorId, amountPaise: $amountPaise, returnDate: $returnDate, paymentMode: $paymentMode, referenceNumber: $referenceNumber, notes: $notes, investorName: $investorName, createdAt: $createdAt, updatedAt: $updatedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $InvestmentReturnCopyWith<$Res>  {
+  factory $InvestmentReturnCopyWith(InvestmentReturn value, $Res Function(InvestmentReturn) _then) = _$InvestmentReturnCopyWithImpl;
+@useResult
+$Res call({
+ String id, String projectId, String investorId, int amountPaise, DateTime? returnDate, String paymentMode, String? referenceNumber, String? notes, String? investorName, DateTime? createdAt, DateTime? updatedAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$InvestmentReturnCopyWithImpl<$Res>
+    implements $InvestmentReturnCopyWith<$Res> {
+  _$InvestmentReturnCopyWithImpl(this._self, this._then);
+
+  final InvestmentReturn _self;
+  final $Res Function(InvestmentReturn) _then;
+
+/// Create a copy of InvestmentReturn
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? projectId = null,Object? investorId = null,Object? amountPaise = null,Object? returnDate = freezed,Object? paymentMode = null,Object? referenceNumber = freezed,Object? notes = freezed,Object? investorName = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String,investorId: null == investorId ? _self.investorId : investorId // ignore: cast_nullable_to_non_nullable
+as String,amountPaise: null == amountPaise ? _self.amountPaise : amountPaise // ignore: cast_nullable_to_non_nullable
+as int,returnDate: freezed == returnDate ? _self.returnDate : returnDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,paymentMode: null == paymentMode ? _self.paymentMode : paymentMode // ignore: cast_nullable_to_non_nullable
+as String,referenceNumber: freezed == referenceNumber ? _self.referenceNumber : referenceNumber // ignore: cast_nullable_to_non_nullable
+as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,investorName: freezed == investorName ? _self.investorName : investorName // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [InvestmentReturn].
+extension InvestmentReturnPatterns on InvestmentReturn {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _InvestmentReturn value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _InvestmentReturn() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _InvestmentReturn value)  $default,){
+final _that = this;
+switch (_that) {
+case _InvestmentReturn():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _InvestmentReturn value)?  $default,){
+final _that = this;
+switch (_that) {
+case _InvestmentReturn() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String projectId,  String investorId,  int amountPaise,  DateTime? returnDate,  String paymentMode,  String? referenceNumber,  String? notes,  String? investorName,  DateTime? createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _InvestmentReturn() when $default != null:
+return $default(_that.id,_that.projectId,_that.investorId,_that.amountPaise,_that.returnDate,_that.paymentMode,_that.referenceNumber,_that.notes,_that.investorName,_that.createdAt,_that.updatedAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String projectId,  String investorId,  int amountPaise,  DateTime? returnDate,  String paymentMode,  String? referenceNumber,  String? notes,  String? investorName,  DateTime? createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
+switch (_that) {
+case _InvestmentReturn():
+return $default(_that.id,_that.projectId,_that.investorId,_that.amountPaise,_that.returnDate,_that.paymentMode,_that.referenceNumber,_that.notes,_that.investorName,_that.createdAt,_that.updatedAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String projectId,  String investorId,  int amountPaise,  DateTime? returnDate,  String paymentMode,  String? referenceNumber,  String? notes,  String? investorName,  DateTime? createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
+switch (_that) {
+case _InvestmentReturn() when $default != null:
+return $default(_that.id,_that.projectId,_that.investorId,_that.amountPaise,_that.returnDate,_that.paymentMode,_that.referenceNumber,_that.notes,_that.investorName,_that.createdAt,_that.updatedAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _InvestmentReturn implements InvestmentReturn {
+  const _InvestmentReturn({required this.id, required this.projectId, required this.investorId, this.amountPaise = 0, this.returnDate, this.paymentMode = 'bank', this.referenceNumber, this.notes, this.investorName, this.createdAt, this.updatedAt});
+  factory _InvestmentReturn.fromJson(Map<String, dynamic> json) => _$InvestmentReturnFromJson(json);
+
+@override final  String id;
+@override final  String projectId;
+@override final  String investorId;
+@override@JsonKey() final  int amountPaise;
+@override final  DateTime? returnDate;
+@override@JsonKey() final  String paymentMode;
+@override final  String? referenceNumber;
+@override final  String? notes;
+@override final  String? investorName;
+@override final  DateTime? createdAt;
+@override final  DateTime? updatedAt;
+
+/// Create a copy of InvestmentReturn
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$InvestmentReturnCopyWith<_InvestmentReturn> get copyWith => __$InvestmentReturnCopyWithImpl<_InvestmentReturn>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$InvestmentReturnToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvestmentReturn&&(identical(other.id, id) || other.id == id)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.investorId, investorId) || other.investorId == investorId)&&(identical(other.amountPaise, amountPaise) || other.amountPaise == amountPaise)&&(identical(other.returnDate, returnDate) || other.returnDate == returnDate)&&(identical(other.paymentMode, paymentMode) || other.paymentMode == paymentMode)&&(identical(other.referenceNumber, referenceNumber) || other.referenceNumber == referenceNumber)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.investorName, investorName) || other.investorName == investorName)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,projectId,investorId,amountPaise,returnDate,paymentMode,referenceNumber,notes,investorName,createdAt,updatedAt);
+
+@override
+String toString() {
+  return 'InvestmentReturn(id: $id, projectId: $projectId, investorId: $investorId, amountPaise: $amountPaise, returnDate: $returnDate, paymentMode: $paymentMode, referenceNumber: $referenceNumber, notes: $notes, investorName: $investorName, createdAt: $createdAt, updatedAt: $updatedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$InvestmentReturnCopyWith<$Res> implements $InvestmentReturnCopyWith<$Res> {
+  factory _$InvestmentReturnCopyWith(_InvestmentReturn value, $Res Function(_InvestmentReturn) _then) = __$InvestmentReturnCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String projectId, String investorId, int amountPaise, DateTime? returnDate, String paymentMode, String? referenceNumber, String? notes, String? investorName, DateTime? createdAt, DateTime? updatedAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$InvestmentReturnCopyWithImpl<$Res>
+    implements _$InvestmentReturnCopyWith<$Res> {
+  __$InvestmentReturnCopyWithImpl(this._self, this._then);
+
+  final _InvestmentReturn _self;
+  final $Res Function(_InvestmentReturn) _then;
+
+/// Create a copy of InvestmentReturn
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? projectId = null,Object? investorId = null,Object? amountPaise = null,Object? returnDate = freezed,Object? paymentMode = null,Object? referenceNumber = freezed,Object? notes = freezed,Object? investorName = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+  return _then(_InvestmentReturn(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String,investorId: null == investorId ? _self.investorId : investorId // ignore: cast_nullable_to_non_nullable
+as String,amountPaise: null == amountPaise ? _self.amountPaise : amountPaise // ignore: cast_nullable_to_non_nullable
+as int,returnDate: freezed == returnDate ? _self.returnDate : returnDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,paymentMode: null == paymentMode ? _self.paymentMode : paymentMode // ignore: cast_nullable_to_non_nullable
+as String,referenceNumber: freezed == referenceNumber ? _self.referenceNumber : referenceNumber // ignore: cast_nullable_to_non_nullable
+as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,investorName: freezed == investorName ? _self.investorName : investorName // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
+
 // dart format on
