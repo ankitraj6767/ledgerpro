@@ -1271,7 +1271,7 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _InvestmentHistoryTile extends StatelessWidget {
+class _InvestmentHistoryTile extends ConsumerWidget {
   const _InvestmentHistoryTile({
     required this.investment,
     required this.project,
@@ -1283,7 +1283,7 @@ class _InvestmentHistoryTile extends StatelessWidget {
   final bool canManage;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       child: ListTile(
         onTap: () => _showInvestmentDetails(
@@ -1312,15 +1312,47 @@ class _InvestmentHistoryTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 12),
         ),
-        trailing: investment.createdAt != null
-            ? Text(
-                DateFormat('dd/MM/yy').format(investment.createdAt!),
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: InfraColors.textSecondary,
+        trailing: canManage
+            ? _EntityMenu(
+                onEdit: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => InvestmentFormScreen(
+                      project: project,
+                      investment: investment,
+                    ),
+                  ),
+                ),
+                onDelete: () => _confirmDelete(
+                  context,
+                  ref,
+                  title: 'Delete investment?',
+                  message:
+                      'Remove this investment of ${Money.fromPaise(investment.amountPaise).formatInr()}?',
+                  onConfirm: () async {
+                    await ref
+                        .read(infraRepositoryProvider)
+                        .deleteInvestment(investment.id);
+                    ref.invalidate(
+                        projectInvestmentsProvider(project.id));
+                    ref.invalidate(
+                        projectInvestorsProvider(project.id));
+                    ref.invalidate(
+                        projectFinancialSummaryProvider(project.id));
+                    ref.invalidate(projectsProvider);
+                    ref.invalidate(dashboardSummaryProvider);
+                    ref.invalidate(investorsProvider);
+                  },
                 ),
               )
-            : null,
+            : investment.createdAt != null
+                ? Text(
+                    DateFormat('dd/MM/yy').format(investment.createdAt!),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: InfraColors.textSecondary,
+                    ),
+                  )
+                : null,
       ),
     );
   }
@@ -1364,50 +1396,24 @@ class _ReturnHistoryTile extends ConsumerWidget {
           style: const TextStyle(fontSize: 12),
         ),
         trailing: canManage
-            ? IconButton(
-                icon: const Icon(Icons.delete_outline, size: 20),
-                color: Colors.redAccent,
-                onPressed: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Delete return?'),
-                      content: Text(
-                        'Remove this return of ${Money.fromPaise(returnEntry.amountPaise).formatInr()}?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancel'),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed != true) return;
-                  try {
+            ? _EntityMenu(
+                onDelete: () => _confirmDelete(
+                  context,
+                  ref,
+                  title: 'Delete return?',
+                  message:
+                      'Remove this return of ${Money.fromPaise(returnEntry.amountPaise).formatInr()}?',
+                  onConfirm: () async {
                     await ref
                         .read(infraRepositoryProvider)
                         .deleteInvestmentReturn(returnEntry.id);
                     ref.invalidate(investmentReturnsProvider(project.id));
                     ref.invalidate(
                         projectFinancialSummaryProvider(project.id));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Return deleted.')),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Could not delete: $e')),
-                      );
-                    }
-                  }
-                },
+                    ref.invalidate(projectsProvider);
+                    ref.invalidate(dashboardSummaryProvider);
+                  },
+                ),
               )
             : returnEntry.createdAt != null
                 ? Text(
