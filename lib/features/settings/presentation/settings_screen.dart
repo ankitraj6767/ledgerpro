@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/infra_repository.dart';
+import '../../../shared/components/infra_components.dart';
 import '../../../shared/widgets/access_denied_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -74,43 +75,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _address.text = org.address ?? '';
             _initialized = true;
           }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              const Text(
-                'Organization profile',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              _field(_name, 'Organization name', Icons.apartment),
-              const SizedBox(height: 12),
-              _field(_owner, 'Owner name', Icons.person_outline),
-              const SizedBox(height: 12),
-              _field(
-                _phone,
-                'Phone',
-                Icons.phone_outlined,
-                keyboard: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              _field(
-                _address,
-                'Address',
-                Icons.location_on_outlined,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 18),
-              FilledButton.icon(
-                onPressed: _saving ? null : () => _save(org.id),
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: const Text('Save settings'),
-              ),
-            ],
+          return ResponsiveFormArea(
+            maxWidth: 760,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text(
+                  'Organization profile',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                _field(_name, 'Organization name', Icons.apartment),
+                const SizedBox(height: 12),
+                _field(_owner, 'Owner name', Icons.person_outline),
+                const SizedBox(height: 12),
+                _field(
+                  _phone,
+                  'Phone',
+                  Icons.phone_outlined,
+                  keyboard: TextInputType.phone,
+                ),
+                const SizedBox(height: 12),
+                _field(
+                  _address,
+                  'Address',
+                  Icons.location_on_outlined,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: _saving ? null : () => _save(org.id),
+                  icon: _saving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: const Text('Save settings'),
+                ),
+              ],
+            ),
           );
         },
       ),

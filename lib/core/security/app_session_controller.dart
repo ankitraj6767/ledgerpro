@@ -24,8 +24,8 @@ final appSessionControllerProvider = Provider<AppSessionController>((ref) {
 ///   supabase_flutter) and expose it synchronously to the router guard.
 /// - Track the local lock state (PIN / biometric) so a returning user with a
 ///   still-valid session only needs to unlock, not perform a full login.
-/// - Auto-lock the app when it has been in the background longer than the
-///   configured auto-lock window.
+/// - Auto-lock the app when it has been closed/backgrounded longer than the
+///   session window ([_sessionValidity]).
 ///
 /// It is a [ChangeNotifier] so it can drive GoRouter's `refreshListenable`.
 class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
@@ -40,8 +40,12 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
   bool _unlocked = false;
   bool _demoMode = false;
   bool _validatingWorkspace = false;
-  int _autoLockMinutes = 2;
   DateTime? _backgroundedAt;
+
+  /// How long a successful unlock stays valid. A returning user is only asked
+  /// for their PIN again once the app has been closed/backgrounded for longer
+  /// than this window, instead of on every launch.
+  static const _sessionValidity = Duration(days: 1);
 
   AppLockService get lockService => _lock;
 
@@ -74,12 +78,16 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     _hasPin = await _lock.hasPin;
-    _autoLockMinutes = await _lock.autoLockMinutes;
 
-    // On cold start, require an unlock only when we both have a session and a
-    // PIN. Without a PIN the user is routed to set one; without a session they
-    // are routed to login.
-    _unlocked = !(isAuthenticated && _hasPin);
+    // On cold start, only require an unlock when we have both a session and a
+    // PIN AND the previous unlock has expired. Within the session window a
+    // returning user goes straight in without re-entering the PIN. Without a
+    // PIN the user is routed to set one; without a session, to login.
+    if (isAuthenticated && _hasPin) {
+      _unlocked = await _isWithinSessionWindow();
+    } else {
+      _unlocked = true;
+    }
 
     try {
       _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((
@@ -99,10 +107,21 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
       // Supabase not configured for this build; auth stays unavailable.
     }
 
-    await validateActiveWorkspaceAccess();
+    // Validate workspace access in the background so the first frame is never
+    // blocked on a network round-trip. The persisted session is trusted for
+    // immediate routing; a genuinely revoked account is signed out moments
+    // later by the validation below.
+    unawaited(validateActiveWorkspaceAccess());
 
     _initialized = true;
     notifyListeners();
+  }
+
+  /// Whether the last successful unlock is still within [_sessionValidity].
+  Future<bool> _isWithinSessionWindow() async {
+    final lastUnlocked = await _lock.lastUnlockedAt;
+    if (lastUnlocked == null) return false;
+    return DateTime.now().toUtc().difference(lastUnlocked) < _sessionValidity;
   }
 
   Future<void> validateActiveWorkspaceAccess() async {
@@ -111,24 +130,26 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await Supabase.instance.client.rpc('get_my_infra_workspace').single();
     } on PostgrestException catch (error) {
-      final message = error.message.toLowerCase();
-      if (message.contains('no organization access') ||
-          message.contains('invalid jwt') ||
-          message.contains('jwt expired')) {
+      // Only sign out when the backend definitively reports that this account
+      // no longer belongs to any organization (e.g. a customer login was
+      // removed by the owner). Transient problems — a momentarily expired or
+      // invalid JWT that auto-refresh will replace, or a network blip — must
+      // NOT sign the user out.
+      if (error.message.toLowerCase().contains('no organization access')) {
         await signOut();
       }
-    } on AuthException {
-      await signOut();
+    } catch (_) {
+      // Network/timeout/auth-refresh failures are transient: keep the session
+      // and let Supabase's token auto-refresh recover it.
     } finally {
       _validatingWorkspace = false;
     }
   }
 
-  /// Re-reads PIN + auto-lock settings from secure storage (call after the
-  /// user sets or changes their PIN).
+  /// Re-reads PIN settings from secure storage (call after the user sets or
+  /// changes their PIN).
   Future<void> refreshLockSettings() async {
     _hasPin = await _lock.hasPin;
-    _autoLockMinutes = await _lock.autoLockMinutes;
     notifyListeners();
   }
 
@@ -137,6 +158,9 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
   void markUnlocked() {
     _unlocked = true;
     _backgroundedAt = null;
+    // Persist the unlock time so a returning user within the session window is
+    // not asked for the PIN again. Fire-and-forget: the value is non-critical.
+    unawaited(_lock.setLastUnlockedAt(DateTime.now().toUtc()));
     notifyListeners();
   }
 
@@ -176,6 +200,11 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
         _backgroundedAt ??= DateTime.now();
+        // Record the moment the app was last active so the session window is
+        // measured from when the user left, even across a full app restart.
+        if (_unlocked) {
+          unawaited(_lock.setLastUnlockedAt(DateTime.now().toUtc()));
+        }
         break;
       case AppLifecycleState.inactive:
         // Transient (e.g. system dialog); don't start the background timer.
@@ -193,8 +222,7 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
     final since = _backgroundedAt;
     if (since == null) return;
 
-    final elapsed = DateTime.now().difference(since);
-    if (elapsed >= Duration(minutes: _autoLockMinutes)) {
+    if (DateTime.now().difference(since) >= _sessionValidity) {
       lock();
     }
   }

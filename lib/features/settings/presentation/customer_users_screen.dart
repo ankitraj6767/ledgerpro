@@ -54,60 +54,68 @@ class _CustomerUsersScreenState extends ConsumerState<CustomerUsersScreen> {
         }
         return Scaffold(
           appBar: AppBar(title: const Text('Customers')),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              SectionCard(
-                title: 'Create customer login',
-                icon: Icons.person_add_alt_1,
-                child: Column(
-                  children: [
-                    _field(_name, 'Customer name', Icons.person_outline),
-                    const SizedBox(height: 12),
-                    _field(
-                      _email,
-                      'Customer email',
-                      Icons.mail_outline,
-                      keyboard: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 12),
-                    _field(
-                      _password,
-                      'Password',
-                      Icons.lock_outline,
-                      obscure: true,
-                    ),
-                    const SizedBox(height: 12),
-                    _field(
-                      _phone,
-                      'Phone',
-                      Icons.phone_outlined,
-                      keyboard: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    _field(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _saving ? null : _createCustomer,
-                        icon: _saving
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.person_add_alt_1),
-                        label: const Text('Create Customer'),
+          body: ResponsiveFormArea(
+            maxWidth: 760,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                SectionCard(
+                  title: 'Create customer login',
+                  icon: Icons.person_add_alt_1,
+                  child: Column(
+                    children: [
+                      _field(_name, 'Customer name', Icons.person_outline),
+                      const SizedBox(height: 12),
+                      _field(
+                        _email,
+                        'Customer email',
+                        Icons.mail_outline,
+                        keyboard: TextInputType.emailAddress,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      _field(
+                        _password,
+                        'Password',
+                        Icons.lock_outline,
+                        obscure: true,
+                      ),
+                      const SizedBox(height: 12),
+                      _field(
+                        _phone,
+                        'Phone',
+                        Icons.phone_outlined,
+                        keyboard: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 12),
+                      _field(
+                        _notes,
+                        'Notes',
+                        Icons.notes_outlined,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _saving ? null : _createCustomer,
+                          icon: _saving
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.person_add_alt_1),
+                          label: const Text('Create Customer'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const _CustomerList(),
-            ],
+                const SizedBox(height: 16),
+                const _CustomerList(),
+              ],
+            ),
           ),
         );
       },

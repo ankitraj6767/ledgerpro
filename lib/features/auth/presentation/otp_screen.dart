@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/constants/app_constants.dart';
 import '../../../data/repositories/infra_repository.dart';
+import '../../../shared/components/infra_components.dart';
 import '../data/auth_repository.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
@@ -32,54 +33,56 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final phone = widget.phone;
     return Scaffold(
       appBar: AppBar(title: const Text('Verify OTP')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Enter the 6 digit code',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            phone == null
-                ? 'Enter the OTP sent to your phone.'
-                : 'OTP sent to $phone.',
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _otpController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            autofocus: true,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              labelText: 'OTP',
-              prefixIcon: Icon(Icons.pin_outlined),
-              counterText: '',
+      body: ResponsiveFormArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(
+              'Enter the 6 digit code',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
-          ),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            onPressed: (_verifying || phone == null) ? null : _verify,
-            icon: _verifying
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.verified_user_outlined),
-            label: const Text('Verify and continue'),
-          ),
-          if (phone == null)
-            const Padding(
-              padding: EdgeInsets.only(top: 12),
-              child: Text(
-                'No phone number provided. Please go back and request an OTP.',
-                textAlign: TextAlign.center,
+            const SizedBox(height: 8),
+            Text(
+              phone == null
+                  ? 'Enter the OTP sent to your phone.'
+                  : 'OTP sent to $phone.',
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _otpController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              autofocus: true,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'OTP',
+                prefixIcon: Icon(Icons.pin_outlined),
+                counterText: '',
               ),
             ),
-        ],
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: (_verifying || phone == null) ? null : _verify,
+              icon: _verifying
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.verified_user_outlined),
+              label: const Text('Verify and continue'),
+            ),
+            if (phone == null)
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: Text(
+                  'No phone number provided. Please go back and request an OTP.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -358,3 +358,29 @@ class ErrorStateView extends StatelessWidget {
     );
   }
 }
+
+/// Centers and width-constrains content on wide (desktop/laptop) windows so
+/// auth, lock and setup pages don't stretch their fields edge-to-edge. On
+/// narrow (phone) widths the [ConstrainedBox] simply yields full width, so the
+/// mobile layout is unchanged.
+class ResponsiveFormArea extends StatelessWidget {
+  const ResponsiveFormArea({
+    super.key,
+    required this.child,
+    this.maxWidth = 460,
+  });
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
+    );
+  }
+}
