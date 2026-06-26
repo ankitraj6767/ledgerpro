@@ -20,15 +20,22 @@ class InfraHomeScreen extends ConsumerWidget {
 
     final summaryAsync = ref.watch(dashboardSummaryProvider);
     final projectsAsync = ref.watch(projectsProvider);
-    final org = ref.watch(infraWorkspaceProvider).value;
+    final workspaceAsync = ref.watch(infraWorkspaceProvider);
     final permissions = ref.watch(currentOrgPermissionsProvider);
     final cached = ref.watch(cachedDashboardProvider);
 
-    // Prefer live data; fall back to the last-known cached values while the
-    // network request is in flight, so the user never sees empty placeholders.
-    final orgName = org?.name ?? cached?.orgName ?? AppConstants.appName;
+    // Prefer live data, then the last-known cached snapshot. A null value means
+    // this is the very first load with nothing cached yet: the widgets below
+    // render a loading skeleton for that part instead of placeholder defaults.
+    // On error we fall back to a sensible value so it never shimmers forever.
+    final orgName =
+        workspaceAsync.value?.name ??
+        cached?.orgName ??
+        (workspaceAsync.hasError ? AppConstants.appName : null);
     final summary =
-        summaryAsync.value ?? cached?.summary ?? const InfraDashboardSummary();
+        summaryAsync.value ??
+        cached?.summary ??
+        (summaryAsync.hasError ? const InfraDashboardSummary() : null);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -118,8 +125,8 @@ class _DesktopDashboard extends StatelessWidget {
     required this.onRefresh,
   });
 
-  final String orgName;
-  final InfraDashboardSummary summary;
+  final String? orgName;
+  final InfraDashboardSummary? summary;
   final AsyncValue<List<InfraProject>> projectsAsync;
   final List<InfraProject>? cachedProjects;
   final bool canCreateProjects;
@@ -127,9 +134,11 @@ class _DesktopDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final projects =
-        projectsAsync.value ?? cachedProjects ?? const <InfraProject>[];
-    final activeProjects = projects
+    final name = orgName;
+    final summaryData = summary;
+    final projectsData = projectsAsync.value ?? cachedProjects;
+    final projectsLoading = projectsData == null && !projectsAsync.hasError;
+    final activeProjects = (projectsData ?? const <InfraProject>[])
         .where((p) => p.status == InfraProjectStatus.active)
         .take(6)
         .toList();
@@ -147,15 +156,18 @@ class _DesktopDashboard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        orgName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 26,
+                      if (name == null)
+                        const SkeletonBox(width: 240, height: 28, radius: 6)
+                      else
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 26,
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 4),
                       const Text(
                         'Finance and infrastructure operations',
@@ -180,38 +192,46 @@ class _DesktopDashboard extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 1.55,
-              children: [
-                _DesktopKpi(
-                  label: 'Total Projects',
-                  value: '${summary.totalProjects}',
-                  icon: Icons.business_outlined,
-                  color: InfraColors.royalBlue,
-                ),
-                _DesktopKpi(
-                  label: 'Active',
-                  value: '${summary.activeProjects}',
-                  icon: Icons.construction_outlined,
-                  color: InfraColors.green,
-                ),
-                _MoneyKpi(
-                  label: 'Investments',
-                  paise: summary.totalInvestmentPaise,
-                  icon: Icons.savings_outlined,
-                  color: InfraColors.gold,
-                ),
-                _MoneyKpi(
-                  label: 'Expenses',
-                  paise: summary.totalExpensePaise,
-                  icon: Icons.receipt_long_outlined,
-                  color: InfraColors.red,
-                ),
-                _MoneyKpi(
-                  label: 'Govt Pending',
-                  paise: summary.pendingGovtFundsPaise,
-                  icon: Icons.pending_actions_outlined,
-                  color: InfraColors.orange,
-                ),
-              ],
+              children: summaryData == null
+                  ? const [
+                      KpiCardSkeleton(radius: 8),
+                      KpiCardSkeleton(radius: 8),
+                      KpiCardSkeleton(radius: 8),
+                      KpiCardSkeleton(radius: 8),
+                      KpiCardSkeleton(radius: 8),
+                    ]
+                  : [
+                      _DesktopKpi(
+                        label: 'Total Projects',
+                        value: '${summaryData.totalProjects}',
+                        icon: Icons.business_outlined,
+                        color: InfraColors.royalBlue,
+                      ),
+                      _DesktopKpi(
+                        label: 'Active',
+                        value: '${summaryData.activeProjects}',
+                        icon: Icons.construction_outlined,
+                        color: InfraColors.green,
+                      ),
+                      _MoneyKpi(
+                        label: 'Investments',
+                        paise: summaryData.totalInvestmentPaise,
+                        icon: Icons.savings_outlined,
+                        color: InfraColors.gold,
+                      ),
+                      _MoneyKpi(
+                        label: 'Expenses',
+                        paise: summaryData.totalExpensePaise,
+                        icon: Icons.receipt_long_outlined,
+                        color: InfraColors.red,
+                      ),
+                      _MoneyKpi(
+                        label: 'Govt Pending',
+                        paise: summaryData.pendingGovtFundsPaise,
+                        icon: Icons.pending_actions_outlined,
+                        color: InfraColors.orange,
+                      ),
+                    ],
             ),
             const SizedBox(height: 18),
             Row(
@@ -222,7 +242,9 @@ class _DesktopDashboard extends StatelessWidget {
                   child: _DashboardPanel(
                     title: 'Active Projects',
                     icon: Icons.apartment_outlined,
-                    child: activeProjects.isEmpty
+                    child: projectsLoading
+                        ? const _ProjectsSkeleton(count: 4, height: 40)
+                        : activeProjects.isEmpty
                         ? const EmptyState(
                             icon: Icons.business_outlined,
                             title: 'No active projects',
@@ -241,26 +263,28 @@ class _DesktopDashboard extends StatelessWidget {
                   child: _DashboardPanel(
                     title: 'Government Funds',
                     icon: Icons.account_balance_outlined,
-                    child: Column(
-                      children: [
-                        _MoneyLine(
-                          label: 'Sanctioned',
-                          paise: summary.totalGovtSanctionedPaise,
-                          color: InfraColors.royalBlue,
-                        ),
-                        _MoneyLine(
-                          label: 'Received',
-                          paise: summary.totalGovtReceivedPaise,
-                          color: InfraColors.green,
-                        ),
-                        const Divider(),
-                        _MoneyLine(
-                          label: 'Pending',
-                          paise: summary.pendingGovtFundsPaise,
-                          color: InfraColors.orange,
-                        ),
-                      ],
-                    ),
+                    child: summaryData == null
+                        ? const _MoneyLinesSkeleton()
+                        : Column(
+                            children: [
+                              _MoneyLine(
+                                label: 'Sanctioned',
+                                paise: summaryData.totalGovtSanctionedPaise,
+                                color: InfraColors.royalBlue,
+                              ),
+                              _MoneyLine(
+                                label: 'Received',
+                                paise: summaryData.totalGovtReceivedPaise,
+                                color: InfraColors.green,
+                              ),
+                              const Divider(),
+                              _MoneyLine(
+                                label: 'Pending',
+                                paise: summaryData.pendingGovtFundsPaise,
+                                color: InfraColors.orange,
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ],
@@ -473,10 +497,11 @@ class _MoneyKpi extends StatelessWidget {
 class _HeroHeader extends StatelessWidget {
   const _HeroHeader({required this.orgName});
 
-  final String orgName;
+  final String? orgName;
 
   @override
   Widget build(BuildContext context) {
+    final name = orgName;
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -507,20 +532,22 @@ class _HeroHeader extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FittedBox(
-                  alignment: Alignment.centerLeft,
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    orgName,
-                    maxLines: 1,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
+                child: name == null
+                    ? const SkeletonBox(width: 150, height: 20, radius: 6)
+                    : FittedBox(
+                        alignment: Alignment.centerLeft,
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 20,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
               ),
               const Icon(Icons.notifications_outlined, color: Colors.white),
             ],
@@ -530,14 +557,20 @@ class _HeroHeader extends StatelessWidget {
             'Welcome to',
             style: TextStyle(color: Colors.white70, fontSize: 15),
           ),
-          Text(
-            orgName,
-            style: const TextStyle(
-              color: InfraColors.gold,
-              fontWeight: FontWeight.w900,
-              fontSize: 26,
+          if (name == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 4),
+              child: SkeletonBox(width: 210, height: 26, radius: 6),
+            )
+          else
+            Text(
+              name,
+              style: const TextStyle(
+                color: InfraColors.gold,
+                fontWeight: FontWeight.w900,
+                fontSize: 26,
+              ),
             ),
-          ),
           const SizedBox(height: 4),
           const Text(
             AppConstants.appTagline,
@@ -552,10 +585,11 @@ class _HeroHeader extends StatelessWidget {
 class _KpiRow extends StatelessWidget {
   const _KpiRow({required this.summary});
 
-  final InfraDashboardSummary summary;
+  final InfraDashboardSummary? summary;
 
   @override
   Widget build(BuildContext context) {
+    final s = summary;
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -563,32 +597,39 @@ class _KpiRow extends StatelessWidget {
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
       childAspectRatio: 1.55,
-      children: [
-        KpiCard(
-          label: 'Total Projects',
-          value: '${summary.totalProjects}',
-          icon: Icons.business_outlined,
-          color: InfraColors.royalBlue,
-        ),
-        KpiCard(
-          label: 'Active Projects',
-          value: '${summary.activeProjects}',
-          icon: Icons.construction_outlined,
-          color: InfraColors.green,
-        ),
-        KpiCard(
-          label: 'Total Investment',
-          value: _compact(summary.totalInvestmentPaise),
-          icon: Icons.savings_outlined,
-          color: InfraColors.gold,
-        ),
-        KpiCard(
-          label: 'Total Received',
-          value: _compact(summary.totalGovtReceivedPaise),
-          icon: Icons.account_balance_outlined,
-          color: InfraColors.orange,
-        ),
-      ],
+      children: s == null
+          ? const [
+              KpiCardSkeleton(),
+              KpiCardSkeleton(),
+              KpiCardSkeleton(),
+              KpiCardSkeleton(),
+            ]
+          : [
+              KpiCard(
+                label: 'Total Projects',
+                value: '${s.totalProjects}',
+                icon: Icons.business_outlined,
+                color: InfraColors.royalBlue,
+              ),
+              KpiCard(
+                label: 'Active Projects',
+                value: '${s.activeProjects}',
+                icon: Icons.construction_outlined,
+                color: InfraColors.green,
+              ),
+              KpiCard(
+                label: 'Total Investment',
+                value: _compact(s.totalInvestmentPaise),
+                icon: Icons.savings_outlined,
+                color: InfraColors.gold,
+              ),
+              KpiCard(
+                label: 'Total Received',
+                value: _compact(s.totalGovtReceivedPaise),
+                icon: Icons.account_balance_outlined,
+                color: InfraColors.orange,
+              ),
+            ],
     );
   }
 
@@ -628,10 +669,7 @@ class _ProjectsList extends StatelessWidget {
           ? ErrorStateView(
               message: 'Could not load projects: ${projectsAsync.error}',
             )
-          : const Padding(
-              padding: EdgeInsets.all(40),
-              child: Center(child: CircularProgressIndicator()),
-            );
+          : const _ProjectsSkeleton();
     }
     if (projects.isEmpty) {
       return EmptyState(
@@ -651,6 +689,49 @@ class _ProjectsList extends StatelessWidget {
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _ProjectsSkeleton extends StatelessWidget {
+  const _ProjectsSkeleton({this.count = 3, this.height = 88});
+
+  final int count;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < count; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SkeletonBox(height: height, radius: 14),
+          ),
+      ],
+    );
+  }
+}
+
+class _MoneyLinesSkeleton extends StatelessWidget {
+  const _MoneyLinesSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < 3; i++)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                Expanded(child: SkeletonBox(height: 12)),
+                SizedBox(width: 16),
+                SkeletonBox(width: 70, height: 12),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
