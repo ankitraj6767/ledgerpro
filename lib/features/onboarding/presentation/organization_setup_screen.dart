@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/constants/app_constants.dart';
 import '../../../data/repositories/infra_repository.dart';
+import '../../../shared/components/infra_components.dart';
 import '../../../shared/components/navdream_logo.dart';
 
 /// Real organization setup. Saves org name/owner/phone/address before
@@ -37,78 +38,80 @@ class _OrganizationSetupScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Set up your organization')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            children: [
-              const NavdreamLogo(
-                size: 58,
-                borderRadius: BorderRadius.all(Radius.circular(17)),
-                showBorder: true,
-                showShadow: true,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  'Welcome to ${AppConstants.appName}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+      body: ResponsiveFormArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Row(
+              children: [
+                const NavdreamLogo(
+                  size: 58,
+                  borderRadius: BorderRadius.all(Radius.circular(17)),
+                  showBorder: true,
+                  showShadow: true,
                 ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'Welcome to ${AppConstants.appName}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text('Create your organization to start managing projects.'),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _orgName,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Organization name',
+                prefixIcon: Icon(Icons.apartment),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text('Create your organization to start managing projects.'),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _orgName,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Organization name',
-              prefixIcon: Icon(Icons.apartment),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _ownerName,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Owner name',
-              prefixIcon: Icon(Icons.person_outline),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _ownerName,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Owner name',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
-              labelText: 'Phone',
-              prefixIcon: Icon(Icons.phone_outlined),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _address,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Address',
-              prefixIcon: Icon(Icons.location_on_outlined),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _address,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Address',
+                prefixIcon: Icon(Icons.location_on_outlined),
+              ),
             ),
-          ),
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.arrow_forward),
-            label: const Text('Continue'),
-          ),
-        ],
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward),
+              label: const Text('Continue'),
+            ),
+          ],
+        ),
       ),
     );
   }

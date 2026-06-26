@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/constants/app_constants.dart';
 import '../../../core/security/app_session_controller.dart';
+import '../../../shared/components/infra_components.dart';
 
 /// Lock gate shown when a returning user has a valid Supabase session and a
 /// configured PIN. Unlocks with PIN or biometrics instead of a full re-login.
@@ -105,9 +106,12 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
   }
 
   void _onUnlocked() {
-    final controller = ref.read(appSessionControllerProvider);
-    controller.markUnlocked();
-    if (mounted) context.go(AppRoutes.home);
+    // Opening the lock gate notifies the session controller, which drives the
+    // GoRouter redirect (via refreshListenable) to /home. We deliberately do
+    // NOT also call context.go here: the previous double navigation (state
+    // change + explicit go) could momentarily surface a second/duplicate view
+    // on desktop. A single navigation source keeps it in the same window.
+    ref.read(appSessionControllerProvider).markUnlocked();
   }
 
   Future<void> _useDifferentAccount() async {
@@ -121,74 +125,76 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 24),
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondary,
-                borderRadius: BorderRadius.circular(8),
+        child: ResponsiveFormArea(
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const SizedBox(height: 24),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.lock_outline,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
-              child: const Icon(
-                Icons.lock_outline,
-                color: Colors.white,
-                size: 32,
+              const SizedBox(height: 22),
+              Text(
+                'Welcome back',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
-            const SizedBox(height: 22),
-            Text(
-              'Welcome back',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
+              const SizedBox(height: 8),
+              const Text('Enter your PIN to unlock NAVDREAM.'),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _pinController,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                autofocus: true,
+                maxLength: 8,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onSubmitted: (_) => _unlockWithPin(),
+                decoration: InputDecoration(
+                  labelText: 'PIN',
+                  prefixIcon: const Icon(Icons.password_outlined),
+                  errorText: _error,
+                  counterText: '',
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text('Enter your PIN to unlock NAVDREAM.'),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _pinController,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              autofocus: true,
-              maxLength: 8,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onSubmitted: (_) => _unlockWithPin(),
-              decoration: InputDecoration(
-                labelText: 'PIN',
-                prefixIcon: const Icon(Icons.password_outlined),
-                errorText: _error,
-                counterText: '',
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _verifying ? null : _unlockWithPin,
+                icon: _verifying
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.lock_open_outlined),
+                label: const Text('Unlock'),
               ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _verifying ? null : _unlockWithPin,
-              icon: _verifying
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.lock_open_outlined),
-              label: const Text('Unlock'),
-            ),
-            if (_biometricAvailable) ...[
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _verifying ? null : _unlockWithBiometrics,
-                icon: const Icon(Icons.fingerprint),
-                label: const Text('Use biometrics'),
+              if (_biometricAvailable) ...[
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _verifying ? null : _unlockWithBiometrics,
+                  icon: const Icon(Icons.fingerprint),
+                  label: const Text('Use biometrics'),
+                ),
+              ],
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: _verifying ? null : _useDifferentAccount,
+                icon: const Icon(Icons.logout_outlined),
+                label: const Text('Sign in with a different account'),
               ),
             ],
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: _verifying ? null : _useDifferentAccount,
-              icon: const Icon(Icons.logout_outlined),
-              label: const Text('Sign in with a different account'),
-            ),
-          ],
+          ),
         ),
       ),
     );

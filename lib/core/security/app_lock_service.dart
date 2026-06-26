@@ -20,7 +20,7 @@ class AppLockService {
   static const _pinSaltKey = 'ledgerpro.pin.salt';
   static const _pinHashKey = 'ledgerpro.pin.hash';
   static const _biometricEnabledKey = 'ledgerpro.biometric.enabled';
-  static const _autoLockMinutesKey = 'ledgerpro.auto_lock.minutes';
+  static const _lastUnlockedAtKey = 'ledgerpro.last_unlocked_at';
 
   final AppLockKeyValueStore _storage;
   final LocalAuthentication _localAuth;
@@ -81,13 +81,21 @@ class AppLockService {
     );
   }
 
-  Future<void> setAutoLockMinutes(int minutes) async {
-    await _storage.write(key: _autoLockMinutesKey, value: minutes.toString());
+  /// Persists the moment the local lock gate was last opened so a returning
+  /// user within the session window can skip re-entering the PIN.
+  Future<void> setLastUnlockedAt(DateTime time) async {
+    await _storage.write(
+      key: _lastUnlockedAtKey,
+      value: time.toUtc().millisecondsSinceEpoch.toString(),
+    );
   }
 
-  Future<int> get autoLockMinutes async {
-    final raw = await _storage.read(key: _autoLockMinutesKey);
-    return int.tryParse(raw ?? '') ?? 2;
+  /// The last time the local lock gate was opened, or null if never recorded.
+  Future<DateTime?> get lastUnlockedAt async {
+    final raw = await _storage.read(key: _lastUnlockedAtKey);
+    final millis = int.tryParse(raw ?? '');
+    if (millis == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
   }
 
   String _hash(String pin, String salt) {

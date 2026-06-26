@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../data/repositories/infra_repository.dart';
+import '../../../shared/components/infra_components.dart';
 import '../../../shared/components/navdream_logo.dart';
 import '../data/auth_repository.dart';
 
@@ -36,104 +37,106 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: InfraColors.navy,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 24),
-            const NavdreamLogo(
-              size: 76,
-              borderRadius: BorderRadius.all(Radius.circular(22)),
-              showBorder: true,
-              showShadow: true,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              AppConstants.appName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 28,
+        child: ResponsiveFormArea(
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const SizedBox(height: 24),
+              const NavdreamLogo(
+                size: 76,
+                borderRadius: BorderRadius.all(Radius.circular(22)),
+                showBorder: true,
+                showShadow: true,
               ),
-            ),
-            const Text(
-              AppConstants.appTagline,
-              style: TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 40),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: InfraColors.surface,
-                borderRadius: BorderRadius.circular(18),
+              const SizedBox(height: 16),
+              Text(
+                AppConstants.appName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 28,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _emailMode ? 'Email sign-in' : 'Phone OTP login',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Sign in to manage your infrastructure projects.',
-                    style: TextStyle(color: InfraColors.textSecondary),
-                  ),
-                  const SizedBox(height: 20),
-                  if (_emailMode) ...[
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline),
+              const Text(
+                AppConstants.appTagline,
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: InfraColors.surface,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _emailMode ? 'Email sign-in' : 'Phone OTP login',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: Icon(Icons.lock_outline),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Sign in to manage your infrastructure projects.',
+                      style: TextStyle(color: InfraColors.textSecondary),
+                    ),
+                    const SizedBox(height: 20),
+                    if (_emailMode) ...[
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                      ),
+                    ] else
+                      TextField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Phone number',
+                          prefixIcon: Icon(Icons.phone_android_outlined),
+                        ),
+                      ),
+                    const SizedBox(height: 18),
+                    FilledButton.icon(
+                      onPressed: _loading ? null : _continue,
+                      icon: _loading
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.arrow_forward),
+                      label: Text(_emailMode ? 'Sign in' : 'Send OTP'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () => setState(() => _emailMode = !_emailMode),
+                      icon: Icon(
+                        _emailMode ? Icons.sms_outlined : Icons.mail_outline,
+                      ),
+                      label: Text(
+                        _emailMode ? 'Use phone OTP' : 'Use email sign-in',
                       ),
                     ),
-                  ] else
-                    TextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone number',
-                        prefixIcon: Icon(Icons.phone_android_outlined),
-                      ),
-                    ),
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    onPressed: _loading ? null : _continue,
-                    icon: _loading
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.arrow_forward),
-                    label: Text(_emailMode ? 'Sign in' : 'Send OTP'),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: () => setState(() => _emailMode = !_emailMode),
-                    icon: Icon(
-                      _emailMode ? Icons.sms_outlined : Icons.mail_outline,
-                    ),
-                    label: Text(
-                      _emailMode ? 'Use phone OTP' : 'Use email sign-in',
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

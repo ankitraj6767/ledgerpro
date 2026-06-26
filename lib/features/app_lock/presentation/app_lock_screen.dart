@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/constants/app_constants.dart';
 import '../../../core/security/app_session_controller.dart';
+import '../../../shared/components/infra_components.dart';
 
 class AppLockScreen extends ConsumerStatefulWidget {
   const AppLockScreen({super.key});
@@ -47,69 +48,71 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
         title: Text(isMandatorySetup ? 'Set up app lock' : 'App lock'),
         automaticallyImplyLeading: !isMandatorySetup,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Protect local ledger data',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isMandatorySetup
-                ? 'Create a PIN so you can quickly unlock next time without signing in again.'
-                : 'PIN is stored as a salted hash on this device.',
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _pinController,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            maxLength: 8,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              labelText: 'Set PIN (4 to 8 digits)',
-              prefixIcon: Icon(Icons.password_outlined),
-              counterText: '',
+      body: ResponsiveFormArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(
+              'Protect local ledger data',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _confirmController,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            maxLength: 8,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              labelText: 'Confirm PIN',
-              prefixIcon: Icon(Icons.password_outlined),
-              counterText: '',
+            const SizedBox(height: 8),
+            Text(
+              isMandatorySetup
+                  ? 'Create a PIN so you can quickly unlock next time without signing in again.'
+                  : 'PIN is stored as a salted hash on this device.',
             ),
-          ),
-          SwitchListTile(
-            value: _biometricSupported && _biometric,
-            onChanged: _biometricSupported
-                ? (value) => setState(() => _biometric = value)
-                : null,
-            title: Text('Enable $_biometricLabel unlock'),
-            subtitle: Text(_biometricSubtitle),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.lock_outline),
-            label: Text(
-              isMandatorySetup ? 'Save and continue' : 'Save app lock',
+            const SizedBox(height: 20),
+            TextField(
+              controller: _pinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 8,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Set PIN (4 to 8 digits)',
+                prefixIcon: Icon(Icons.password_outlined),
+                counterText: '',
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: _confirmController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 8,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Confirm PIN',
+                prefixIcon: Icon(Icons.password_outlined),
+                counterText: '',
+              ),
+            ),
+            SwitchListTile(
+              value: _biometricSupported && _biometric,
+              onChanged: _biometricSupported
+                  ? (value) => setState(() => _biometric = value)
+                  : null,
+              title: Text('Enable $_biometricLabel unlock'),
+              subtitle: Text(_biometricSubtitle),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.lock_outline),
+              label: Text(
+                isMandatorySetup ? 'Save and continue' : 'Save app lock',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
