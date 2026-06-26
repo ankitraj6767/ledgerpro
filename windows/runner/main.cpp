@@ -5,8 +5,39 @@
 #include "flutter_window.h"
 #include "utils.h"
 
+namespace {
+// The native window title, shared between the single-instance guard and the
+// window that is actually created so the two can never drift apart.
+constexpr const wchar_t kWindowTitle[] = L"NAVDREAM";
+
+// App-specific name for the single-instance mutex.
+constexpr const wchar_t kSingleInstanceMutexName[] =
+    L"NAVDREAM_Desktop_SingleInstance_Mutex";
+}  // namespace
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // Enforce a single running instance. Some Windows launch paths (a duplicate
+  // shortcut, a shell re-launch, or a protocol/file association) can start the
+  // app a second time, which opened a second NAVDREAM window. When an instance
+  // is already running, focus its existing window and exit instead of creating
+  // another one. The mutex is the authoritative guard and is released
+  // automatically when the owning process exits (even on crash).
+  HANDLE single_instance_mutex =
+      ::CreateMutexW(nullptr, TRUE, kSingleInstanceMutexName);
+  if (single_instance_mutex != nullptr &&
+      ::GetLastError() == ERROR_ALREADY_EXISTS) {
+    HWND existing = ::FindWindowW(nullptr, kWindowTitle);
+    if (existing != nullptr) {
+      if (::IsIconic(existing)) {
+        ::ShowWindow(existing, SW_RESTORE);
+      }
+      ::SetForegroundWindow(existing);
+    }
+    ::CloseHandle(single_instance_mutex);
+    return EXIT_SUCCESS;
+  }
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -27,7 +58,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"NAVDREAM", origin, size)) {
+  if (!window.Create(kWindowTitle, origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
