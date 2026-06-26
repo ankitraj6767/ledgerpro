@@ -840,32 +840,13 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
     setState(() => _query = '');
   }
 
-  Future<void> _shareInvestmentPdf(ProjectInvestment investment) async {
-    try {
-      final org = await ref.read(infraWorkspaceProvider.future);
-      const service = InfraReportService();
-      final file = await service.investmentDetailPdf(
-        organizationName: org.name,
-        project: widget.project,
-        investment: investment,
-      );
-      await service.share(file, isPdf: true);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Investment PDF generated.')),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not generate PDF: $error')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final investmentsAsync = ref.watch(
       projectInvestmentsProvider(widget.project.id),
+    );
+    final returnsAsync = ref.watch(
+      investmentReturnsProvider(widget.project.id),
     );
     final permissions = ref.watch(currentOrgPermissionsProvider);
 
@@ -880,14 +861,46 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                   ref.invalidate(projectInvestmentsProvider(widget.project.id)),
             ),
             data: (investments) {
-              final sortedInvestments = investments.toList()
-                ..sort(_compareInvestmentsByInvestorName);
-              final filtered = sortedInvestments
-                  .where(_matchesInvestment)
+              final returns = returnsAsync.value ?? <InvestmentReturn>[];
+              // Group investments by investor
+              final grouped = <String, _InvestorSummary>{};
+              for (final inv in investments) {
+                final key = inv.investorId;
+                grouped.putIfAbsent(
+                  key,
+                  () => _InvestorSummary(
+                    investorId: key,
+                    investorName: inv.investorName ?? 'Investor',
+                  ),
+                );
+                grouped[key]!.investments.add(inv);
+                grouped[key]!.totalInvestedPaise += inv.amountPaise;
+              }
+              // Add returns to groups
+              for (final ret in returns) {
+                final key = ret.investorId;
+                grouped.putIfAbsent(
+                  key,
+                  () => _InvestorSummary(
+                    investorId: key,
+                    investorName: ret.investorName ?? 'Investor',
+                  ),
+                );
+                grouped[key]!.returns.add(ret);
+                grouped[key]!.totalReturnedPaise += ret.amountPaise;
+              }
+              final summaries = grouped.values.toList()
+                ..sort(
+                  (a, b) => a.investorName
+                      .toLowerCase()
+                      .compareTo(b.investorName.toLowerCase()),
+                );
+              final filtered = summaries
+                  .where((s) => _matchesInvestorSummary(s))
                   .toList(growable: false);
-              final total = filtered.fold<int>(
+              final totalNet = filtered.fold<int>(
                 0,
-                (sum, i) => sum + i.amountPaise,
+                (sum, s) => sum + s.netInvestmentPaise,
               );
               return Column(
                 children: [
@@ -924,13 +937,12 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                             children: [
                               ...filtered.map(
-                                (inv) => Card(
+                                (summary) => Card(
                                   child: ListTile(
-                                    onTap: () => _showInvestmentDetails(
+                                    onTap: () => _showInvestorHistory(
                                       context,
-                                      inv,
-                                      onGeneratePdf: () =>
-                                          _shareInvestmentPdf(inv),
+                                      summary,
+                                      permissions.canManageInvestments,
                                     ),
                                     leading: const CircleAvatar(
                                       backgroundColor: Color(0xFFFFF4D6),
@@ -940,78 +952,27 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                                       ),
                                     ),
                                     title: Text(
-                                      inv.investorName ?? 'Investor',
+                                      summary.investorName,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                     subtitle: Text(
-                                      inv.investmentDate == null
-                                          ? inv.paymentMode
-                                          : DateFormat(
-                                              'dd MMM yyyy',
-                                            ).format(inv.investmentDate!),
+                                      summary.totalReturnedPaise > 0
+                                          ? '${summary.investments.length} investment(s) · ${Money.fromPaise(summary.totalReturnedPaise).formatInr()} returned'
+                                          : '${summary.investments.length} investment(s)',
                                     ),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         AmountText(
-                                          paise: inv.amountPaise,
+                                          paise: summary.netInvestmentPaise,
                                           color: InfraColors.gold,
                                         ),
-                                        if (permissions.canManageInvestments)
-                                          _EntityMenu(
-                                            onEdit: () =>
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute<void>(
-                                                    builder: (_) =>
-                                                        InvestmentFormScreen(
-                                                          project:
-                                                              widget.project,
-                                                          investment: inv,
-                                                        ),
-                                                  ),
-                                                ),
-                                            onDelete: () => _confirmDelete(
-                                              context,
-                                              ref,
-                                              title: 'Delete investment?',
-                                              message:
-                                                  'Remove ${inv.investorName ?? 'this investment'} '
-                                                  '(${Money.fromPaise(inv.amountPaise).formatInr()})?',
-                                              onConfirm: () async {
-                                                await ref
-                                                    .read(
-                                                      infraRepositoryProvider,
-                                                    )
-                                                    .deleteInvestment(inv.id);
-                                                ref.invalidate(
-                                                  projectInvestmentsProvider(
-                                                    widget.project.id,
-                                                  ),
-                                                );
-                                                ref.invalidate(
-                                                  projectInvestorsProvider(
-                                                    widget.project.id,
-                                                  ),
-                                                );
-                                                ref.invalidate(
-                                                  projectFinancialSummaryProvider(
-                                                    widget.project.id,
-                                                  ),
-                                                );
-                                                ref.invalidate(
-                                                  projectsProvider,
-                                                );
-                                                ref.invalidate(
-                                                  dashboardSummaryProvider,
-                                                );
-                                                ref.invalidate(
-                                                  investorsProvider,
-                                                );
-                                              },
-                                            ),
-                                          ),
+                                        const Icon(
+                                          Icons.chevron_right,
+                                          color: InfraColors.textSecondary,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -1028,7 +989,7 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                                     children: [
                                       Text(
                                         _query.trim().isEmpty
-                                            ? 'Total Investment'
+                                            ? 'Net Investment'
                                             : 'Filtered Investment',
                                         style: const TextStyle(
                                           color: Colors.white,
@@ -1036,7 +997,7 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                                         ),
                                       ),
                                       Text(
-                                        Money.fromPaise(total).formatInr(),
+                                        Money.fromPaise(totalNet).formatInr(),
                                         style: const TextStyle(
                                           color: InfraColors.gold,
                                           fontWeight: FontWeight.w900,
@@ -1059,30 +1020,607 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
     );
   }
 
-  bool _matchesInvestment(ProjectInvestment investment) {
-    return _matchesFinanceSearch([
-      investment.investorName ?? 'Investor',
-      investment.paymentMode,
-      investment.referenceNumber,
-      investment.notes,
-      Money.fromPaise(investment.amountPaise).formatInr(),
-      (investment.amountPaise / 100).toStringAsFixed(2),
-      _searchDate(investment.investmentDate),
-    ], _query);
+  bool _matchesInvestorSummary(_InvestorSummary summary) {
+    final fields = <Object?>[
+      summary.investorName,
+      Money.fromPaise(summary.netInvestmentPaise).formatInr(),
+      (summary.netInvestmentPaise / 100).toStringAsFixed(2),
+      ...summary.investments.expand((i) => [
+            i.paymentMode,
+            i.referenceNumber,
+            i.notes,
+            _searchDate(i.investmentDate),
+          ]),
+    ];
+    return _matchesFinanceSearch(fields, _query);
   }
 
-  int _compareInvestmentsByInvestorName(
-    ProjectInvestment a,
-    ProjectInvestment b,
+  void _showInvestorHistory(
+    BuildContext context,
+    _InvestorSummary summary,
+    bool canManage,
   ) {
-    final byName = (a.investorName ?? '').toLowerCase().compareTo(
-      (b.investorName ?? '').toLowerCase(),
-    );
-    if (byName != 0) return byName;
-    return (b.investmentDate ?? DateTime(0)).compareTo(
-      a.investmentDate ?? DateTime(0),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _InvestorHistoryScreen(
+          project: widget.project,
+          summary: summary,
+          canManage: canManage,
+        ),
+      ),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Investor summary helper + history screen
+// ---------------------------------------------------------------------------
+class _InvestorSummary {
+  _InvestorSummary({required this.investorId, required this.investorName});
+
+  final String investorId;
+  final String investorName;
+  final List<ProjectInvestment> investments = [];
+  final List<InvestmentReturn> returns = [];
+  int totalInvestedPaise = 0;
+  int totalReturnedPaise = 0;
+
+  int get netInvestmentPaise => totalInvestedPaise - totalReturnedPaise;
+}
+
+class _InvestorHistoryScreen extends ConsumerWidget {
+  const _InvestorHistoryScreen({
+    required this.project,
+    required this.summary,
+    required this.canManage,
+  });
+
+  final InfraProject project;
+  final _InvestorSummary summary;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Re-watch to stay fresh
+    final investmentsAsync = ref.watch(
+      projectInvestmentsProvider(project.id),
+    );
+    final returnsAsync = ref.watch(
+      investmentReturnsProvider(project.id),
+    );
+
+    final investments = (investmentsAsync.value ?? summary.investments)
+        .where((i) => i.investorId == summary.investorId)
+        .toList()
+      ..sort((a, b) =>
+          (b.investmentDate ?? DateTime(0))
+              .compareTo(a.investmentDate ?? DateTime(0)));
+    final returns = (returnsAsync.value ?? summary.returns)
+        .where((r) => r.investorId == summary.investorId)
+        .toList()
+      ..sort((a, b) =>
+          (b.returnDate ?? DateTime(0))
+              .compareTo(a.returnDate ?? DateTime(0)));
+
+    final totalInvested =
+        investments.fold<int>(0, (sum, i) => sum + i.amountPaise);
+    final totalReturned =
+        returns.fold<int>(0, (sum, r) => sum + r.amountPaise);
+    final netInvestment = totalInvested - totalReturned;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(summary.investorName)),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Summary card
+          Card(
+            color: InfraColors.navy,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _SummaryRow(
+                    label: 'Total Invested',
+                    paise: totalInvested,
+                    color: InfraColors.gold,
+                  ),
+                  if (totalReturned > 0) ...[
+                    const SizedBox(height: 8),
+                    _SummaryRow(
+                      label: 'Total Returned',
+                      paise: totalReturned,
+                      color: Colors.redAccent,
+                    ),
+                  ],
+                  const Divider(color: Colors.white24, height: 20),
+                  _SummaryRow(
+                    label: 'Net Investment',
+                    paise: netInvestment,
+                    color: InfraColors.gold,
+                    bold: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Investment history
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: InfraColors.green, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Investments',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                ),
+              ),
+              if (canManage)
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => InvestmentFormScreen(project: project),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (investments.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('No investments recorded.'),
+            )
+          else
+            ...investments.map((inv) => _InvestmentHistoryTile(
+                  investment: inv,
+                  project: project,
+                  canManage: canManage,
+                )),
+          const SizedBox(height: 20),
+          // Returns history
+          Row(
+            children: [
+              const Icon(Icons.trending_down, color: Colors.redAccent, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Returns',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                ),
+              ),
+              if (canManage)
+                TextButton.icon(
+                  onPressed: () => _addReturn(context, ref),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Record Return'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (returns.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('No returns recorded.'),
+            )
+          else
+            ...returns.map((ret) => _ReturnHistoryTile(
+                  returnEntry: ret,
+                  project: project,
+                  canManage: canManage,
+                )),
+        ],
+      ),
+    );
+  }
+
+  void _addReturn(BuildContext context, WidgetRef ref) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _InvestmentReturnFormScreen(
+          project: project,
+          investorId: summary.investorId,
+          investorName: summary.investorName,
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({
+    required this.label,
+    required this.paise,
+    required this.color,
+    this.bold = false,
+  });
+
+  final String label;
+  final int paise;
+  final Color color;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white70,
+            fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+            fontSize: bold ? 15 : 13,
+          ),
+        ),
+        Text(
+          Money.fromPaise(paise).formatInr(),
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w900,
+            fontSize: bold ? 16 : 14,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InvestmentHistoryTile extends StatelessWidget {
+  const _InvestmentHistoryTile({
+    required this.investment,
+    required this.project,
+    required this.canManage,
+  });
+
+  final ProjectInvestment investment;
+  final InfraProject project;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        onTap: () => _showInvestmentDetails(
+          context,
+          investment,
+          onGeneratePdf: () async {},
+        ),
+        leading: const CircleAvatar(
+          backgroundColor: Color(0xFFE8F5E9),
+          radius: 18,
+          child: Icon(Icons.arrow_downward, color: InfraColors.green, size: 18),
+        ),
+        title: Text(
+          Money.fromPaise(investment.amountPaise).formatInr(),
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+        ),
+        subtitle: Text(
+          [
+            if (investment.investmentDate != null)
+              DateFormat('dd MMM yyyy').format(investment.investmentDate!),
+            _humanizeToken(investment.paymentMode),
+            if (investment.notes != null && investment.notes!.isNotEmpty)
+              investment.notes!,
+          ].join(' · '),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12),
+        ),
+        trailing: investment.createdAt != null
+            ? Text(
+                DateFormat('dd/MM/yy').format(investment.createdAt!),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: InfraColors.textSecondary,
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+}
+
+class _ReturnHistoryTile extends ConsumerWidget {
+  const _ReturnHistoryTile({
+    required this.returnEntry,
+    required this.project,
+    required this.canManage,
+  });
+
+  final InvestmentReturn returnEntry;
+  final InfraProject project;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Card(
+      child: ListTile(
+        leading: const CircleAvatar(
+          backgroundColor: Color(0xFFFFEBEE),
+          radius: 18,
+          child:
+              Icon(Icons.arrow_upward, color: Colors.redAccent, size: 18),
+        ),
+        title: Text(
+          Money.fromPaise(returnEntry.amountPaise).formatInr(),
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+        ),
+        subtitle: Text(
+          [
+            if (returnEntry.returnDate != null)
+              DateFormat('dd MMM yyyy').format(returnEntry.returnDate!),
+            _humanizeToken(returnEntry.paymentMode),
+            if (returnEntry.notes != null && returnEntry.notes!.isNotEmpty)
+              returnEntry.notes!,
+          ].join(' · '),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12),
+        ),
+        trailing: canManage
+            ? IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                color: Colors.redAccent,
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Delete return?'),
+                      content: Text(
+                        'Remove this return of ${Money.fromPaise(returnEntry.amountPaise).formatInr()}?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true) return;
+                  try {
+                    await ref
+                        .read(infraRepositoryProvider)
+                        .deleteInvestmentReturn(returnEntry.id);
+                    ref.invalidate(investmentReturnsProvider(project.id));
+                    ref.invalidate(
+                        projectFinancialSummaryProvider(project.id));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Return deleted.')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not delete: $e')),
+                      );
+                    }
+                  }
+                },
+              )
+            : returnEntry.createdAt != null
+                ? Text(
+                    DateFormat('dd/MM/yy').format(returnEntry.createdAt!),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: InfraColors.textSecondary,
+                    ),
+                  )
+                : null,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Investment Return form
+// ---------------------------------------------------------------------------
+class _InvestmentReturnFormScreen extends ConsumerStatefulWidget {
+  const _InvestmentReturnFormScreen({
+    required this.project,
+    required this.investorId,
+    required this.investorName,
+  });
+
+  final InfraProject project;
+  final String investorId;
+  final String investorName;
+
+  @override
+  ConsumerState<_InvestmentReturnFormScreen> createState() =>
+      _InvestmentReturnFormScreenState();
+}
+
+class _InvestmentReturnFormScreenState
+    extends ConsumerState<_InvestmentReturnFormScreen> {
+  final _amount = TextEditingController();
+  final _reference = TextEditingController();
+  final _notes = TextEditingController();
+  String _paymentMode = 'bank';
+  DateTime _date = DateTime.now();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _reference.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Record Return')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'Investor',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            child: Text(
+              widget.investorName,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _returnAmountField(_amount),
+          const SizedBox(height: 12),
+          _returnPaymentModeField(
+            _paymentMode,
+            (m) => setState(() => _paymentMode = m),
+          ),
+          const SizedBox(height: 12),
+          _returnTextField(_reference, 'Reference number', Icons.tag_outlined),
+          const SizedBox(height: 12),
+          _returnDateField(
+            'Return date',
+            _date,
+            (d) => setState(() => _date = d),
+          ),
+          const SizedBox(height: 12),
+          _returnTextField(
+            _notes,
+            'Notes',
+            Icons.notes_outlined,
+            maxLines: 3,
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: const Text('Save Return'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    final messenger = ScaffoldMessenger.of(context);
+    int amount;
+    try {
+      amount = InfraRepository.parsePaise(_amount.text);
+      if (amount <= 0) throw const FormatException('Amount required');
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Enter a valid return amount.')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final repo = ref.read(infraRepositoryProvider);
+      await repo.addInvestmentReturn(
+        projectId: widget.project.id,
+        investorId: widget.investorId,
+        amountPaise: amount,
+        date: _date,
+        paymentMode: _paymentMode,
+        referenceNumber:
+            _reference.text.trim().isEmpty ? null : _reference.text.trim(),
+        notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+      );
+      ref.invalidate(investmentReturnsProvider(widget.project.id));
+      ref.invalidate(projectInvestmentsProvider(widget.project.id));
+      ref.invalidate(projectFinancialSummaryProvider(widget.project.id));
+      ref.invalidate(projectsProvider);
+      ref.invalidate(dashboardSummaryProvider);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Return recorded.')),
+      );
+      if (mounted) Navigator.of(context).pop();
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save return: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+}
+
+Widget _returnAmountField(TextEditingController c) => TextField(
+      controller: c,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: const InputDecoration(
+        labelText: 'Return amount (₹)',
+        prefixIcon: Icon(Icons.currency_rupee),
+      ),
+    );
+
+Widget _returnPaymentModeField(String value, ValueChanged<String> onChanged) {
+  const modes = ['cash', 'bank', 'upi', 'cheque', 'card', 'other'];
+  return DropdownButtonFormField<String>(
+    initialValue: value,
+    decoration: const InputDecoration(
+      labelText: 'Payment mode',
+      prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+    ),
+    items: modes
+        .map((m) => DropdownMenuItem(value: m, child: Text(m.toUpperCase())))
+        .toList(),
+    onChanged: (v) => onChanged(v ?? value),
+  );
+}
+
+Widget _returnTextField(
+  TextEditingController c,
+  String label,
+  IconData icon, {
+  int maxLines = 1,
+}) =>
+    TextField(
+      controller: c,
+      maxLines: maxLines,
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+    );
+
+Widget _returnDateField(
+  String label,
+  DateTime value,
+  ValueChanged<DateTime> onChanged,
+) {
+  return Builder(
+    builder: (context) => InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value,
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) onChanged(picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.event_outlined),
+        ),
+        child: Text(
+          '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+        ),
+      ),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------

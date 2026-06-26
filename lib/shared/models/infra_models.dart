@@ -362,3 +362,23 @@ abstract class ProjectFinancialSummary with _$ProjectFinancialSummary {
   factory ProjectFinancialSummary.fromJson(Map<String, dynamic> json) =>
       _$ProjectFinancialSummaryFromJson(json);
 }
+
+@freezed
+abstract class InvestmentReturn with _$InvestmentReturn {
+  const factory InvestmentReturn({
+    required String id,
+    required String projectId,
+    required String investorId,
+    @Default(0) int amountPaise,
+    DateTime? returnDate,
+    @Default('bank') String paymentMode,
+    String? referenceNumber,
+    String? notes,
+    String? investorName,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) = _InvestmentReturn;
+
+  factory InvestmentReturn.fromJson(Map<String, dynamic> json) =>
+      _$InvestmentReturnFromJson(json);
+}

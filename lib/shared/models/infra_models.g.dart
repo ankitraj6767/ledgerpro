@@ -437,3 +437,39 @@ Map<String, dynamic> _$ProjectFinancialSummaryToJson(
   'totalExpensePaise': instance.totalExpensePaise,
   'availableBalancePaise': instance.availableBalancePaise,
 };
+
+_InvestmentReturn _$InvestmentReturnFromJson(Map<String, dynamic> json) =>
+    _InvestmentReturn(
+      id: json['id'] as String,
+      projectId: json['projectId'] as String,
+      investorId: json['investorId'] as String,
+      amountPaise: (json['amountPaise'] as num?)?.toInt() ?? 0,
+      returnDate: json['returnDate'] == null
+          ? null
+          : DateTime.parse(json['returnDate'] as String),
+      paymentMode: json['paymentMode'] as String? ?? 'bank',
+      referenceNumber: json['referenceNumber'] as String?,
+      notes: json['notes'] as String?,
+      investorName: json['investorName'] as String?,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
+    );
+
+Map<String, dynamic> _$InvestmentReturnToJson(_InvestmentReturn instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'projectId': instance.projectId,
+      'investorId': instance.investorId,
+      'amountPaise': instance.amountPaise,
+      'returnDate': instance.returnDate?.toIso8601String(),
+      'paymentMode': instance.paymentMode,
+      'referenceNumber': instance.referenceNumber,
+      'notes': instance.notes,
+      'investorName': instance.investorName,
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'updatedAt': instance.updatedAt?.toIso8601String(),
+    };
