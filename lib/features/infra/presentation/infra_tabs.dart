@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../core/security/app_session_controller.dart';
+import '../../../core/update/presentation/update_prompt.dart';
+import '../../../core/update/update_controller.dart';
+import '../../../core/update/update_service.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/components/navdream_logo.dart';
@@ -202,6 +205,7 @@ class ProfileScreen extends ConsumerWidget {
             AppRoutes.syncQueue,
           ),
           _tile(context, Icons.lock_outline, 'App lock', AppRoutes.appLock),
+          const _AppUpdateTile(),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(foregroundColor: InfraColors.red),
@@ -231,5 +235,83 @@ class ProfileScreen extends ConsumerWidget {
         onTap: () => context.push(route),
       ),
     );
+  }
+}
+
+/// Profile row showing the installed version and a manual "check for updates"
+/// action. Tapping it runs a check and either opens the update prompt or
+/// confirms the app is current.
+class _AppUpdateTile extends ConsumerWidget {
+  const _AppUpdateTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final versionAsync = ref.watch(currentAppVersionProvider);
+    final state = ref.watch(updateControllerProvider);
+
+    final versionLabel = versionAsync.maybeWhen(
+      data: (version) => version.displayLabel,
+      orElse: () => '',
+    );
+    final hasUpdate = state.hasUpdate;
+    final checking = state.isChecking;
+
+    final subtitle = hasUpdate
+        ? 'Update available — version ${state.release?.version ?? ''}'
+        : versionLabel.isEmpty
+        ? 'Check for updates'
+        : 'Version $versionLabel';
+
+    return Card(
+      child: ListTile(
+        leading: Icon(
+          Icons.system_update_alt,
+          color: hasUpdate ? InfraColors.royalBlue : InfraColors.navy,
+        ),
+        title: const Text(
+          'App updates',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(subtitle),
+        trailing: checking
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                hasUpdate ? Icons.download : Icons.refresh,
+                color: hasUpdate ? InfraColors.royalBlue : null,
+              ),
+        onTap: checking ? null : () => _check(context, ref),
+      ),
+    );
+  }
+
+  Future<void> _check(BuildContext context, WidgetRef ref) async {
+    final controller = ref.read(updateControllerProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
+
+    final result = await controller.checkNow();
+    if (!context.mounted) return;
+
+    final checkError = ref.read(updateControllerProvider).checkError;
+    if (checkError != null) {
+      messenger.showSnackBar(SnackBar(content: Text(checkError)));
+      return;
+    }
+
+    if (result != null && result.hasUpdate) {
+      await showUpdateDialog(context);
+    } else if (result?.status == UpdateStatus.unsupportedPlatform) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('In-app updates aren\'t supported on this platform.'),
+        ),
+      );
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('You\'re on the latest version.')),
+      );
+    }
   }
 }

@@ -10,11 +10,24 @@ on:
         required: false
         type: string
         default: ""
+      notes:
+        description: "Release notes shown in the in-app update prompt."
+        required: false
+        type: string
+        default: ""
+      mandatory:
+        description: "Force users to update (blocking prompt)."
+        required: false
+        type: boolean
+        default: false
       prerelease:
         description: "Mark the GitHub Release as a pre-release."
         required: false
         type: boolean
         default: false
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -125,3 +138,43 @@ jobs:
           } else {
             gh release create $tag $zip $checksum --title $title --notes $notes --target $env:GITHUB_SHA
           }
+
+      # Publishes the ZIP to the public Supabase bucket and updates the shared
+      # update manifest. This is what the in-app updater reads (the GitHub
+      # Release above is private and not reachable by clients).
+      - name: Publish to Supabase + update manifest
+        shell: pwsh
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://besmkildldztpiowpiit.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SUPABASE_SERVICE_ROLE_KEY)) {
+            Write-Error "SUPABASE_SERVICE_ROLE_KEY secret is not set; cannot publish the update."
+            exit 1
+          }
+
+          $version = "${{ steps.package.outputs.version }}"
+          $zip = "${{ steps.package.outputs.zip_path }}"
+          $artifactName = "${{ steps.package.outputs.artifact_name }}"
+
+          # Build number from pubspec (after the '+'), used as a version tie-breaker.
+          $build = ""
+          foreach ($line in Get-Content pubspec.yaml) {
+            if ($line -match '^\s*version:\s*(.+?)\s*$') {
+              if ($Matches[1] -match '\+(\d+)') { $build = $Matches[1] }
+              break
+            }
+          }
+
+          $notes = "${{ inputs.notes }}"
+          if ([string]::IsNullOrWhiteSpace($notes)) { $notes = "LedgerPro Windows v$version" }
+          $mandatory = ("${{ inputs.mandatory }}" -eq "true")
+
+          ./scripts/publish_supabase_release.ps1 `
+            -Platform windows `
+            -Version $version `
+            -Build $build `
+            -File $zip `
+            -ArtifactName $artifactName `
+            -Notes $notes `
+            -Mandatory $mandatory

@@ -56,6 +56,11 @@ dependencies:
   shimmer: ^3.0.0
   crypto: ^3.0.7
   csv: ^8.0.0
+  package_info_plus: ^10.2.0
+  http: ^1.6.0
+  open_filex: ^4.7.0
+  permission_handler: ^12.0.3
+  archive: ^4.0.9
 
 dev_dependencies:
   flutter_test:

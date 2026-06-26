@@ -7,6 +7,7 @@ import '../../app/theme/infra_theme.dart';
 import '../../core/network/network_monitor.dart';
 import '../../core/sync/infra_realtime_service.dart';
 import '../../core/sync/offline_sync_service.dart';
+import '../../core/update/presentation/update_prompt.dart';
 import '../../data/repositories/infra_repository.dart';
 import '../components/navdream_logo.dart';
 
@@ -60,11 +61,15 @@ class InfraShell extends ConsumerWidget {
     final path = GoRouterState.of(context).uri.path;
     final selectedIndex = _indexFor(path);
 
+    // Runs the once-per-session update check and surfaces the update prompt for
+    // any authenticated user, regardless of which shell layout is active.
+    final gatedChild = UpdateGate(child: child);
+
     if (width <= AdaptiveBreakpoints.mobileMax) {
       return _MobileShell(
         selectedIndex: selectedIndex,
         onSelected: (index) => context.go(_routes[index]),
-        child: child,
+        child: gatedChild,
       );
     }
 
@@ -72,14 +77,14 @@ class InfraShell extends ConsumerWidget {
       return _TabletShell(
         selectedIndex: selectedIndex,
         onSelected: (index) => context.go(_routes[index]),
-        child: child,
+        child: gatedChild,
       );
     }
 
     return _DesktopShell(
       selectedIndex: selectedIndex,
       onSelected: (index) => context.go(_routes[index]),
-      child: child,
+      child: gatedChild,
     );
   }
 }

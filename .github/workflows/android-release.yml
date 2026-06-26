@@ -1,0 +1,196 @@
+name: Android Release
+
+# Builds a release APK, then publishes it to the public Supabase Storage bucket
+# and updates the shared update manifest that the in-app updater reads. Trigger
+# it manually, or automatically by pushing a version tag (e.g. v1.0.2).
+#
+# ---------------------------------------------------------------------------
+# One-time setup (required for the in-app auto-update to work):
+#
+#  1. Supabase: create a PUBLIC Storage bucket named "app-releases".
+#     Dashboard > Storage > New bucket > name: app-releases, Public: on.
+#
+#  2. GitHub repo secrets (Settings > Secrets and variables > Actions):
+#       SUPABASE_SERVICE_ROLE_KEY   service-role key (server-side only).
+#       ANDROID_KEYSTORE_BASE64     base64 of your release keystore (.jks).
+#       ANDROID_KEYSTORE_PASSWORD   keystore store password.
+#       ANDROID_KEY_PASSWORD        key password.
+#       ANDROID_KEY_ALIAS           key alias.
+#     GitHub repo variables (optional, defaults to the baked-in project):
+#       SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
+#
+#  IMPORTANT: Android only installs an update when the new APK is signed with
+#  the SAME key as the installed one. Always release with the stable keystore
+#  above. Without it the build falls back to a per-run debug key and updates
+#  will be rejected with a signature-mismatch error.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, e.g. 1.0.2 (blank = use pubspec.yaml)."
+        required: false
+        type: string
+        default: ""
+      notes:
+        description: "Release notes shown in the in-app update prompt."
+        required: false
+        type: string
+        default: ""
+      mandatory:
+        description: "Force users to update (blocking prompt)."
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Release LedgerPro Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze lib test
+
+      - name: Test
+        run: flutter test
+
+      - name: Resolve version and build number
+        id: ver
+        run: |
+          set -euo pipefail
+          pubspec_line="$(grep -E '^version:' pubspec.yaml | head -n1 | sed 's/version:[[:space:]]*//')"
+          pubspec_version="${pubspec_line%%+*}"
+          pubspec_build="${pubspec_line##*+}"
+          if [[ "$pubspec_build" == "$pubspec_line" ]]; then pubspec_build=""; fi
+
+          input_version="${{ inputs.version }}"
+          ref_name="${GITHUB_REF_NAME:-}"
+          if [[ -n "$input_version" ]]; then
+            version="$input_version"
+          elif [[ "${GITHUB_REF_TYPE:-}" == "tag" && -n "$ref_name" ]]; then
+            version="${ref_name#v}"
+          else
+            version="$pubspec_version"
+          fi
+          version="${version#v}"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build=$pubspec_build" >> "$GITHUB_OUTPUT"
+          echo "artifact=LedgerPro-Android-v$version.apk" >> "$GITHUB_OUTPUT"
+          echo "Resolved version=$version build=$pubspec_build"
+
+      - name: Configure release signing
+        id: signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANDROID_KEYSTORE_BASE64:-}" ]]; then
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret set. Building with a debug key. In-app updates require a STABLE release key, so configure signing before distributing."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=release-keystore.jks
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+          echo "Release signing configured."
+
+      - name: Build release APK
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          args=(build apk --release "--build-name=${{ steps.ver.outputs.version }}")
+          if [[ -n "${{ steps.ver.outputs.build }}" ]]; then
+            args+=("--build-number=${{ steps.ver.outputs.build }}")
+          fi
+          if [[ -n "${SUPABASE_URL:-}" ]]; then
+            args+=("--dart-define=SUPABASE_URL=${SUPABASE_URL}")
+          fi
+          if [[ -n "${SUPABASE_PUBLISHABLE_KEY:-}" ]]; then
+            args+=("--dart-define=SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY}")
+          fi
+          flutter "${args[@]}"
+
+      - name: Stage artifact
+        id: stage
+        run: |
+          set -euo pipefail
+          src="build/app/outputs/flutter-apk/app-release.apk"
+          if [[ ! -f "$src" ]]; then
+            echo "::error::Expected APK not found at $src"; exit 1
+          fi
+          mkdir -p dist/android
+          dest="dist/android/${{ steps.ver.outputs.artifact }}"
+          cp "$src" "$dest"
+          ( cd dist/android && sha256sum "${{ steps.ver.outputs.artifact }}" > "${{ steps.ver.outputs.artifact }}.sha256" )
+          echo "apk_path=$dest" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LedgerPro-Android-v${{ steps.ver.outputs.version }}
+          path: |
+            ${{ steps.stage.outputs.apk_path }}
+            ${{ steps.stage.outputs.apk_path }}.sha256
+          if-no-files-found: error
+
+      - name: Publish to Supabase + update manifest
+        if: ${{ steps.signing.outputs.signed == 'true' }}
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://besmkildldztpiowpiit.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY secret is not set; cannot publish the update."
+            exit 1
+          fi
+          notes="${{ inputs.notes }}"
+          if [[ -z "$notes" ]]; then notes="LedgerPro Android v${{ steps.ver.outputs.version }}"; fi
+          ./scripts/publish_supabase_release.sh \
+            --platform android \
+            --version "${{ steps.ver.outputs.version }}" \
+            --build "${{ steps.ver.outputs.build }}" \
+            --file "${{ steps.stage.outputs.apk_path }}" \
+            --artifact-name "${{ steps.ver.outputs.artifact }}" \
+            --notes "$notes" \
+            --mandatory "${{ inputs.mandatory && 'true' || 'false' }}"
+
+      - name: Skip publish (unsigned)
+        if: ${{ steps.signing.outputs.signed != 'true' }}
+        run: |
+          echo "::warning::Built an unsigned/debug APK, so it was NOT published to the update feed. Configure the ANDROID_KEYSTORE_* secrets to enable auto-update releases."

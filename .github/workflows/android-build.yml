@@ -1,0 +1,73 @@
+name: Android Build
+
+# Continuous build for the Android APK: analyze, test and build a release APK
+# on every push to main (and on demand). Publishing to the update feed is done
+# by the separate "Android Release" workflow.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/android-build.yml"
+      - "android/**"
+      - "assets/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+
+jobs:
+  build:
+    name: Build LedgerPro Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze lib test
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        env:
+          # Non-sensitive Supabase client config (public publishable key only).
+          # When unset, the app uses the values baked into supabase_config.dart.
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          args=(build apk --release)
+          if [[ -n "${SUPABASE_URL:-}" ]]; then
+            args+=("--dart-define=SUPABASE_URL=${SUPABASE_URL}")
+          fi
+          if [[ -n "${SUPABASE_PUBLISHABLE_KEY:-}" ]]; then
+            args+=("--dart-define=SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY}")
+          fi
+          flutter "${args[@]}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledgerpro-android-debugkey-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
