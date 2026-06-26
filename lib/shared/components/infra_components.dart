@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../app/theme/infra_theme.dart';
 import '../../core/money/money.dart';
@@ -380,6 +381,65 @@ class ResponsiveFormArea extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: child,
+      ),
+    );
+  }
+}
+
+/// A shimmering placeholder used to build loading skeletons that mirror the
+/// real layout. Shown only on the very first load, before any live data or
+/// cached snapshot is available, so the user sees a clear loading state instead
+/// of placeholder defaults (e.g. the app name or zero values).
+class SkeletonBox extends StatelessWidget {
+  const SkeletonBox({super.key, this.width, this.height = 14, this.radius = 8});
+
+  final double? width;
+  final double height;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFE6E9EF),
+      highlightColor: const Color(0xFFF6F8FC),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+    );
+  }
+}
+
+/// Loading skeleton shaped like a KPI card (used by both the mobile and desktop
+/// dashboards while the summary is first loading).
+class KpiCardSkeleton extends StatelessWidget {
+  const KpiCardSkeleton({super.key, this.radius = 14});
+
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: InfraColors.surface,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: InfraColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SkeletonBox(width: 36, height: 36, radius: 10),
+          SizedBox(height: 12),
+          SkeletonBox(width: 72, height: 10),
+          SizedBox(height: 8),
+          SkeletonBox(width: 52, height: 16),
+        ],
       ),
     );
   }
