@@ -15,18 +15,29 @@ class InfraHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Persist fresh dashboard data so the next cold start can render instantly.
+    ref.watch(dashboardCacheWriterProvider);
+
     final summaryAsync = ref.watch(dashboardSummaryProvider);
     final projectsAsync = ref.watch(projectsProvider);
     final org = ref.watch(infraWorkspaceProvider).value;
     final permissions = ref.watch(currentOrgPermissionsProvider);
+    final cached = ref.watch(cachedDashboardProvider);
+
+    // Prefer live data; fall back to the last-known cached values while the
+    // network request is in flight, so the user never sees empty placeholders.
+    final orgName = org?.name ?? cached?.orgName ?? AppConstants.appName;
+    final summary =
+        summaryAsync.value ?? cached?.summary ?? const InfraDashboardSummary();
 
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= 1000) {
           return _DesktopDashboard(
-            orgName: org?.name ?? AppConstants.appName,
-            summaryAsync: summaryAsync,
+            orgName: orgName,
+            summary: summary,
             projectsAsync: projectsAsync,
+            cachedProjects: cached?.projects,
             canCreateProjects: permissions.canManageProjects,
             onRefresh: () async {
               ref.invalidate(dashboardSummaryProvider);
@@ -44,13 +55,13 @@ class InfraHomeScreen extends ConsumerWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _HeroHeader(orgName: org?.name ?? AppConstants.appName),
+                _HeroHeader(orgName: orgName),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _KpiRow(summaryAsync: summaryAsync),
+                      _KpiRow(summary: summary),
                       const SizedBox(height: 20),
                       Row(
                         children: [
@@ -82,6 +93,7 @@ class InfraHomeScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       _ProjectsList(
                         projectsAsync: projectsAsync,
+                        cachedProjects: cached?.projects,
                         canCreateProjects: permissions.canManageProjects,
                       ),
                     ],
@@ -99,22 +111,24 @@ class InfraHomeScreen extends ConsumerWidget {
 class _DesktopDashboard extends StatelessWidget {
   const _DesktopDashboard({
     required this.orgName,
-    required this.summaryAsync,
+    required this.summary,
     required this.projectsAsync,
+    required this.cachedProjects,
     required this.canCreateProjects,
     required this.onRefresh,
   });
 
   final String orgName;
-  final AsyncValue<InfraDashboardSummary> summaryAsync;
+  final InfraDashboardSummary summary;
   final AsyncValue<List<InfraProject>> projectsAsync;
+  final List<InfraProject>? cachedProjects;
   final bool canCreateProjects;
   final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final summary = summaryAsync.value ?? const InfraDashboardSummary();
-    final projects = projectsAsync.value ?? const <InfraProject>[];
+    final projects =
+        projectsAsync.value ?? cachedProjects ?? const <InfraProject>[];
     final activeProjects = projects
         .where((p) => p.status == InfraProjectStatus.active)
         .take(6)
@@ -536,13 +550,12 @@ class _HeroHeader extends StatelessWidget {
 }
 
 class _KpiRow extends StatelessWidget {
-  const _KpiRow({required this.summaryAsync});
+  const _KpiRow({required this.summary});
 
-  final AsyncValue<InfraDashboardSummary> summaryAsync;
+  final InfraDashboardSummary summary;
 
   @override
   Widget build(BuildContext context) {
-    final summary = summaryAsync.value ?? const InfraDashboardSummary();
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -596,42 +609,48 @@ class _KpiRow extends StatelessWidget {
 class _ProjectsList extends StatelessWidget {
   const _ProjectsList({
     required this.projectsAsync,
+    required this.cachedProjects,
     required this.canCreateProjects,
   });
 
   final AsyncValue<List<InfraProject>> projectsAsync;
+  final List<InfraProject>? cachedProjects;
   final bool canCreateProjects;
 
   @override
   Widget build(BuildContext context) {
-    return projectsAsync.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.all(40),
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, _) =>
-          ErrorStateView(message: 'Could not load projects: $error'),
-      data: (projects) {
-        if (projects.isEmpty) {
-          return EmptyState(
-            icon: Icons.business_outlined,
-            title: 'No projects yet',
-            message: canCreateProjects
-                ? 'Tap "Add Project" to create your first infrastructure project.'
-                : 'No infrastructure projects are available yet.',
-          );
-        }
-        return Column(
-          children: projects
-              .map(
-                (p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: ProjectCard(project: p),
-                ),
-              )
-              .toList(),
-        );
-      },
+    // Prefer live data, fall back to cached projects while loading so the list
+    // is never blank on a cold start. Only show the spinner/error when there is
+    // nothing to display yet.
+    final projects = projectsAsync.value ?? cachedProjects;
+    if (projects == null) {
+      return projectsAsync.hasError
+          ? ErrorStateView(
+              message: 'Could not load projects: ${projectsAsync.error}',
+            )
+          : const Padding(
+              padding: EdgeInsets.all(40),
+              child: Center(child: CircularProgressIndicator()),
+            );
+    }
+    if (projects.isEmpty) {
+      return EmptyState(
+        icon: Icons.business_outlined,
+        title: 'No projects yet',
+        message: canCreateProjects
+            ? 'Tap "Add Project" to create your first infrastructure project.'
+            : 'No infrastructure projects are available yet.',
+      );
+    }
+    return Column(
+      children: projects
+          .map(
+            (p) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: ProjectCard(project: p),
+            ),
+          )
+          .toList(),
     );
   }
 }

@@ -220,7 +220,9 @@ class _DesktopSidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orgName =
-        ref.watch(infraWorkspaceProvider).value?.name ?? AppConstants.appName;
+        ref.watch(infraWorkspaceProvider).value?.name ??
+        ref.watch(cachedDashboardProvider)?.orgName ??
+        AppConstants.appName;
     return Container(
       width: 244,
       color: InfraColors.navy,

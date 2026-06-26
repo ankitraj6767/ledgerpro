@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/cache/dashboard_cache.dart';
 import '../../core/money/money.dart';
 import '../../shared/models/infra_models.dart';
 
@@ -115,6 +116,39 @@ final customerMembersProvider = FutureProvider<List<CustomerMember>>((
 ) async {
   final org = await ref.watch(infraWorkspaceProvider.future);
   return ref.watch(infraRepositoryProvider).fetchCustomerMembers(org.id);
+});
+
+/// The persisted home dashboard snapshot for the *current* user, or null when
+/// there is no cache or it belongs to a different account. Lets the home screen
+/// render real data on the first frame instead of empty placeholders while the
+/// live providers refresh in the background (stale-while-revalidate).
+final cachedDashboardProvider = Provider<DashboardSnapshot?>((ref) {
+  final cached = ref.watch(dashboardCacheProvider).value;
+  if (cached == null) return null;
+  final userId = Supabase.instance.client.auth.currentUser?.id;
+  return cached.userId == userId ? cached : null;
+});
+
+/// Side-effect provider that persists the latest dashboard data once the org,
+/// summary and projects have all loaded. Watched by the home screen to keep the
+/// on-disk snapshot fresh for the next cold start.
+final dashboardCacheWriterProvider = Provider<void>((ref) {
+  final org = ref.watch(infraWorkspaceProvider).value;
+  final summary = ref.watch(dashboardSummaryProvider).value;
+  final projects = ref.watch(projectsProvider).value;
+  final userId = Supabase.instance.client.auth.currentUser?.id;
+  if (org != null && summary != null && projects != null && userId != null) {
+    ref
+        .read(dashboardCacheProvider)
+        .save(
+          DashboardSnapshot(
+            userId: userId,
+            orgName: org.name,
+            summary: summary,
+            projects: projects,
+          ),
+        );
+  }
 });
 
 class InfraRepository {
