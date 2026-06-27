@@ -22,7 +22,13 @@ final currentOrgRoleProvider = FutureProvider<OrgMemberRole>((ref) async {
 });
 
 final currentOrgPermissionsProvider = Provider<OrgPermissions>((ref) {
-  final role = ref.watch(currentOrgRoleProvider).value;
+  // Fall back to the last-known cached role on cold start so permission-gated
+  // UI (e.g. the "Add Project" button) renders correctly on the first frame
+  // instead of waiting for the workspace network round-trip. The live role
+  // takes over as soon as it loads.
+  final role =
+      ref.watch(currentOrgRoleProvider).value ??
+      ref.watch(cachedDashboardProvider)?.role;
   final currentUserId = Supabase.instance.client.auth.currentUser?.id;
   return OrgPermissions(role, currentUserId: currentUserId);
 });
@@ -151,6 +157,7 @@ final dashboardCacheWriterProvider = Provider<void>((ref) {
           DashboardSnapshot(
             userId: userId,
             orgName: org.name,
+            role: org.role,
             summary: summary,
             projects: projects,
           ),

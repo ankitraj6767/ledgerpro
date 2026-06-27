@@ -15,18 +15,25 @@ class DashboardSnapshot {
     required this.orgName,
     required this.summary,
     required this.projects,
+    this.role,
   });
 
   /// The Supabase user the snapshot belongs to. Used to ensure a different
   /// account can never briefly see the previous user's cached data.
   final String userId;
   final String orgName;
+
+  /// Last-known role of [userId] in the org. Cached so permission-gated UI
+  /// (e.g. the "Add Project" button) renders correctly on the first frame
+  /// instead of waiting for the workspace network round-trip.
+  final OrgMemberRole? role;
   final InfraDashboardSummary summary;
   final List<InfraProject> projects;
 
   Map<String, dynamic> toJson() => {
     'userId': userId,
     'orgName': orgName,
+    'role': role?.dbValue,
     'summary': summary.toJson(),
     'projects': projects.map((project) => project.toJson()).toList(),
   };
@@ -35,9 +42,13 @@ class DashboardSnapshot {
     final userId = json['userId'];
     final summary = json['summary'];
     if (userId is! String || summary is! Map) return null;
+    final roleValue = json['role'];
     return DashboardSnapshot(
       userId: userId,
       orgName: json['orgName']?.toString() ?? '',
+      role: roleValue == null
+          ? null
+          : OrgMemberRoleMapping.fromDb(roleValue.toString()),
       summary: InfraDashboardSummary.fromJson(
         Map<String, dynamic>.from(summary),
       ),
