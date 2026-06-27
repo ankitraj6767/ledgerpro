@@ -253,6 +253,132 @@ class InfraReportService {
     return _write(project.name, 'investors', 'pdf', await doc.save());
   }
 
+  Future<File> investorStatementPdf({
+    required String organizationName,
+    required InfraProject project,
+    required String investorName,
+    required List<ProjectInvestment> investments,
+    required List<InvestmentReturn> returns,
+  }) async {
+    final doc = pw.Document();
+    final generatedAt = DateTime.now();
+    final logo = await _loadLogo();
+
+    final sortedInvestments = [...investments]
+      ..sort((a, b) => _compareDateDesc(a.investmentDate, b.investmentDate));
+    final sortedReturns = [...returns]
+      ..sort((a, b) => _compareDateDesc(a.returnDate, b.returnDate));
+
+    final totalInvested = sortedInvestments.fold<int>(
+      0,
+      (sum, item) => sum + item.amountPaise,
+    );
+    final totalReturned = sortedReturns.fold<int>(
+      0,
+      (sum, item) => sum + item.amountPaise,
+    );
+    final netInvestment = totalInvested - totalReturned;
+    final safeInvestorName =
+        investorName.trim().isEmpty ? 'Investor' : investorName.trim();
+
+    doc.addPage(
+      pw.MultiPage(
+        pageTheme: _pageTheme(),
+        footer: (context) => _footer(context, generatedAt),
+        build: (context) => [
+          _coverHeader(
+            organizationName: organizationName,
+            project: project,
+            reportTitle: 'Investor Statement',
+            generatedAt: generatedAt,
+            logo: logo,
+          ),
+          pw.SizedBox(height: 16),
+          _sectionTitle(
+            title: safeInvestorName,
+            subtitle: 'Investor account statement',
+            accent: _blue,
+          ),
+          pw.SizedBox(height: 4),
+          pw.Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _metricCard('Total Invested', _inr(totalInvested), _gold),
+              _metricCard('Total Returned', _inr(totalReturned), _red),
+              _metricCard(
+                'Net Investment',
+                _inr(netInvestment),
+                netInvestment >= 0 ? _green : _red,
+                highlighted: true,
+              ),
+              _metricCard(
+                'Latest Activity',
+                _formatDate(
+                  _latestDate([
+                    ...sortedInvestments.map((e) => e.investmentDate),
+                    ...sortedReturns.map((e) => e.returnDate),
+                  ]),
+                ),
+                _orange,
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Investment Ledger',
+            subtitle: '${sortedInvestments.length} investment record(s)',
+            accent: _gold,
+          ),
+          if (sortedInvestments.isEmpty)
+            _emptySection('No investments recorded for this investor.')
+          else
+            _premiumTable(
+              headers: const ['Date', 'Mode', 'Reference', 'Notes', 'Amount'],
+              rightAlignedColumns: const {4},
+              rows: sortedInvestments
+                  .map(
+                    (item) => [
+                      _formatDate(item.investmentDate),
+                      _label(item.paymentMode),
+                      _present(item.referenceNumber),
+                      _present(item.notes),
+                      _inr(item.amountPaise),
+                    ],
+                  )
+                  .toList(),
+            ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Returns Ledger',
+            subtitle: '${sortedReturns.length} return record(s)',
+            accent: _red,
+          ),
+          if (sortedReturns.isEmpty)
+            _emptySection('No returns recorded for this investor.')
+          else
+            _premiumTable(
+              headers: const ['Date', 'Mode', 'Reference', 'Notes', 'Amount'],
+              rightAlignedColumns: const {4},
+              rows: sortedReturns
+                  .map(
+                    (item) => [
+                      _formatDate(item.returnDate),
+                      _label(item.paymentMode),
+                      _present(item.referenceNumber),
+                      _present(item.notes),
+                      _inr(item.amountPaise),
+                    ],
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+
+    return _write(project.name, 'investor_statement', 'pdf', await doc.save());
+  }
+
   Future<File> expensesPdf({
     required String organizationName,
     required InfraProject project,
@@ -510,6 +636,49 @@ class InfraReportService {
           rows: [
             ['Created', _formatDateTime(investment.createdAt)],
             ['Updated', _formatDateTime(investment.updatedAt)],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<File> investmentReturnDetailPdf({
+    required String organizationName,
+    required InfraProject project,
+    required InvestmentReturn entry,
+  }) {
+    final investorName = _present(entry.investorName) == '-'
+        ? 'Investor'
+        : entry.investorName!.trim();
+    return _recordPdf(
+      organizationName: organizationName,
+      project: project,
+      reportTitle: 'Investor Return Detail',
+      kind: 'investment_return_${entry.id}',
+      metrics: [
+        _PdfMetric('Return Amount', _inr(entry.amountPaise), _red),
+        _PdfMetric('Investor', investorName, _blue),
+        _PdfMetric('Payment Mode', _label(entry.paymentMode), _green),
+        _PdfMetric('Return Date', _formatDate(entry.returnDate), _orange),
+      ],
+      sections: [
+        _PdfDetailSection(
+          title: 'Return Details',
+          accent: _red,
+          rows: [
+            ['Investor', investorName],
+            ['Return Date', _formatDate(entry.returnDate)],
+            ['Payment Mode', _label(entry.paymentMode)],
+            ['Reference Number', _present(entry.referenceNumber)],
+            ['Notes', _present(entry.notes)],
+          ],
+        ),
+        _PdfDetailSection(
+          title: 'Record',
+          accent: _blue,
+          rows: [
+            ['Created', _formatDateTime(entry.createdAt)],
+            ['Updated', _formatDateTime(entry.updatedAt)],
           ],
         ),
       ],

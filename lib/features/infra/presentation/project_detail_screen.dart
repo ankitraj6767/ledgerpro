@@ -1068,7 +1068,7 @@ class _InvestorSummary {
   int get netInvestmentPaise => totalInvestedPaise - totalReturnedPaise;
 }
 
-class _InvestorHistoryScreen extends ConsumerWidget {
+class _InvestorHistoryScreen extends ConsumerStatefulWidget {
   const _InvestorHistoryScreen({
     required this.project,
     required this.summary,
@@ -1080,23 +1080,32 @@ class _InvestorHistoryScreen extends ConsumerWidget {
   final bool canManage;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_InvestorHistoryScreen> createState() =>
+      _InvestorHistoryScreenState();
+}
+
+class _InvestorHistoryScreenState
+    extends ConsumerState<_InvestorHistoryScreen> {
+  bool _generatingPdf = false;
+
+  @override
+  Widget build(BuildContext context) {
     // Re-watch to stay fresh
     final investmentsAsync = ref.watch(
-      projectInvestmentsProvider(project.id),
+      projectInvestmentsProvider(widget.project.id),
     );
     final returnsAsync = ref.watch(
-      investmentReturnsProvider(project.id),
+      investmentReturnsProvider(widget.project.id),
     );
 
-    final investments = (investmentsAsync.value ?? summary.investments)
-        .where((i) => i.investorId == summary.investorId)
+    final investments = (investmentsAsync.value ?? widget.summary.investments)
+        .where((i) => i.investorId == widget.summary.investorId)
         .toList()
       ..sort((a, b) =>
           (b.investmentDate ?? DateTime(0))
               .compareTo(a.investmentDate ?? DateTime(0)));
-    final returns = (returnsAsync.value ?? summary.returns)
-        .where((r) => r.investorId == summary.investorId)
+    final returns = (returnsAsync.value ?? widget.summary.returns)
+        .where((r) => r.investorId == widget.summary.investorId)
         .toList()
       ..sort((a, b) =>
           (b.returnDate ?? DateTime(0))
@@ -1107,9 +1116,33 @@ class _InvestorHistoryScreen extends ConsumerWidget {
     final totalReturned =
         returns.fold<int>(0, (sum, r) => sum + r.amountPaise);
     final netInvestment = totalInvested - totalReturned;
+    final hasRecords = investments.isNotEmpty || returns.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: Text(summary.investorName)),
+      appBar: AppBar(
+        title: Text(widget.summary.investorName),
+        actions: [
+          if (hasRecords)
+            _generatingPdf
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 18),
+                    child: Center(
+                      child: SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  )
+                : IconButton(
+                    tooltip: 'Generate PDF statement',
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    onPressed: () => _generatePdf(investments, returns),
+                  ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1156,12 +1189,13 @@ class _InvestorHistoryScreen extends ConsumerWidget {
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                 ),
               ),
-              if (canManage)
+              if (widget.canManage)
                 TextButton.icon(
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => InvestmentFormScreen(project: project),
+                        builder: (_) =>
+                            InvestmentFormScreen(project: widget.project),
                       ),
                     );
                   },
@@ -1179,8 +1213,8 @@ class _InvestorHistoryScreen extends ConsumerWidget {
           else
             ...investments.map((inv) => _InvestmentHistoryTile(
                   investment: inv,
-                  project: project,
-                  canManage: canManage,
+                  project: widget.project,
+                  canManage: widget.canManage,
                 )),
           const SizedBox(height: 20),
           // Returns history
@@ -1194,9 +1228,9 @@ class _InvestorHistoryScreen extends ConsumerWidget {
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                 ),
               ),
-              if (canManage)
+              if (widget.canManage)
                 TextButton.icon(
-                  onPressed: () => _addReturn(context, ref),
+                  onPressed: _addReturn,
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Record Return'),
                 ),
@@ -1211,24 +1245,53 @@ class _InvestorHistoryScreen extends ConsumerWidget {
           else
             ...returns.map((ret) => _ReturnHistoryTile(
                   returnEntry: ret,
-                  project: project,
-                  canManage: canManage,
+                  project: widget.project,
+                  canManage: widget.canManage,
                 )),
         ],
       ),
     );
   }
 
-  void _addReturn(BuildContext context, WidgetRef ref) {
+  void _addReturn() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _InvestmentReturnFormScreen(
-          project: project,
-          investorId: summary.investorId,
-          investorName: summary.investorName,
+          project: widget.project,
+          investorId: widget.summary.investorId,
+          investorName: widget.summary.investorName,
         ),
       ),
     );
+  }
+
+  Future<void> _generatePdf(
+    List<ProjectInvestment> investments,
+    List<InvestmentReturn> returns,
+  ) async {
+    setState(() => _generatingPdf = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final org = await ref.read(infraWorkspaceProvider.future);
+      const service = InfraReportService();
+      final file = await service.investorStatementPdf(
+        organizationName: org.name,
+        project: widget.project,
+        investorName: widget.summary.investorName,
+        investments: investments,
+        returns: returns,
+      );
+      await service.share(file, isPdf: true);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Investor statement generated.')),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not generate PDF: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
+    }
   }
 }
 
@@ -1289,7 +1352,8 @@ class _InvestmentHistoryTile extends ConsumerWidget {
         onTap: () => _showInvestmentDetails(
           context,
           investment,
-          onGeneratePdf: () async {},
+          onGeneratePdf: () =>
+              _shareInvestmentPdf(context, ref, project, investment),
         ),
         leading: const CircleAvatar(
           backgroundColor: Color(0xFFE8F5E9),
@@ -1373,6 +1437,12 @@ class _ReturnHistoryTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       child: ListTile(
+        onTap: () => _showReturnDetails(
+          context,
+          returnEntry,
+          onGeneratePdf: () =>
+              _shareReturnPdf(context, ref, project, returnEntry),
+        ),
         leading: const CircleAvatar(
           backgroundColor: Color(0xFFFFEBEE),
           radius: 18,
@@ -1397,6 +1467,16 @@ class _ReturnHistoryTile extends ConsumerWidget {
         ),
         trailing: canManage
             ? _EntityMenu(
+                onEdit: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => _InvestmentReturnFormScreen(
+                      project: project,
+                      investorId: returnEntry.investorId,
+                      investorName: returnEntry.investorName ?? 'Investor',
+                      existing: returnEntry,
+                    ),
+                  ),
+                ),
                 onDelete: () => _confirmDelete(
                   context,
                   ref,
@@ -1437,11 +1517,13 @@ class _InvestmentReturnFormScreen extends ConsumerStatefulWidget {
     required this.project,
     required this.investorId,
     required this.investorName,
+    this.existing,
   });
 
   final InfraProject project;
   final String investorId;
   final String investorName;
+  final InvestmentReturn? existing;
 
   @override
   ConsumerState<_InvestmentReturnFormScreen> createState() =>
@@ -1457,6 +1539,21 @@ class _InvestmentReturnFormScreenState
   DateTime _date = DateTime.now();
   bool _saving = false;
 
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing != null) {
+      _amount.text = (existing.amountPaise / 100).toStringAsFixed(2);
+      _reference.text = existing.referenceNumber ?? '';
+      _notes.text = existing.notes ?? '';
+      _paymentMode = existing.paymentMode;
+      _date = existing.returnDate ?? DateTime.now();
+    }
+  }
+
   @override
   void dispose() {
     _amount.dispose();
@@ -1468,7 +1565,9 @@ class _InvestmentReturnFormScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Record Return')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Return' : 'Record Return'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1513,7 +1612,7 @@ class _InvestmentReturnFormScreenState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: const Text('Save Return'),
+            label: Text(_isEditing ? 'Update Return' : 'Save Return'),
           ),
         ],
       ),
@@ -1535,23 +1634,38 @@ class _InvestmentReturnFormScreenState
     setState(() => _saving = true);
     try {
       final repo = ref.read(infraRepositoryProvider);
-      await repo.addInvestmentReturn(
-        projectId: widget.project.id,
-        investorId: widget.investorId,
-        amountPaise: amount,
-        date: _date,
-        paymentMode: _paymentMode,
-        referenceNumber:
-            _reference.text.trim().isEmpty ? null : _reference.text.trim(),
-        notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
-      );
+      final reference =
+          _reference.text.trim().isEmpty ? null : _reference.text.trim();
+      final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
+      if (_isEditing) {
+        await repo.updateInvestmentReturn(
+          returnId: widget.existing!.id,
+          amountPaise: amount,
+          date: _date,
+          paymentMode: _paymentMode,
+          referenceNumber: reference,
+          notes: notes,
+        );
+      } else {
+        await repo.addInvestmentReturn(
+          projectId: widget.project.id,
+          investorId: widget.investorId,
+          amountPaise: amount,
+          date: _date,
+          paymentMode: _paymentMode,
+          referenceNumber: reference,
+          notes: notes,
+        );
+      }
       ref.invalidate(investmentReturnsProvider(widget.project.id));
       ref.invalidate(projectInvestmentsProvider(widget.project.id));
       ref.invalidate(projectFinancialSummaryProvider(widget.project.id));
       ref.invalidate(projectsProvider);
       ref.invalidate(dashboardSummaryProvider);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Return recorded.')),
+        SnackBar(
+          content: Text(_isEditing ? 'Return updated.' : 'Return recorded.'),
+        ),
       );
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
@@ -2517,6 +2631,95 @@ void _showInvestmentDetails(
       ),
     ],
   );
+}
+
+void _showReturnDetails(
+  BuildContext context,
+  InvestmentReturn entry, {
+  required Future<void> Function() onGeneratePdf,
+}) {
+  final investorName = _presentText(entry.investorName, 'Investor');
+  _showFinanceDetailsSheet(
+    context,
+    icon: Icons.trending_down,
+    accentColor: Colors.redAccent,
+    title: investorName,
+    subtitle: 'Investor return',
+    amountLabel: 'Return amount',
+    amountPaise: entry.amountPaise,
+    onGeneratePdf: onGeneratePdf,
+    sections: [
+      _FinanceDetailSectionData(
+        title: 'Return Details',
+        rows: [
+          _FinanceDetailRowData('Investor', investorName),
+          _FinanceDetailRowData('Return date', _dateLabel(entry.returnDate)),
+          _FinanceDetailRowData(
+            'Payment mode',
+            _humanizeToken(entry.paymentMode),
+          ),
+          _FinanceDetailRowData(
+            'Reference number',
+            _presentText(entry.referenceNumber),
+          ),
+          _FinanceDetailRowData('Notes', _presentText(entry.notes)),
+        ],
+      ),
+      _FinanceDetailSectionData(
+        title: 'Record',
+        rows: [
+          _FinanceDetailRowData('Created', _dateTimeLabel(entry.createdAt)),
+          _FinanceDetailRowData('Updated', _dateTimeLabel(entry.updatedAt)),
+        ],
+      ),
+    ],
+  );
+}
+
+Future<void> _shareInvestmentPdf(
+  BuildContext context,
+  WidgetRef ref,
+  InfraProject project,
+  ProjectInvestment investment,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final org = await ref.read(infraWorkspaceProvider.future);
+    const service = InfraReportService();
+    final file = await service.investmentDetailPdf(
+      organizationName: org.name,
+      project: project,
+      investment: investment,
+    );
+    await service.share(file, isPdf: true);
+  } catch (error) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('Could not generate PDF: $error')),
+    );
+  }
+}
+
+Future<void> _shareReturnPdf(
+  BuildContext context,
+  WidgetRef ref,
+  InfraProject project,
+  InvestmentReturn entry,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final org = await ref.read(infraWorkspaceProvider.future);
+    const service = InfraReportService();
+    final file = await service.investmentReturnDetailPdf(
+      organizationName: org.name,
+      project: project,
+      entry: entry,
+    );
+    await service.share(file, isPdf: true);
+  } catch (error) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('Could not generate PDF: $error')),
+    );
+  }
 }
 
 void _showGovernmentFundDetails(

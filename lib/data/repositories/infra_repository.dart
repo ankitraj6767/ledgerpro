@@ -771,6 +771,27 @@ class InfraRepository {
     });
   }
 
+  Future<void> updateInvestmentReturn({
+    required String returnId,
+    required int amountPaise,
+    DateTime? date,
+    String paymentMode = 'bank',
+    String? referenceNumber,
+    String? notes,
+  }) async {
+    await _client
+        .from('investment_returns')
+        .update({
+          'amount_paise': amountPaise,
+          'return_date':
+              (date ?? DateTime.now()).toIso8601String().split('T').first,
+          'payment_mode': paymentMode,
+          'reference_number': referenceNumber,
+          'notes': notes,
+        })
+        .eq('id', returnId);
+  }
+
   Future<void> deleteInvestmentReturn(String returnId) async {
     await _client
         .from('investment_returns')
