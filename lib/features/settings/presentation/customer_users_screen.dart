@@ -272,7 +272,7 @@ class _CustomerList extends ConsumerWidget {
                         case _CustomerAction.edit:
                           _showEditCustomer(context, ref, entry.$2);
                         case _CustomerAction.delete:
-                          _confirmDeleteCustomer(context, ref, entry.$2);
+                          _confirmDeleteCustomer(context, entry.$2);
                       }
                     },
                     itemBuilder: (context) => const [
@@ -602,7 +602,6 @@ class _CustomerList extends ConsumerWidget {
 
   Future<void> _confirmDeleteCustomer(
     BuildContext context,
-    WidgetRef ref,
     CustomerMember customer,
   ) async {
     final label = customer.fullName ?? customer.email ?? 'this customer';
@@ -631,13 +630,22 @@ class _CustomerList extends ConsumerWidget {
     if (confirmed != true) return;
     if (!context.mounted) return;
 
+    // This list is a ConsumerWidget that can be rebuilt/unmounted while the
+    // delete Edge Function call is in flight (e.g. a Supabase token refresh
+    // fires onAuthStateChange, which re-runs the router guard), making its
+    // `ref` unsafe to touch afterwards. The root container and the messenger
+    // both outlive this widget, so capture them up front and drive the
+    // post-await refresh through the container.
     final messenger = ScaffoldMessenger.of(context);
+    final container = ProviderScope.containerOf(context, listen: false);
     try {
-      final org = await ref.read(infraWorkspaceProvider.future);
-      await ref
-          .read(infraRepositoryProvider)
-          .deleteCustomerUser(organizationId: org.id, userId: customer.userId);
-      ref.invalidate(customerMembersProvider);
+      final repo = container.read(infraRepositoryProvider);
+      final org = await container.read(infraWorkspaceProvider.future);
+      await repo.deleteCustomerUser(
+        organizationId: org.id,
+        userId: customer.userId,
+      );
+      container.invalidate(customerMembersProvider);
       messenger.showSnackBar(SnackBar(content: Text('$label deleted.')));
     } catch (error) {
       messenger.showSnackBar(
