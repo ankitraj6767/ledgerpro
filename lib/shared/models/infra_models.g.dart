@@ -33,6 +33,8 @@ _InfraProject _$InfraProjectFromJson(Map<String, dynamic> json) =>
           (json['totalEstimatedCostPaise'] as num?)?.toInt() ?? 0,
       totalInvestmentPaise:
           (json['totalInvestmentPaise'] as num?)?.toInt() ?? 0,
+      totalInvestmentReturnedPaise:
+          (json['totalInvestmentReturnedPaise'] as num?)?.toInt() ?? 0,
       totalGovtSanctionedPaise:
           (json['totalGovtSanctionedPaise'] as num?)?.toInt() ?? 0,
       totalGovtReceivedPaise:
@@ -68,6 +70,7 @@ Map<String, dynamic> _$InfraProjectToJson(_InfraProject instance) =>
       'progressPercent': instance.progressPercent,
       'totalEstimatedCostPaise': instance.totalEstimatedCostPaise,
       'totalInvestmentPaise': instance.totalInvestmentPaise,
+      'totalInvestmentReturnedPaise': instance.totalInvestmentReturnedPaise,
       'totalGovtSanctionedPaise': instance.totalGovtSanctionedPaise,
       'totalGovtReceivedPaise': instance.totalGovtReceivedPaise,
       'totalExpensePaise': instance.totalExpensePaise,

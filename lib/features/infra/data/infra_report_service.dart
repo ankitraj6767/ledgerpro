@@ -1127,7 +1127,7 @@ class InfraReportService {
       runSpacing: 10,
       children: [
         _metricCard(
-          'Investor Capital',
+          'Net Investor Capital',
           _inr(summary.totalInvestmentPaise),
           _gold,
         ),

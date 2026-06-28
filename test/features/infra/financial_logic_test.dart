@@ -56,14 +56,28 @@ void main() {
       required int estimatedCost,
       required int invested,
       required int received,
+      int returned = 0,
     }) => InfraProject(
       id: 'p1',
       organizationId: 'o1',
       name: 'Project',
       totalEstimatedCostPaise: estimatedCost,
       totalInvestmentPaise: invested,
+      totalInvestmentReturnedPaise: returned,
       totalGovtReceivedPaise: received,
     );
+
+    test('uses gross investment minus returned capital', () {
+      final value = project(
+        estimatedCost: 10000,
+        invested: 9000,
+        returned: 3000,
+        received: 0,
+      );
+
+      expect(value.netInvestmentPaise, 6000);
+      expect(value.financialProgressPercent, 60);
+    });
 
     test('combines investment and received funds against estimated cost', () {
       expect(
@@ -108,6 +122,18 @@ void main() {
           received: 4000,
         ).financialProgressPercent,
         100,
+      );
+    });
+
+    test('never exposes a negative net investment', () {
+      expect(
+        project(
+          estimatedCost: 10000,
+          invested: 3000,
+          returned: 4000,
+          received: 0,
+        ).netInvestmentPaise,
+        0,
       );
     });
   });

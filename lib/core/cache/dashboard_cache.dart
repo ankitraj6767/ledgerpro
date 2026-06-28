@@ -30,7 +30,10 @@ class DashboardSnapshot {
   final InfraDashboardSummary summary;
   final List<InfraProject> projects;
 
+  static const schemaVersion = 2;
+
   Map<String, dynamic> toJson() => {
+    'schemaVersion': schemaVersion,
     'userId': userId,
     'orgName': orgName,
     'role': role?.dbValue,
@@ -39,6 +42,7 @@ class DashboardSnapshot {
   };
 
   static DashboardSnapshot? fromJson(Map<String, dynamic> json) {
+    if (json['schemaVersion'] != schemaVersion) return null;
     final userId = json['userId'];
     final summary = json['summary'];
     if (userId is! String || summary is! Map) return null;

@@ -142,6 +142,7 @@ abstract class InfraProject with _$InfraProject {
     @Default(0) int progressPercent,
     @Default(0) int totalEstimatedCostPaise,
     @Default(0) int totalInvestmentPaise,
+    @Default(0) int totalInvestmentReturnedPaise,
     @Default(0) int totalGovtSanctionedPaise,
     @Default(0) int totalGovtReceivedPaise,
     @Default(0) int totalExpensePaise,
@@ -157,12 +158,15 @@ abstract class InfraProject with _$InfraProject {
 }
 
 extension InfraProjectFinancialProgress on InfraProject {
+  int get netInvestmentPaise =>
+      (totalInvestmentPaise - totalInvestmentReturnedPaise).clamp(0, 1 << 62);
+
   /// Percentage of the estimated project cost funded by investments and
   /// received government funds. Derived from live totals, never entered
   /// manually.
   int get financialProgressPercent {
     if (totalEstimatedCostPaise <= 0) return 0;
-    final fundedPaise = totalInvestmentPaise + totalGovtReceivedPaise;
+    final fundedPaise = netInvestmentPaise + totalGovtReceivedPaise;
     if (fundedPaise <= 0) return 0;
     return ((fundedPaise * 100) / totalEstimatedCostPaise).round().clamp(
       0,

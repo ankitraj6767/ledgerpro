@@ -138,10 +138,7 @@ class _DesktopDashboard extends StatelessWidget {
     final summaryData = summary;
     final projectsData = projectsAsync.value ?? cachedProjects;
     final projectsLoading = projectsData == null && !projectsAsync.hasError;
-    final activeProjects = (projectsData ?? const <InfraProject>[])
-        .where((p) => p.status == InfraProjectStatus.active)
-        .take(6)
-        .toList();
+    final projects = projectsData ?? const <InfraProject>[];
 
     return Scaffold(
       backgroundColor: InfraColors.background,
@@ -214,7 +211,7 @@ class _DesktopDashboard extends StatelessWidget {
                         color: InfraColors.green,
                       ),
                       _MoneyKpi(
-                        label: 'Investments',
+                        label: 'Net Investments',
                         paise: summaryData.totalInvestmentPaise,
                         icon: Icons.savings_outlined,
                         color: InfraColors.gold,
@@ -240,18 +237,18 @@ class _DesktopDashboard extends StatelessWidget {
                 Expanded(
                   flex: 3,
                   child: _DashboardPanel(
-                    title: 'Active Projects',
+                    title: 'My Projects',
                     icon: Icons.apartment_outlined,
                     child: projectsLoading
                         ? const _ProjectsSkeleton(count: 4, height: 40)
-                        : activeProjects.isEmpty
+                        : projects.isEmpty
                         ? const EmptyState(
                             icon: Icons.business_outlined,
-                            title: 'No active projects',
+                            title: 'No projects yet',
                           )
                         : Column(
                             children: [
-                              for (final project in activeProjects)
+                              for (final project in projects)
                                 _ProjectSummaryRow(project: project),
                             ],
                           ),
@@ -358,11 +355,26 @@ class _ProjectSummaryRow extends StatelessWidget {
           children: [
             Expanded(
               flex: 3,
-              child: Text(
-                project.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    project.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Estimated ${Money.fromPaise(project.totalEstimatedCostPaise).formatCompactInr()} · Expenses ${Money.fromPaise(project.totalExpensePaise).formatCompactInr()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: InfraColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -374,10 +386,22 @@ class _ProjectSummaryRow extends StatelessWidget {
             const SizedBox(width: 12),
             SizedBox(
               width: 116,
-              child: AmountText(
-                paise: project.totalExpensePaise,
-                compact: true,
-                color: InfraColors.red,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Net Invested',
+                    style: TextStyle(
+                      color: InfraColors.textSecondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                  AmountText(
+                    paise: project.netInvestmentPaise,
+                    compact: true,
+                    color: InfraColors.gold,
+                  ),
+                ],
               ),
             ),
           ],
@@ -620,7 +644,7 @@ class _KpiRow extends StatelessWidget {
                 color: InfraColors.green,
               ),
               KpiCard(
-                label: 'Total Investment',
+                label: 'Total Net Investment',
                 value: _compact(s.totalInvestmentPaise),
                 icon: Icons.savings_outlined,
                 color: InfraColors.gold,
@@ -818,14 +842,28 @@ class ProjectCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   const Text(
-                    'Invested',
+                    'Estimated Cost',
                     style: TextStyle(
                       fontSize: 10,
                       color: InfraColors.textSecondary,
                     ),
                   ),
                   AmountText(
-                    paise: project.totalInvestmentPaise,
+                    paise: project.totalEstimatedCostPaise,
+                    compact: true,
+                    size: 13,
+                    color: InfraColors.navy,
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Net Invested',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: InfraColors.textSecondary,
+                    ),
+                  ),
+                  AmountText(
+                    paise: project.netInvestmentPaise,
                     compact: true,
                     size: 13,
                     color: InfraColors.gold,

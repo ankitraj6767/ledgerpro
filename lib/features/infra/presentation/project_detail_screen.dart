@@ -339,7 +339,12 @@ class _OverviewTab extends ConsumerWidget {
             data: (s) => Column(
               children: [
                 _kv(
-                  'Total Investment',
+                  'Estimated Project Cost',
+                  project.totalEstimatedCostPaise,
+                  color: InfraColors.navy,
+                ),
+                _kv(
+                  'Net Investment',
                   s.totalInvestmentPaise,
                   color: InfraColors.gold,
                 ),

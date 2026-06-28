@@ -530,7 +530,7 @@ class _DesktopProjectPreview extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 children: [
                   GridView.count(
-                    crossAxisCount: 4,
+                    crossAxisCount: 5,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     childAspectRatio: 1.55,
@@ -538,7 +538,13 @@ class _DesktopProjectPreview extends ConsumerWidget {
                     mainAxisSpacing: 12,
                     children: [
                       _PreviewMetric(
-                        label: 'Investments',
+                        label: 'Estimated Cost',
+                        paise: project.totalEstimatedCostPaise,
+                        icon: Icons.request_quote_outlined,
+                        color: InfraColors.navy,
+                      ),
+                      _PreviewMetric(
+                        label: 'Net Investment',
                         paise: value.totalInvestmentPaise,
                         icon: Icons.savings_outlined,
                         color: InfraColors.gold,

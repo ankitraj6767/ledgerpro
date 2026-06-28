@@ -1089,6 +1089,8 @@ class InfraRepository {
       totalEstimatedCostPaise:
           (r['total_estimated_cost_paise'] as num?)?.toInt() ?? 0,
       totalInvestmentPaise: (r['total_investment_paise'] as num?)?.toInt() ?? 0,
+      totalInvestmentReturnedPaise:
+          (r['total_investment_returned_paise'] as num?)?.toInt() ?? 0,
       totalGovtSanctionedPaise:
           (r['total_govt_sanctioned_paise'] as num?)?.toInt() ?? 0,
       totalGovtReceivedPaise:
