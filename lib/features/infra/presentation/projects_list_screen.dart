@@ -428,7 +428,7 @@ class _DesktopProjectListTile extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 10),
-              ProjectProgressBar(percent: project.progressPercent),
+              ProjectProgressBar(percent: project.financialProgressPercent),
             ],
           ),
         ),
@@ -490,7 +490,7 @@ class _DesktopProjectPreview extends ConsumerWidget {
                           SizedBox(
                             width: 240,
                             child: ProjectProgressBar(
-                              percent: project.progressPercent,
+                              percent: project.financialProgressPercent,
                             ),
                           ),
                         ],

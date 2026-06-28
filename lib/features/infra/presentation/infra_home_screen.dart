@@ -367,7 +367,9 @@ class _ProjectSummaryRow extends StatelessWidget {
             ),
             Expanded(
               flex: 2,
-              child: ProjectProgressBar(percent: project.progressPercent),
+              child: ProjectProgressBar(
+                percent: project.financialProgressPercent,
+              ),
             ),
             const SizedBox(width: 12),
             SizedBox(
@@ -805,7 +807,9 @@ class ProjectCard extends StatelessWidget {
                         ],
                       ),
                     const SizedBox(height: 8),
-                    ProjectProgressBar(percent: project.progressPercent),
+                    ProjectProgressBar(
+                      percent: project.financialProgressPercent,
+                    ),
                   ],
                 ),
               ),

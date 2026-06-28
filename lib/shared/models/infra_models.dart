@@ -100,6 +100,28 @@ class ExpenseCategories {
     'Miscellaneous',
     'Other',
   ];
+
+  /// Existing project categories first, followed by the canonical defaults.
+  /// Matching is case-insensitive so values such as "fuel" and "Fuel" are
+  /// offered only once while preserving the user's most recent spelling.
+  static List<String> suggestions(Iterable<String> existing) {
+    final unique = <String, String>{};
+    for (final category in [...existing, ...values]) {
+      final trimmed = category.trim();
+      if (trimmed.isNotEmpty) {
+        unique.putIfAbsent(trimmed.toLowerCase(), () => trimmed);
+      }
+    }
+    return unique.values.toList(growable: false);
+  }
+
+  static Iterable<String> matching(Iterable<String> options, String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return const <String>[];
+    return options.where(
+      (category) => category.toLowerCase().contains(normalized),
+    );
+  }
 }
 
 @freezed
@@ -132,6 +154,21 @@ abstract class InfraProject with _$InfraProject {
 
   factory InfraProject.fromJson(Map<String, dynamic> json) =>
       _$InfraProjectFromJson(json);
+}
+
+extension InfraProjectFinancialProgress on InfraProject {
+  /// Percentage of the estimated project cost funded by investments and
+  /// received government funds. Derived from live totals, never entered
+  /// manually.
+  int get financialProgressPercent {
+    if (totalEstimatedCostPaise <= 0) return 0;
+    final fundedPaise = totalInvestmentPaise + totalGovtReceivedPaise;
+    if (fundedPaise <= 0) return 0;
+    return ((fundedPaise * 100) / totalEstimatedCostPaise).round().clamp(
+      0,
+      100,
+    );
+  }
 }
 
 @freezed

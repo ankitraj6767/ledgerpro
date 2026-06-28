@@ -51,7 +51,7 @@ class ProjectDetailScreen extends ConsumerWidget {
         appBar: AppBar(
           title: const Text('Project Details'),
           actions: [
-            if (permissions.canManageProjects || permissions.canUpdateProgress)
+            if (permissions.canManageProjects)
               PopupMenuButton<String>(
                 onSelected: (value) {
                   if (value == 'edit' && permissions.canManageProjects) {
@@ -59,9 +59,6 @@ class ProjectDetailScreen extends ConsumerWidget {
                       AppRoutes.editProject(project.id),
                       extra: project,
                     );
-                  } else if (value == 'progress' &&
-                      permissions.canUpdateProgress) {
-                    _showProgressDialog(context, ref, project);
                   } else if (value == 'delete' &&
                       permissions.canManageProjects) {
                     _confirmDeleteProject(context, ref, project);
@@ -72,11 +69,6 @@ class ProjectDetailScreen extends ConsumerWidget {
                     const PopupMenuItem(
                       value: 'edit',
                       child: Text('Edit project'),
-                    ),
-                  if (permissions.canUpdateProgress)
-                    const PopupMenuItem(
-                      value: 'progress',
-                      child: Text('Update progress'),
                     ),
                   if (permissions.canManageProjects)
                     const PopupMenuItem(
@@ -115,64 +107,6 @@ class ProjectDetailScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _showProgressDialog(
-    BuildContext context,
-    WidgetRef ref,
-    InfraProject project,
-  ) async {
-    final controller = TextEditingController(
-      text: project.progressPercent.toString(),
-    );
-    final messenger = ScaffoldMessenger.of(context);
-    final result = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Update progress'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Progress %',
-            suffixText: '%',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final v = int.tryParse(controller.text.trim());
-              Navigator.pop(dialogContext, v);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (result == null) return;
-    if (result < 0 || result > 100) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Progress must be between 0 and 100.')),
-      );
-      return;
-    }
-    try {
-      await ref
-          .read(infraRepositoryProvider)
-          .updateProgress(project.id, result);
-      ref.invalidate(projectsProvider);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Progress updated.')),
-      );
-    } catch (error) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Could not update progress: $error')),
-      );
-    }
   }
 
   Future<void> _confirmDeleteProject(
@@ -320,7 +254,9 @@ class _ProjectHeaderCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ProjectProgressBar(percent: project.progressPercent),
+                child: ProjectProgressBar(
+                  percent: project.financialProgressPercent,
+                ),
               ),
             ],
           ),

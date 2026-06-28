@@ -260,6 +260,7 @@ class ExpenseFormScreen extends ConsumerStatefulWidget {
 
 class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   final _category = TextEditingController();
+  final _categoryFocus = FocusNode();
   final _amount = TextEditingController();
   final _vendor = TextEditingController();
   final _billNumber = TextEditingController();
@@ -288,6 +289,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   @override
   void dispose() {
     _category.dispose();
+    _categoryFocus.dispose();
     _amount.dispose();
     _vendor.dispose();
     _billNumber.dispose();
@@ -298,6 +300,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   @override
   Widget build(BuildContext context) {
     final roleAsync = ref.watch(currentOrgRoleProvider);
+    final existingExpenses = ref.watch(
+      projectExpensesProvider(widget.project.id),
+    );
     if (roleAsync.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -309,16 +314,17 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       return const AccessDeniedScreen();
     }
 
+    final categorySuggestions = ExpenseCategories.suggestions(
+      existingExpenses.value?.map((expense) => expense.category) ??
+          const <String>[],
+    );
+
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Edit Expense' : 'Add Expense')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _plainField(
-            _category,
-            'Category / use case',
-            Icons.category_outlined,
-          ),
+          _categoryAutocomplete(categorySuggestions),
           const SizedBox(height: 12),
           _amountField(_amount, 'Amount (₹)'),
           const SizedBox(height: 12),
@@ -347,6 +353,62 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _categoryAutocomplete(List<String> suggestions) {
+    return RawAutocomplete<String>(
+      textEditingController: _category,
+      focusNode: _categoryFocus,
+      optionsBuilder: (value) =>
+          ExpenseCategories.matching(suggestions, value.text),
+      onSelected: (category) {
+        _category.value = TextEditingValue(
+          text: category,
+          selection: TextSelection.collapsed(offset: category.length),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) =>
+          TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onSubmitted: (_) => onSubmitted(),
+            decoration: const InputDecoration(
+              labelText: 'Category / use case',
+              prefixIcon: Icon(Icons.category_outlined),
+            ),
+          ),
+      optionsViewBuilder: (context, onSelected, options) {
+        final availableWidth = MediaQuery.sizeOf(context).width - 32;
+        final width = availableWidth < 600 ? availableWidth : 600.0;
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              width: width,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 240),
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  itemBuilder: (context, index) {
+                    final category = options.elementAt(index);
+                    return ListTile(
+                      leading: const Icon(Icons.history),
+                      title: Text(category),
+                      onTap: () => onSelected(category),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

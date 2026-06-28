@@ -1025,7 +1025,7 @@ class InfraReportService {
               if ((project.category ?? '').trim().isNotEmpty)
                 _heroChip(project.category!, _blue),
               _heroChip(
-                '${project.progressPercent.clamp(0, 100)}% complete',
+                '${project.financialProgressPercent}% complete',
                 _gold,
               ),
             ],
@@ -1071,7 +1071,7 @@ class InfraReportService {
   }
 
   pw.Widget _projectPulse(InfraProject project) {
-    final progress = project.progressPercent.clamp(0, 100).toInt();
+    final progress = project.financialProgressPercent;
     return pw.Container(
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
