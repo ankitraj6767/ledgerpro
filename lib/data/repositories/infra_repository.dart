@@ -377,17 +377,22 @@ class InfraRepository {
     final list = (rows as List?) ?? const [];
     if (list.isEmpty) return const ProjectFinancialSummary();
     final row = Map<String, dynamic>.from(list.first as Map);
-    return ProjectFinancialSummary(
-      totalInvestmentPaise:
-          (row['total_investment_paise'] as num?)?.toInt() ?? 0,
+    final totalInvestmentPaise =
+        (row['total_investment_paise'] as num?)?.toInt() ?? 0;
+    final totalGovtReceivedPaise =
+        (row['total_govt_received_paise'] as num?)?.toInt() ?? 0;
+    final totalExpensePaise =
+        (row['total_expense_paise'] as num?)?.toInt() ?? 0;
+    final summary = ProjectFinancialSummary(
+      totalInvestmentPaise: totalInvestmentPaise,
       totalGovtSanctionedPaise:
           (row['total_govt_sanctioned_paise'] as num?)?.toInt() ?? 0,
-      totalGovtReceivedPaise:
-          (row['total_govt_received_paise'] as num?)?.toInt() ?? 0,
+      totalGovtReceivedPaise: totalGovtReceivedPaise,
       pendingGovtPaise: (row['pending_govt_paise'] as num?)?.toInt() ?? 0,
-      totalExpensePaise: (row['total_expense_paise'] as num?)?.toInt() ?? 0,
-      availableBalancePaise:
-          (row['available_balance_paise'] as num?)?.toInt() ?? 0,
+      totalExpensePaise: totalExpensePaise,
+    );
+    return summary.copyWith(
+      availableBalancePaise: summary.calculatedAvailableBalancePaise,
     );
   }
 

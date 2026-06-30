@@ -404,6 +404,12 @@ abstract class ProjectFinancialSummary with _$ProjectFinancialSummary {
       _$ProjectFinancialSummaryFromJson(json);
 }
 
+extension ProjectFinancialSummaryMath on ProjectFinancialSummary {
+  int get cashInPaise => totalInvestmentPaise + totalGovtReceivedPaise;
+
+  int get calculatedAvailableBalancePaise => cashInPaise - totalExpensePaise;
+}
+
 @freezed
 abstract class InvestmentReturn with _$InvestmentReturn {
   const factory InvestmentReturn({

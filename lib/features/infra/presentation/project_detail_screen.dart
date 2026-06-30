@@ -336,32 +336,39 @@ class _OverviewTab extends ConsumerWidget {
           child: summaryAsync.when(
             loading: () => const SizedBox.shrink(),
             error: (e, _) => Text('Error: $e'),
-            data: (s) => Column(
-              children: [
-                _kv(
-                  'Estimated Project Cost',
-                  project.totalEstimatedCostPaise,
-                  color: InfraColors.navy,
-                ),
-                _kv(
-                  'Net Investment',
-                  s.totalInvestmentPaise,
-                  color: InfraColors.gold,
-                ),
-                _kv(
-                  'Total Expenses',
-                  s.totalExpensePaise,
-                  color: InfraColors.red,
-                ),
-                const Divider(),
-                _kv(
-                  'Available Balance',
-                  s.availableBalancePaise,
-                  color: InfraColors.royalBlue,
-                  bold: true,
-                ),
-              ],
-            ),
+            data: (s) {
+              final balanceColor = s.availableBalancePaise >= 0
+                  ? InfraColors.green
+                  : InfraColors.red;
+              return Column(
+                children: [
+                  _FundingHealthPanel(summary: s),
+                  const SizedBox(height: 14),
+                  _kv(
+                    'Estimated Project Cost',
+                    project.totalEstimatedCostPaise,
+                    color: InfraColors.navy,
+                  ),
+                  _kv(
+                    'Net Investment',
+                    s.totalInvestmentPaise,
+                    color: InfraColors.gold,
+                  ),
+                  _kv(
+                    'Total Expenses',
+                    s.totalExpensePaise,
+                    color: InfraColors.red,
+                  ),
+                  const Divider(height: 22),
+                  _kv(
+                    'Available Balance',
+                    s.availableBalancePaise,
+                    color: balanceColor,
+                    bold: true,
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 12),
@@ -412,22 +419,172 @@ class _OverviewTab extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: InfraColors.textSecondary,
-              fontWeight: bold ? FontWeight.w900 : FontWeight.w500,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: InfraColors.textSecondary,
+                fontWeight: bold ? FontWeight.w900 : FontWeight.w500,
+              ),
             ),
           ),
-          Text(
-            Money.fromPaise(paise).formatInr(),
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: color ?? InfraColors.textPrimary,
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              Money.fromPaise(paise).formatInr(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: color ?? InfraColors.textPrimary,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FundingHealthPanel extends StatelessWidget {
+  const _FundingHealthPanel({required this.summary});
+
+  final ProjectFinancialSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final cashIn = summary.cashInPaise;
+    final expenses = summary.totalExpensePaise;
+    final balance = summary.availableBalancePaise;
+    final balanceColor = summary.availableBalancePaise >= 0
+        ? InfraColors.green
+        : InfraColors.red;
+    final spentRatio = cashIn <= 0
+        ? (expenses > 0 ? 1.0 : 0.0)
+        : (expenses / cashIn).clamp(0.0, 1.0);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: balanceColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  balance >= 0
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
+                  color: balanceColor,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Funding Health',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: InfraColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  balance >= 0 ? 'Surplus' : 'Shortfall',
+                  style: TextStyle(
+                    color: balanceColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              Money.fromPaise(balance).formatInr(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: balanceColor,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Net investment + govt received - expenses',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: InfraColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                minHeight: 8,
+                value: spentRatio,
+                backgroundColor: InfraColors.border.withValues(alpha: 0.8),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  balance >= 0 ? InfraColors.green : InfraColors.red,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _compactMetric('Cash In', cashIn, InfraColors.green),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _compactMetric('Expenses', expenses, InfraColors.red),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _compactMetric(String label, int paise, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: InfraColors.textSecondary,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          Money.fromPaise(paise).formatCompactInr(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 }

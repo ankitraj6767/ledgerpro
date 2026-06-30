@@ -28,11 +28,14 @@ void main() {
 
   group('Project financial summary math (deterministic)', () {
     test('available balance = investment + govt received - expenses', () {
-      const investment = 10000000; // 1 Lakh
-      const govtReceived = 7000000; // 70k
-      const expenses = 4500000; // 45k
-      final available = investment + govtReceived - expenses;
-      expect(available, 12500000);
+      const summary = ProjectFinancialSummary(
+        totalInvestmentPaise: 2050000, // Rs 20,500
+        totalGovtReceivedPaise: 500000, // Rs 5,000
+        totalExpensePaise: 52666900, // Rs 5,26,669
+      );
+
+      expect(summary.cashInPaise, 2550000);
+      expect(summary.calculatedAvailableBalancePaise, -50116900);
     });
 
     test('expense category percentages sum to ~100', () {
