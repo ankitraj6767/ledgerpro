@@ -355,6 +355,11 @@ class _OverviewTab extends ConsumerWidget {
                     color: InfraColors.gold,
                   ),
                   _kv(
+                    'Government Fund Received',
+                    s.totalGovtReceivedPaise,
+                    color: InfraColors.green,
+                  ),
+                  _kv(
                     'Total Expenses',
                     s.totalExpensePaise,
                     color: InfraColors.red,
