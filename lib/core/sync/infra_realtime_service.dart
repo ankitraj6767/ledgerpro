@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,12 +12,30 @@ final infraRealtimeBridgeProvider = Provider<void>((ref) {
   final workspace = ref.watch(infraWorkspaceProvider).value;
   if (api == null || workspace == null) return;
 
+  // Realtime channels reconnect and can replay buffered payloads on network
+  // flaps (common on Windows desktop when Wi-Fi drops/resumes). A payload
+  // already in flight can invoke this callback after the provider has been
+  // disposed, so guard against touching a disposed ref which would otherwise
+  // throw and escalate into an unhandled error.
+  var disposed = false;
+
   final channel = api.subscribeToInfraWorkspace(
     organizationId: workspace.id,
-    onChange: (payload) => _invalidateInfraProviders(ref, payload),
+    onChange: (payload) {
+      if (disposed) return;
+      try {
+        _invalidateInfraProviders(ref, payload);
+      } catch (error, stack) {
+        // Provider was torn down (or invalidation raced a rebuild); ignore.
+        debugPrint('infraRealtimeBridge invalidate skipped: $error\n$stack');
+      }
+    },
   );
 
-  ref.onDispose(() => unawaited(api.unsubscribe(channel)));
+  ref.onDispose(() {
+    disposed = true;
+    unawaited(api.unsubscribe(channel));
+  });
 });
 
 void _invalidateInfraProviders(Ref ref, PostgresChangePayload payload) {
