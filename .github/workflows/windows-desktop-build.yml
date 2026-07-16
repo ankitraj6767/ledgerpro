@@ -20,6 +20,10 @@ jobs:
     name: Build NAVDREAM Windows
     runs-on: windows-latest
 
+    permissions:
+      contents: read
+      actions: write
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -77,6 +81,21 @@ jobs:
         shell: pwsh
         run: ./scripts/package_windows_release.ps1
 
+      # Remove previous artifacts with the same name so only the latest build
+      # is retained. Prevents the Actions artifact storage quota from filling
+      # up over time (each run's ~17 MB ZIP otherwise accumulates).
+      - name: Prune previous artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ART_NAME: ${{ steps.package.outputs.artifact_base }}
+        run: |
+          $ids = gh api "repos/${{ github.repository }}/actions/artifacts" --paginate --jq ".artifacts[] | select(.name==`"$env:ART_NAME`") | .id"
+          foreach ($id in $ids) {
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id"
+            Write-Host "Deleted old artifact $id"
+          }
+
       - name: Upload Windows app
         uses: actions/upload-artifact@v4
         with:
@@ -85,3 +104,4 @@ jobs:
             ${{ steps.package.outputs.zip_path }}
             ${{ steps.package.outputs.checksum_path }}
           if-no-files-found: error
+          retention-days: 5

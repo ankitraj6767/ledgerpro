@@ -52,6 +52,10 @@ jobs:
     name: Release LedgerPro Android
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      actions: write
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -159,6 +163,18 @@ jobs:
           ( cd dist/android && sha256sum "${{ steps.ver.outputs.artifact }}" > "${{ steps.ver.outputs.artifact }}.sha256" )
           echo "apk_path=$dest" >> "$GITHUB_OUTPUT"
 
+      # Remove previous artifacts with the same name so only the latest build
+      # is retained and the Actions artifact storage quota does not fill up.
+      - name: Prune previous artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          name="LedgerPro-Android-v${{ steps.ver.outputs.version }}"
+          for id in $(gh api "repos/${{ github.repository }}/actions/artifacts" --paginate --jq ".artifacts[] | select(.name==\"$name\") | .id"); do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" && echo "Deleted old artifact $id"
+          done
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -167,6 +183,7 @@ jobs:
             ${{ steps.stage.outputs.apk_path }}
             ${{ steps.stage.outputs.apk_path }}.sha256
           if-no-files-found: error
+          retention-days: 5
 
       - name: Publish to Supabase + update manifest
         if: ${{ steps.signing.outputs.signed == 'true' }}

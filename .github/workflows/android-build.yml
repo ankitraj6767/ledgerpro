@@ -22,6 +22,10 @@ jobs:
     name: Build LedgerPro Android
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      actions: write
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -65,9 +69,23 @@ jobs:
           fi
           flutter "${args[@]}"
 
+      # Remove previous artifacts with the same name so only the latest build
+      # is retained, keeping the Actions artifact storage quota from filling up
+      # (each run's ~40 MB APK otherwise accumulates).
+      - name: Prune previous artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          name="ledgerpro-android-debugkey-apk"
+          for id in $(gh api "repos/${{ github.repository }}/actions/artifacts" --paginate --jq ".artifacts[] | select(.name==\"$name\") | .id"); do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" && echo "Deleted old artifact $id"
+          done
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ledgerpro-android-debugkey-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          retention-days: 5

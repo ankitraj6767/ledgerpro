@@ -30,6 +30,10 @@ jobs:
     name: Build NAVDREAM macOS (${{ matrix.architecture }})
     runs-on: ${{ matrix.runner }}
 
+    permissions:
+      contents: read
+      actions: write
+
     strategy:
       fail-fast: false
       matrix:
@@ -164,6 +168,19 @@ jobs:
       - name: Package macOS app
         run: ./scripts/package_macos_release.sh "${{ matrix.architecture }}"
 
+      # Remove previous artifacts with this architecture's name so only the
+      # latest build is retained. Scoped per-architecture so the parallel
+      # matrix jobs don't delete each other's uploads.
+      - name: Prune previous artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          name="NAVDREAM-macos-${{ matrix.architecture }}-release"
+          for id in $(gh api "repos/${{ github.repository }}/actions/artifacts" --paginate --jq ".artifacts[] | select(.name==\"$name\") | .id"); do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" && echo "Deleted old artifact $id"
+          done
+
       - name: Upload macOS app
         uses: actions/upload-artifact@v4
         with:
@@ -172,6 +189,7 @@ jobs:
             dist/macos/${{ matrix.architecture }}/NAVDREAM-macos-${{ matrix.architecture }}-release.zip
             dist/macos/${{ matrix.architecture }}/NAVDREAM-macos-${{ matrix.architecture }}-release.zip.sha256
           if-no-files-found: error
+          retention-days: 5
 
       - name: Delete signing keychain
         if: ${{ always() }}
