@@ -4,18 +4,10 @@ name: Android Build
 # on every push to main (and on demand). Publishing to the update feed is done
 # by the separate "Android Release" workflow.
 
+# Manual-only build for a throwaway test APK. Pushes to main are handled by the
+# "Android Release" workflow, which builds, signs and publishes the update.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/android-build.yml"
-      - "android/**"
-      - "assets/**"
-      - "lib/**"
-      - "pubspec.yaml"
-      - "pubspec.lock"
 
 jobs:
   build:

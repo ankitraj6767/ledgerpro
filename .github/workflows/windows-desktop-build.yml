@@ -1,19 +1,9 @@
 name: Windows Desktop Build
 
+# Manual-only build for a test ZIP. Pushes to main are handled by the
+# "Windows Desktop Release" workflow, which builds and publishes the update.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/windows-desktop-build.yml"
-      - "assets/**"
-      - "lib/**"
-      - "pubspec.yaml"
-      - "pubspec.lock"
-      - "scripts/build_windows_release.ps1"
-      - "scripts/package_windows_release.ps1"
-      - "windows/**"
 
 jobs:
   build:

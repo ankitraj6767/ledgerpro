@@ -43,9 +43,21 @@ on:
         required: false
         type: boolean
         default: false
+  # Auto-publish an Android release on every push to main that touches app code
+  # or the version. The in-app updater only shows an update when the pubspec
+  # marketing version is higher than what a client already runs, so pushes
+  # without a version bump simply re-publish the same version (no-op for users).
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+    paths:
+      - "lib/**"
+      - "android/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "scripts/publish_supabase_release.sh"
+      - ".github/workflows/android-release.yml"
 
 jobs:
   release:

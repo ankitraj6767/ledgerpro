@@ -25,9 +25,22 @@ on:
         required: false
         type: boolean
         default: false
+  # Auto-publish a Windows release on every push to main that touches app code
+  # or the version. The in-app updater only shows an update when the pubspec
+  # marketing version is higher than what a client already runs, so pushes
+  # without a version bump simply re-publish the same version (no-op for users).
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+    paths:
+      - "lib/**"
+      - "windows/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "scripts/package_windows_release.ps1"
+      - "scripts/publish_supabase_release.ps1"
+      - ".github/workflows/windows-desktop-release.yml"
 
 permissions:
   contents: write
