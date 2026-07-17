@@ -447,22 +447,22 @@ class InfraReportService {
           else
             _premiumTable(
               headers: const [
+                'Bill',
                 'Date',
                 'Category',
                 'Vendor',
-                'Mode',
-                'Bill',
+                'Notes',
                 'Amount',
               ],
               rightAlignedColumns: const {5},
               rows: sorted
                   .map(
                     (item) => [
+                      _present(item.billNumber),
                       _formatDate(item.expenseDate),
                       item.category,
                       _present(item.vendorName),
-                      _label(item.paymentMode),
-                      _present(item.billNumber),
+                      _present(item.notes),
                       _inr(item.amountPaise),
                     ],
                   )
