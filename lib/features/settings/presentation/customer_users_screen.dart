@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/infra_theme.dart';
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
@@ -54,9 +55,17 @@ class _CustomerUsersScreenState extends ConsumerState<CustomerUsersScreen> {
         }
         return Scaffold(
           appBar: AppBar(title: const Text('Customers')),
-          body: ResponsiveFormArea(
+          body: RefreshIndicator(
+            onRefresh: () {
+              ref.invalidate(customerMembersProvider);
+              return ref.awaitRefresh(
+                ref.read(customerMembersProvider.future),
+              );
+            },
+            child: ResponsiveFormArea(
             maxWidth: 760,
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
                 SectionCard(
@@ -115,6 +124,7 @@ class _CustomerUsersScreenState extends ConsumerState<CustomerUsersScreen> {
                 const SizedBox(height: 16),
                 const _CustomerList(),
               ],
+            ),
             ),
           ),
         );

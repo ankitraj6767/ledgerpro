@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
@@ -76,13 +77,22 @@ class _ProjectsListScreenState extends ConsumerState<ProjectsListScreen> {
               data: (projects) {
                 final filtered = _filteredProjects(projects, query);
                 if (filtered.isEmpty) {
-                  return const EmptyState(
-                    icon: Icons.search_off,
-                    title: 'No matching projects',
+                  return RefreshIndicator(
+                    onRefresh: () => ref.refreshWorkspace(),
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 120),
+                        EmptyState(
+                          icon: Icons.search_off,
+                          title: 'No matching projects',
+                        ),
+                      ],
+                    ),
                   );
                 }
                 return RefreshIndicator(
-                  onRefresh: () async => ref.invalidate(projectsProvider),
+                  onRefresh: () => ref.refreshWorkspace(),
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: filtered.length,

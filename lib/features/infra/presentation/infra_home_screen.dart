@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../core/money/money.dart';
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/components/navdream_logo.dart';
@@ -46,19 +47,13 @@ class InfraHomeScreen extends ConsumerWidget {
             projectsAsync: projectsAsync,
             cachedProjects: cached?.projects,
             canCreateProjects: permissions.canManageProjects,
-            onRefresh: () async {
-              ref.invalidate(dashboardSummaryProvider);
-              ref.invalidate(projectsProvider);
-            },
+            onRefresh: () => ref.refreshWorkspace(),
           );
         }
         return Scaffold(
           backgroundColor: InfraColors.background,
           body: RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(dashboardSummaryProvider);
-              ref.invalidate(projectsProvider);
-            },
+            onRefresh: () => ref.refreshWorkspace(),
             child: ListView(
               padding: EdgeInsets.zero,
               children: [

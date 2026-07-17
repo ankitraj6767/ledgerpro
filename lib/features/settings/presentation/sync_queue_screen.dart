@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/infra_theme.dart';
 import '../../../core/network/network_monitor.dart';
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../core/sync/offline_sync_service.dart';
 
 class SyncQueueScreen extends ConsumerStatefulWidget {
@@ -30,8 +31,12 @@ class _SyncQueueScreenState extends ConsumerState<SyncQueueScreen> {
           onRetry: () => ref.invalidate(syncOverviewProvider),
         ),
         data: (overview) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(syncOverviewProvider),
+          onRefresh: () {
+            ref.invalidate(syncOverviewProvider);
+            return ref.awaitRefresh(ref.read(syncOverviewProvider.future));
+          },
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
               _SummaryCard(

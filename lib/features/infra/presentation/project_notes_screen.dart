@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
@@ -73,12 +74,24 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
               ),
               data: (notes) {
                 if (notes.isEmpty) {
-                  return const EmptyState(
-                    icon: Icons.sticky_note_2_outlined,
-                    title: 'No notes yet',
+                  return RefreshIndicator(
+                    onRefresh: () => ref.refreshProject(widget.projectId),
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 120),
+                        EmptyState(
+                          icon: Icons.sticky_note_2_outlined,
+                          title: 'No notes yet',
+                        ),
+                      ],
+                    ),
                   );
                 }
-                return ListView.builder(
+                return RefreshIndicator(
+                  onRefresh: () => ref.refreshProject(widget.projectId),
+                  child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   itemCount: notes.length,
                   itemBuilder: (context, index) {
@@ -97,6 +110,7 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
                       ),
                     );
                   },
+                ),
                 );
               },
             ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../core/security/app_session_controller.dart';
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../core/update/presentation/update_prompt.dart';
 import '../../../core/update/update_controller.dart';
 import '../../../core/update/update_service.dart';
@@ -29,13 +30,25 @@ class GlobalExpensesScreen extends ConsumerWidget {
         ),
         data: (projects) {
           if (projects.isEmpty) {
-            return const EmptyState(
-              icon: Icons.receipt_long_outlined,
-              title: 'No projects yet',
-              message: 'Create a project to start tracking expenses.',
+            return RefreshIndicator(
+              onRefresh: () => ref.refreshWorkspace(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 120),
+                  EmptyState(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'No projects yet',
+                    message: 'Create a project to start tracking expenses.',
+                  ),
+                ],
+              ),
             );
           }
-          return ListView(
+          return RefreshIndicator(
+            onRefresh: () => ref.refreshWorkspace(),
+            child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
               const Text(
@@ -64,6 +77,7 @@ class GlobalExpensesScreen extends ConsumerWidget {
                 ),
               ),
             ],
+            ),
           );
         },
       ),
@@ -88,13 +102,25 @@ class GlobalReportsScreen extends ConsumerWidget {
         ),
         data: (projects) {
           if (projects.isEmpty) {
-            return const EmptyState(
-              icon: Icons.bar_chart_outlined,
-              title: 'No data for reports yet',
-              message: 'Create a project to generate financial reports.',
+            return RefreshIndicator(
+              onRefresh: () => ref.refreshWorkspace(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 120),
+                  EmptyState(
+                    icon: Icons.bar_chart_outlined,
+                    title: 'No data for reports yet',
+                    message: 'Create a project to generate financial reports.',
+                  ),
+                ],
+              ),
             );
           }
-          return ListView(
+          return RefreshIndicator(
+            onRefresh: () => ref.refreshWorkspace(),
+            child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
               const Text(
@@ -121,6 +147,7 @@ class GlobalReportsScreen extends ConsumerWidget {
                 ),
               ),
             ],
+            ),
           );
         },
       ),
@@ -138,7 +165,10 @@ class ProfileScreen extends ConsumerWidget {
     final permissions = ref.watch(currentOrgPermissionsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: () => ref.refreshWorkspace(),
+        child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
           Card(
@@ -217,6 +247,7 @@ class ProfileScreen extends ConsumerWidget {
             label: const Text('Sign out'),
           ),
         ],
+        ),
       ),
     );
   }

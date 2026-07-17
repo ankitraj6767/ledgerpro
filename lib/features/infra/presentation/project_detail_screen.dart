@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../core/money/money.dart';
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/donut_expense_chart.dart';
 import '../../../shared/components/infra_components.dart';
@@ -296,7 +297,10 @@ class _OverviewTab extends ConsumerWidget {
     final expensesAsync = ref.watch(projectExpensesProvider(project.id));
     final permissions = ref.watch(currentOrgPermissionsProvider);
 
-    return ListView(
+    return RefreshIndicator(
+      onRefresh: () => ref.refreshProject(project.id),
+      child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
       children: [
         _ProjectHeaderCard(project: project),
@@ -415,6 +419,7 @@ class _OverviewTab extends ConsumerWidget {
         const SizedBox(height: 12),
         _QuickActions(project: project, permissions: permissions),
       ],
+      ),
     );
   }
 
@@ -1021,22 +1026,37 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                         : null,
                   ),
                   Expanded(
-                    child: investments.isEmpty
-                        ? const EmptyState(
-                            icon: Icons.savings_outlined,
-                            title: 'No investments yet',
-                            message:
-                                'Add an investor contribution to this project.',
+                    child: RefreshIndicator(
+                      onRefresh: () => ref.refreshProject(widget.project.id),
+                      child: investments.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 120),
+                              EmptyState(
+                                icon: Icons.savings_outlined,
+                                title: 'No investments yet',
+                                message:
+                                    'Add an investor contribution to this project.',
+                              ),
+                            ],
                           )
                         : filtered.isEmpty
-                        ? _NoFinanceMatches(
-                            icon: Icons.savings_outlined,
-                            title: 'No matching investors',
-                            query: _query,
-                            messageTail:
-                                'Try investor name, payment mode, reference, or amount.',
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 120),
+                              _NoFinanceMatches(
+                                icon: Icons.savings_outlined,
+                                title: 'No matching investors',
+                                query: _query,
+                                messageTail:
+                                    'Try investor name, payment mode, reference, or amount.',
+                              ),
+                            ],
                           )
                         : ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                             children: [
                               ...filtered.map(
@@ -1113,6 +1133,7 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
                               ),
                             ],
                           ),
+                    ),
                   ),
                 ],
               );
@@ -1935,21 +1956,37 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                         : null,
                   ),
                   Expanded(
-                    child: funds.isEmpty
-                        ? const EmptyState(
-                            icon: Icons.account_balance_outlined,
-                            title: 'No government funds yet',
-                            message: 'Add a sanctioned fund to track receipts.',
+                    child: RefreshIndicator(
+                      onRefresh: () => ref.refreshProject(widget.project.id),
+                      child: funds.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 120),
+                              EmptyState(
+                                icon: Icons.account_balance_outlined,
+                                title: 'No government funds yet',
+                                message:
+                                    'Add a sanctioned fund to track receipts.',
+                              ),
+                            ],
                           )
                         : filtered.isEmpty
-                        ? _NoFinanceMatches(
-                            icon: Icons.account_balance_outlined,
-                            title: 'No matching funds',
-                            query: _query,
-                            messageTail:
-                                'Try department, scheme, sanction order, status, or amount.',
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 120),
+                              _NoFinanceMatches(
+                                icon: Icons.account_balance_outlined,
+                                title: 'No matching funds',
+                                query: _query,
+                                messageTail:
+                                    'Try department, scheme, sanction order, status, or amount.',
+                              ),
+                            ],
                           )
                         : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
@@ -2083,6 +2120,7 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                               );
                             },
                           ),
+                    ),
                   ),
                 ],
               );
@@ -2396,22 +2434,37 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                       ),
                     ),
                   Expanded(
-                    child: expenses.isEmpty
-                        ? const EmptyState(
-                            icon: Icons.receipt_long_outlined,
-                            title: 'No expenses yet',
-                            message:
-                                'Record material, labor, and other project costs.',
+                    child: RefreshIndicator(
+                      onRefresh: () => ref.refreshProject(widget.project.id),
+                      child: expenses.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 120),
+                              EmptyState(
+                                icon: Icons.receipt_long_outlined,
+                                title: 'No expenses yet',
+                                message:
+                                    'Record material, labor, and other project costs.',
+                              ),
+                            ],
                           )
                         : filtered.isEmpty
-                        ? _NoFinanceMatches(
-                            icon: Icons.receipt_long_outlined,
-                            title: 'No matching expenses',
-                            query: _query,
-                            messageTail:
-                                'Try vendor, category, payment mode, bill number, or amount.',
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 120),
+                              _NoFinanceMatches(
+                                icon: Icons.receipt_long_outlined,
+                                title: 'No matching expenses',
+                                query: _query,
+                                messageTail:
+                                    'Try vendor, category, payment mode, bill number, or amount.',
+                              ),
+                            ],
                           )
                         : ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                             children: [
                               Card(
@@ -2626,6 +2679,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                               }),
                             ],
                           ),
+                    ),
                   ),
                 ],
               );
@@ -2650,36 +2704,40 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
   }
 }
 
-class _ReportsTab extends StatelessWidget {
+class _ReportsTab extends ConsumerWidget {
   const _ReportsTab({required this.project});
 
   final InfraProject project;
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        FilledButton.icon(
-          onPressed: () => context.push(
-            AppRoutes.projectReports(project.id),
-            extra: project,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return RefreshIndicator(
+      onRefresh: () => ref.refreshProject(project.id),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        children: [
+          FilledButton.icon(
+            onPressed: () => context.push(
+              AppRoutes.projectReports(project.id),
+              extra: project,
+            ),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            label: const Text('Open Project Reports'),
           ),
-          icon: const Icon(Icons.picture_as_pdf_outlined),
-          label: const Text('Open Project Reports'),
-        ),
-        const SizedBox(height: 12),
-        const Card(
-          child: ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Reports'),
-            subtitle: Text(
-              'Generate and share project summary, investor, government fund, '
-              'and expense reports as PDF.',
+          const SizedBox(height: 12),
+          const Card(
+            child: ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text('Reports'),
+              subtitle: Text(
+                'Generate and share project summary, investor, government fund, '
+                'and expense reports as PDF.',
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

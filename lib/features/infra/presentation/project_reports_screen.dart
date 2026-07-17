@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
@@ -41,7 +42,10 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
               icon: Icons.error_outline,
               title: 'Project not found',
             )
-          : ListView(
+          : RefreshIndicator(
+              onRefresh: () => ref.refreshProject(widget.projectId),
+              child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
                 _card(
@@ -74,6 +78,7 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   ),
               ],
+              ),
             ),
     );
   }

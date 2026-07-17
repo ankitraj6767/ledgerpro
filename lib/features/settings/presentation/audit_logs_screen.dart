@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/widgets/access_denied_screen.dart';
@@ -32,13 +33,31 @@ class AuditLogsScreen extends ConsumerWidget {
         ),
         data: (logs) {
           if (logs.isEmpty) {
-            return const EmptyState(
-              icon: Icons.manage_search_outlined,
-              title: 'No audit activity yet',
-              message: 'Project changes will be recorded here.',
+            return RefreshIndicator(
+              onRefresh: () {
+                ref.invalidate(infraAuditLogsProvider);
+                return ref.awaitRefresh(ref.read(infraAuditLogsProvider.future));
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 120),
+                  EmptyState(
+                    icon: Icons.manage_search_outlined,
+                    title: 'No audit activity yet',
+                    message: 'Project changes will be recorded here.',
+                  ),
+                ],
+              ),
             );
           }
-          return ListView.builder(
+          return RefreshIndicator(
+            onRefresh: () {
+              ref.invalidate(infraAuditLogsProvider);
+              return ref.awaitRefresh(ref.read(infraAuditLogsProvider.future));
+            },
+            child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: logs.length,
             itemBuilder: (context, index) {
@@ -54,6 +73,7 @@ class AuditLogsScreen extends ConsumerWidget {
                 ),
               );
             },
+            ),
           );
         },
       ),
