@@ -10,7 +10,7 @@ namespace {
 // window that is actually created so the two can never drift apart.
 constexpr const wchar_t kWindowTitle[] = L"NAVDREAM";
 
-// App-specific name for the single-instance mutex.
+// App-specific name for the single-instance mutex. 
 constexpr const wchar_t kSingleInstanceMutexName[] =
     L"NAVDREAM_Desktop_SingleInstance_Mutex";
 }  // namespace
