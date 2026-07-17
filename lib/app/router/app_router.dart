@@ -58,7 +58,7 @@ class AppRouter {
         ),
 
         // ------------------------------------------------------------------
-        // Bottom-nav shell
+        // Bottom-nav shell. 
         // ------------------------------------------------------------------
         ShellRoute(
           builder: (context, state, child) => InfraShell(child: child),
