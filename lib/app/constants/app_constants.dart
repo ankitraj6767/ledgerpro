@@ -29,7 +29,14 @@ class AppRoutes {
 
   // Projects
   static const newProject = '/projects/new';
-  static String projectDetail(String id) => '/projects/$id';
+
+  /// Project detail route. Pass [tab] to open a specific tab directly
+  /// (0=Overview, 1=Investors, 2=Government Funds, 3=Expenses, 4=Reports).
+  static String projectDetail(String id, {int? tab}) =>
+      tab == null ? '/projects/$id' : '/projects/$id?tab=$tab';
+
+  /// Tab index for the Expenses tab on the project detail screen.
+  static const projectDetailExpensesTab = 3;
   static String editProject(String id) => '/projects/$id/edit';
   static String projectInvestors(String id) => '/projects/$id/investors';
   static String newInvestment(String id) => '/projects/$id/investments/new';

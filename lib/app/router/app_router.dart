@@ -103,6 +103,8 @@ class AppRouter {
           builder: (context, state) => ProjectDetailScreen(
             projectId: state.pathParameters['projectId']!,
             initialProject: state.extra as InfraProject?,
+            initialTabIndex:
+                int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0,
           ),
         ),
         GoRoute(

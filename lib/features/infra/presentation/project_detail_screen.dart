@@ -19,10 +19,15 @@ class ProjectDetailScreen extends ConsumerWidget {
     super.key,
     required this.projectId,
     this.initialProject,
+    this.initialTabIndex = 0,
   });
 
   final String projectId;
   final InfraProject? initialProject;
+
+  /// Which tab to open first (0=Overview, 1=Investors, 2=Government Funds,
+  /// 3=Expenses, 4=Reports). Defaults to Overview.
+  final int initialTabIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,6 +52,7 @@ class ProjectDetailScreen extends ConsumerWidget {
 
     return DefaultTabController(
       length: 5,
+      initialIndex: initialTabIndex.clamp(0, 4),
       child: Scaffold(
         backgroundColor: InfraColors.background,
         appBar: AppBar(

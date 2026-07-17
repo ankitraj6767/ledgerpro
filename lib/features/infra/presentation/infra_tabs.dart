@@ -71,8 +71,13 @@ class GlobalExpensesScreen extends ConsumerWidget {
                       'Total expenses: ₹${(p.totalExpensePaise / 100).toStringAsFixed(2)}',
                     ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () =>
-                        context.push(AppRoutes.projectDetail(p.id), extra: p),
+                    onTap: () => context.push(
+                      AppRoutes.projectDetail(
+                        p.id,
+                        tab: AppRoutes.projectDetailExpensesTab,
+                      ),
+                      extra: p,
+                    ),
                   ),
                 ),
               ),
