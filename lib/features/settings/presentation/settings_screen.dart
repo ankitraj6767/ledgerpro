@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
@@ -85,6 +86,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
                 ),
                 const SizedBox(height: 12),
+                if (_accountIdentifier() != null) ...[
+                  _readOnlyField(
+                    'Signed in as',
+                    _accountIdentifier()!,
+                    Icons.badge_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _field(_name, 'Organization name', Icons.apartment),
                 const SizedBox(height: 12),
                 _field(_owner, 'Owner name', Icons.person_outline),
@@ -132,6 +141,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       controller: c,
       keyboardType: keyboard,
       maxLines: maxLines,
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+    );
+  }
+
+  /// The signed-in account's email, falling back to phone for OTP logins.
+  /// Returns null when there is no authenticated user (e.g. demo mode).
+  String? _accountIdentifier() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return null;
+    final email = user.email?.trim();
+    if (email != null && email.isNotEmpty) return email;
+    final phone = user.phone?.trim();
+    if (phone != null && phone.isNotEmpty) return phone;
+    return null;
+  }
+
+  /// A non-editable field used to display account info the user cannot change
+  /// here (their sign-in email).
+  Widget _readOnlyField(String label, String value, IconData icon) {
+    return TextFormField(
+      initialValue: value,
+      readOnly: true,
+      enabled: false,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
     );
   }
