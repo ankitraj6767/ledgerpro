@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       actions: write
 
     steps:
@@ -185,6 +185,34 @@ jobs:
           if-no-files-found: error
           retention-days: 5
 
+      # The APK (~88 MB) exceeds the Supabase free-plan 50 MB upload limit, so
+      # host it as a GitHub Release asset (public repo, no size limit) and let
+      # the manifest point at that URL.
+      - name: Publish GitHub Release (APK asset)
+        id: ghrelease
+        if: ${{ steps.signing.outputs.signed == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${{ steps.ver.outputs.version }}"
+          tag="v$version"
+          apk="${{ steps.stage.outputs.apk_path }}"
+          artifact="${{ steps.ver.outputs.artifact }}"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" "$apk.sha256" --clobber
+          else
+            gh release create "$tag" "$apk" "$apk.sha256" \
+              --title "LedgerPro Android v$version" \
+              --notes "${{ inputs.notes || format('LedgerPro Android v{0}', steps.ver.outputs.version) }}" \
+              --target "$GITHUB_SHA"
+          fi
+
+          url="https://github.com/${{ github.repository }}/releases/download/$tag/$artifact"
+          echo "asset_url=$url" >> "$GITHUB_OUTPUT"
+          echo "Release asset URL: $url"
+
       - name: Publish to Supabase + update manifest
         if: ${{ steps.signing.outputs.signed == 'true' }}
         env:
@@ -204,6 +232,7 @@ jobs:
             --build "${{ steps.ver.outputs.build }}" \
             --file "${{ steps.stage.outputs.apk_path }}" \
             --artifact-name "${{ steps.ver.outputs.artifact }}" \
+            --url "${{ steps.ghrelease.outputs.asset_url }}" \
             --notes "$notes" \
             --mandatory "${{ inputs.mandatory && 'true' || 'false' }}"
 

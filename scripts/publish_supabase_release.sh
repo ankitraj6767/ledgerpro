@@ -45,6 +45,11 @@ CONTENT_TYPE=""
 MANDATORY="false"
 MIN_SUPPORTED=""
 ARTIFACT_NAME=""
+# When set, the artifact is assumed to be hosted at this URL already (e.g. a
+# GitHub Release asset) and is NOT uploaded to Supabase Storage. Only the
+# manifest is updated to point at it. Use this for artifacts larger than the
+# Supabase project upload limit (50 MB on the free plan).
+EXTERNAL_URL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -59,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --mandatory) MANDATORY="$2"; shift 2 ;;
     --min-supported) MIN_SUPPORTED="$2"; shift 2 ;;
     --artifact-name) ARTIFACT_NAME="$2"; shift 2 ;;
+    --url) EXTERNAL_URL="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -81,7 +87,11 @@ VERSION="${VERSION%%+*}"
 
 ORIGIN="${SUPABASE_URL%/}"
 FILENAME="${ARTIFACT_NAME:-$(basename "$FILE")}"
-PUBLIC_URL="$ORIGIN/storage/v1/object/public/$BUCKET/$FILENAME"
+if [[ -n "$EXTERNAL_URL" ]]; then
+  PUBLIC_URL="$EXTERNAL_URL"
+else
+  PUBLIC_URL="$ORIGIN/storage/v1/object/public/$BUCKET/$FILENAME"
+fi
 
 if [[ -z "$CONTENT_TYPE" ]]; then
   case "$FILENAME" in
@@ -102,15 +112,21 @@ echo "  sha256:    $SHA256"
 echo "  publicUrl: $PUBLIC_URL"
 
 # --- 1. Upload the artifact (upsert) ----------------------------------------
-echo "Uploading artifact..."
-curl -fsSL -X POST "$ORIGIN/storage/v1/object/$BUCKET/$FILENAME" \
-  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-  -H "x-upsert: true" \
-  -H "Cache-Control: no-cache" \
-  -H "Content-Type: $CONTENT_TYPE" \
-  --data-binary "@$FILE" \
-  -o /dev/null
-echo "Artifact uploaded."
+# Skipped when --url is provided: the artifact is already hosted externally
+# (e.g. a GitHub Release asset) because it exceeds the Supabase upload limit.
+if [[ -n "$EXTERNAL_URL" ]]; then
+  echo "Skipping Supabase artifact upload; using external URL: $EXTERNAL_URL"
+else
+  echo "Uploading artifact..."
+  curl -fsSL -X POST "$ORIGIN/storage/v1/object/$BUCKET/$FILENAME" \
+    -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "x-upsert: true" \
+    -H "Cache-Control: no-cache" \
+    -H "Content-Type: $CONTENT_TYPE" \
+    --data-binary "@$FILE" \
+    -o /dev/null
+  echo "Artifact uploaded."
+fi
 
 # --- 2. Fetch the current manifest (or start fresh) -------------------------
 CURRENT="$(mktemp)"
