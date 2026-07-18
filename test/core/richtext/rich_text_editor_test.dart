@@ -46,4 +46,34 @@ void main() {
     expect(find.byIcon(Icons.format_bold), findsOneWidget);
     controller.dispose();
   });
+
+  testWidgets('builds inside an unbounded ListView (like the forms)', (
+    tester,
+  ) async {
+    // The real forms place the editor inside a ListView, which gives children
+    // unbounded height — guard against nested-scrollable layout crashes.
+    final controller = TextEditingController();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [
+          FleatherLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(
+          body: ListView(
+            children: [
+              const TextField(),
+              RichTextEditorField(controller: controller, label: 'Notes'),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    controller.dispose();
+  });
 }

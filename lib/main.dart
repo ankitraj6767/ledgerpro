@@ -6,11 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:go_router/go_router.dart';
+
 import 'app/app.dart';
+import 'app/constants/app_constants.dart';
 import 'app/constants/supabase_config.dart';
 import 'app/router/app_router.dart';
 import 'core/cache/dashboard_cache.dart';
 import 'core/security/app_session_controller.dart';
+
+/// The app router, kept at top level so the crash-recovery fallback can send
+/// the user back to a known-good screen without needing a build context.
+GoRouter? _appRouter;
 
 Future<void> main() async {
   // Run the whole app inside a guarded zone so that any uncaught asynchronous
@@ -59,7 +66,7 @@ Future<void> main() async {
           details.stack,
           context: details.context?.toDescription(),
         );
-        return const _AppErrorFallback();
+        return _AppErrorFallback(errorText: details.exceptionAsString());
       };
 
       if (SupabaseConfig.isConfigured) {
@@ -107,6 +114,7 @@ Future<void> main() async {
       }
 
       final router = AppRouter.create(sessionController);
+      _appRouter = router;
 
       runApp(
         ProviderScope(
@@ -130,14 +138,33 @@ Future<void> main() async {
 /// Flutter widgets and hardcoded colors, and wraps itself in [Directionality]
 /// and [Material], because [ErrorWidget.builder] can be invoked for a subtree
 /// that sits above (or outside) the app's `MaterialApp`/`Directionality`.
-class _AppErrorFallback extends StatelessWidget {
-  const _AppErrorFallback();
+class _AppErrorFallback extends StatefulWidget {
+  const _AppErrorFallback({this.errorText});
 
+  final String? errorText;
+
+  @override
+  State<_AppErrorFallback> createState() => _AppErrorFallbackState();
+}
+
+class _AppErrorFallbackState extends State<_AppErrorFallback> {
   static const _navy = Color(0xFF03152E);
   static const _gold = Color(0xFFD6A83A);
+  static const _blue = Color(0xFF1D74F5);
+
+  bool _showDetails = false;
+
+  void _goHome() {
+    try {
+      _appRouter?.go(AppRoutes.home);
+    } catch (_) {
+      // If navigation is unavailable, the user can still reopen the app.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final error = widget.errorText?.trim() ?? '';
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Material(
@@ -148,14 +175,10 @@ class _AppErrorFallback extends StatelessWidget {
               padding: const EdgeInsets.all(28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(
-                    Icons.refresh_rounded,
-                    color: _gold,
-                    size: 52,
-                  ),
-                  SizedBox(height: 18),
-                  Text(
+                children: [
+                  const Icon(Icons.refresh_rounded, color: _gold, size: 52),
+                  const SizedBox(height: 18),
+                  const Text(
                     'Something needs a moment',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -164,10 +187,10 @@ class _AppErrorFallback extends StatelessWidget {
                       fontSize: 20,
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    'This screen ran into a temporary problem. Please close and '
-                    'reopen the app — your data is safe.',
+                  const SizedBox(height: 10),
+                  const Text(
+                    'This screen ran into a temporary problem. Your data is '
+                    'safe — tap below to go back to the home screen.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white70,
@@ -175,6 +198,45 @@ class _AppErrorFallback extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
+                  const SizedBox(height: 22),
+                  FilledButton.icon(
+                    onPressed: _goHome,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _blue,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(200, 48),
+                    ),
+                    icon: const Icon(Icons.home_rounded),
+                    label: const Text('Back to home'),
+                  ),
+                  if (error.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _showDetails = !_showDetails),
+                      child: Text(
+                        _showDetails ? 'Hide details' : 'Show details',
+                        style: const TextStyle(color: Colors.white54),
+                      ),
+                    ),
+                    if (_showDetails)
+                      Container(
+                        margin: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: SelectableText(
+                          error,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),

@@ -4,11 +4,16 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'rich_text_document.dart';
 
-/// Renders rich text (the Markdown subset in [parseRichText]) as Flutter
-/// widgets. Read-only; used to display notes/descriptions in detail views.
+/// Renders rich text (the Markdown subset / Delta JSON understood by
+/// [parseRichText]) as read-only Flutter widgets. Used to display
+/// notes/descriptions in detail views and lists.
 ///
-/// It manages [TapGestureRecognizer]s for links and disposes them properly, so
-/// it is safe to embed anywhere.
+/// Hardened so it can never crash the screen:
+///  * no null-assertions on text metrics,
+///  * link [TapGestureRecognizer]s are disposed *after* the frame (never
+///    during build, which is a documented cause of "used after dispose"
+///    crashes), and
+///  * any unexpected error falls back to plain text.
 class RichTextView extends StatefulWidget {
   const RichTextView(
     this.data, {
@@ -30,25 +35,24 @@ class RichTextView extends StatefulWidget {
 }
 
 class _RichTextViewState extends State<RichTextView> {
-  final List<TapGestureRecognizer> _recognizers = [];
+  /// Recognizers created during the current build.
+  List<TapGestureRecognizer> _recognizers = [];
 
   @override
   void dispose() {
-    _disposeRecognizers();
-    super.dispose();
-  }
-
-  void _disposeRecognizers() {
     for (final r in _recognizers) {
       r.dispose();
     }
-    _recognizers.clear();
+    _recognizers = [];
+    super.dispose();
   }
 
   Future<void> _openLink(String url) async {
-    final uri = Uri.tryParse(url.trim());
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return;
+    final uri = Uri.tryParse(trimmed);
     if (uri == null) return;
-    final normalized = uri.hasScheme ? uri : Uri.parse('https://$url');
+    final normalized = uri.hasScheme ? uri : Uri.parse('https://$trimmed');
     try {
       if (await canLaunchUrl(normalized)) {
         await launchUrl(normalized, mode: LaunchMode.externalApplication);
@@ -60,8 +64,38 @@ class _RichTextViewState extends State<RichTextView> {
 
   @override
   Widget build(BuildContext context) {
-    // Recognizers are rebuilt on every build; clear the previous batch first.
-    _disposeRecognizers();
+    try {
+      return _buildContent(context);
+    } catch (_) {
+      // Never let a rendering edge-case crash the surrounding screen.
+      return Text(
+        _plainFallback(),
+        style: widget.baseStyle,
+      );
+    }
+  }
+
+  String _plainFallback() {
+    try {
+      return richTextToPlain(widget.data);
+    } catch (_) {
+      return widget.data ?? '';
+    }
+  }
+
+  Widget _buildContent(BuildContext context) {
+    // Retire the previous frame's recognizers *after* this frame commits, so a
+    // recognizer that is still referenced by the current render tree / gesture
+    // arena is never disposed while in use.
+    final previous = _recognizers;
+    _recognizers = <TapGestureRecognizer>[];
+    if (previous.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (final r in previous) {
+          r.dispose();
+        }
+      });
+    }
 
     final blocks = parseRichText(widget.data);
     if (blocks.isEmpty) return const SizedBox.shrink();
@@ -75,7 +109,7 @@ class _RichTextViewState extends State<RichTextView> {
     final children = <Widget>[];
     for (var i = 0; i < blocks.length; i++) {
       if (i > 0) children.add(SizedBox(height: widget.blockSpacing));
-      children.add(_buildBlock(context, blocks[i], base));
+      children.add(_buildBlock(blocks[i], base));
     }
 
     return Column(
@@ -85,14 +119,25 @@ class _RichTextViewState extends State<RichTextView> {
     );
   }
 
-  Widget _buildBlock(BuildContext context, RtBlock block, TextStyle base) {
+  Widget _buildBlock(RtBlock block, TextStyle base) {
+    // Never assert on fontSize; fall back to a sensible default.
+    final baseSize = base.fontSize ?? 14.0;
     switch (block.type) {
       case RtBlockType.h1:
-        return _paragraph(block, base.copyWith(fontSize: base.fontSize! + 8, fontWeight: FontWeight.w900));
+        return _paragraph(
+          block,
+          base.copyWith(fontSize: baseSize + 8, fontWeight: FontWeight.w900),
+        );
       case RtBlockType.h2:
-        return _paragraph(block, base.copyWith(fontSize: base.fontSize! + 5, fontWeight: FontWeight.w800));
+        return _paragraph(
+          block,
+          base.copyWith(fontSize: baseSize + 5, fontWeight: FontWeight.w800),
+        );
       case RtBlockType.h3:
-        return _paragraph(block, base.copyWith(fontSize: base.fontSize! + 2, fontWeight: FontWeight.w800));
+        return _paragraph(
+          block,
+          base.copyWith(fontSize: baseSize + 2, fontWeight: FontWeight.w800),
+        );
       case RtBlockType.bullet:
         return _listItem(block, base, marker: '•  ');
       case RtBlockType.ordered:
@@ -102,12 +147,18 @@ class _RichTextViewState extends State<RichTextView> {
           padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
           decoration: BoxDecoration(
             border: Border(
-              left: BorderSide(color: base.color?.withValues(alpha: 0.35) ?? Colors.grey, width: 3),
+              left: BorderSide(
+                color: base.color?.withValues(alpha: 0.35) ?? Colors.grey,
+                width: 3,
+              ),
             ),
           ),
           child: _paragraph(
             block,
-            base.copyWith(fontStyle: FontStyle.italic, color: base.color?.withValues(alpha: 0.85)),
+            base.copyWith(
+              fontStyle: FontStyle.italic,
+              color: base.color?.withValues(alpha: 0.85),
+            ),
           ),
         );
       case RtBlockType.paragraph:
@@ -116,9 +167,7 @@ class _RichTextViewState extends State<RichTextView> {
   }
 
   Widget _paragraph(RtBlock block, TextStyle style) {
-    return RichText(
-      text: TextSpan(children: _spans(block.spans, style)),
-    );
+    return RichText(text: TextSpan(children: _spans(block.spans, style)));
   }
 
   Widget _listItem(RtBlock block, TextStyle base, {required String marker}) {
@@ -144,14 +193,14 @@ class _RichTextViewState extends State<RichTextView> {
           backgroundColor: (base.color ?? Colors.black).withValues(alpha: 0.06),
         );
       }
-      if (span.link != null) {
+      final link = span.link;
+      if (link != null) {
         style = style.copyWith(
           color: const Color(0xFF1D74F5),
           decoration: TextDecoration.underline,
           decorationColor: const Color(0xFF1D74F5),
         );
-        final recognizer = TapGestureRecognizer()
-          ..onTap = () => _openLink(span.link!);
+        final recognizer = TapGestureRecognizer()..onTap = () => _openLink(link);
         _recognizers.add(recognizer);
         return TextSpan(text: span.text, style: style, recognizer: recognizer);
       }
