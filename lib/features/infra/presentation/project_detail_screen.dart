@@ -1160,7 +1160,7 @@ class _InvestorsTabState extends ConsumerState<_InvestorsTab> {
       ...summary.investments.expand((i) => [
             i.paymentMode,
             i.referenceNumber,
-            i.notes,
+            richTextToPlain(i.notes),
             _searchDate(i.investmentDate),
           ]),
     ];
@@ -1501,8 +1501,6 @@ class _InvestmentHistoryTile extends ConsumerWidget {
             if (investment.investmentDate != null)
               DateFormat('dd MMM yyyy').format(investment.investmentDate!),
             _humanizeToken(investment.paymentMode),
-            if (investment.notes != null && investment.notes!.isNotEmpty)
-              investment.notes!,
           ].join(' · '),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -1590,8 +1588,6 @@ class _ReturnHistoryTile extends ConsumerWidget {
             if (returnEntry.returnDate != null)
               DateFormat('dd MMM yyyy').format(returnEntry.returnDate!),
             _humanizeToken(returnEntry.paymentMode),
-            if (returnEntry.notes != null && returnEntry.notes!.isNotEmpty)
-              returnEntry.notes!,
           ].join(' · '),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -2145,7 +2141,7 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
       fund.departmentName,
       fund.schemeName,
       fund.sanctionOrderNumber,
-      fund.notes,
+      richTextToPlain(fund.notes),
       _fundStatusLabel(fund.status),
       Money.fromPaise(fund.amountSanctionedPaise).formatInr(),
       Money.fromPaise(fund.amountReceivedPaise).formatInr(),
@@ -2705,7 +2701,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
       expense.category,
       expense.paymentMode,
       expense.billNumber,
-      expense.notes,
+      richTextToPlain(expense.notes),
       Money.fromPaise(expense.amountPaise).formatInr(),
       (expense.amountPaise / 100).toStringAsFixed(2),
       _searchDate(expense.expenseDate),
@@ -3347,19 +3343,6 @@ class _ReceiptRow extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if ((receipt.notes ?? '').trim().isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    receipt.notes!.trim(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: InfraColors.textSecondary,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
