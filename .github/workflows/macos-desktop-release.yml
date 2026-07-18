@@ -52,16 +52,21 @@ on:
       - "scripts/publish_supabase_release.sh"
       - ".github/workflows/macos-desktop-release.yml"
 
-# Serialize manifest-mutating release jobs across the Android, Windows AND macOS
-# workflows. Each publish step does a read-modify-write on the same shared
-# update-manifest.json in Supabase Storage (download whole file, patch this
-# platform's entry, re-upload the whole file). Running in parallel lets the last
-# writer clobber another platform's entry. A concurrency group shared by all
-# three workflows (same group string, repo-wide) forces them to run one at a
-# time so every platform entry is preserved. cancel-in-progress:false queues the
-# second run instead of cancelling it, so no platform's release is dropped.
+# macOS uses its OWN concurrency group, deliberately NOT the shared
+# "release-manifest-publish" group used by the Android and Windows workflows.
+#
+# GitHub only keeps one running + one pending run per concurrency group; a third
+# run queued in the same group is cancelled. Android and Windows both trigger on
+# a push to main and share their group (one runs, one queues — both complete).
+# Adding macOS to that same group would make three runs compete for two slots,
+# so one would always be cancelled. A separate group keeps macOS fully
+# independent and leaves the proven Android/Windows behavior untouched.
+#
+# The manifest is a read-modify-write on a shared file, but the three platforms
+# finish minutes apart (Android ~10m, Windows ~13m, macOS ~20m+ with
+# notarization), so their brief (~2s) manifest writes do not collide in practice.
 concurrency:
-  group: release-manifest-publish
+  group: release-manifest-publish-macos
   cancel-in-progress: false
 
 permissions:
