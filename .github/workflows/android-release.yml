@@ -59,6 +59,20 @@ on:
       - "scripts/publish_supabase_release.sh"
       - ".github/workflows/android-release.yml"
 
+# Serialize manifest-mutating release jobs across BOTH the Android and Windows
+# workflows. Each publish step does a read-modify-write on the same shared
+# update-manifest.json in Supabase Storage (download whole file, patch this
+# platform's entry, re-upload the whole file). Running in parallel lets the
+# last writer clobber the other platform's entry — e.g. a Windows publish that
+# read the manifest before Android's write landed reverts Android back to the
+# previous version. A concurrency group shared by both workflows (same group
+# string, repo-wide) forces them to run one at a time so every platform entry
+# is preserved. cancel-in-progress:false queues the second run instead of
+# cancelling it, so neither platform's release is dropped.
+concurrency:
+  group: release-manifest-publish
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Release LedgerPro Android
