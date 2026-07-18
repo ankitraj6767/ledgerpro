@@ -3345,7 +3345,7 @@ void _showExpenseDetails(
     icon: Icons.receipt_long_outlined,
     accentColor: InfraColors.red,
     title: expense.category,
-    subtitle: _presentText(expense.vendorName, 'Project expense'),
+    subtitle: 'Project expense',
     amountLabel: 'Expense amount',
     amountPaise: expense.amountPaise,
     onGeneratePdf: onGeneratePdf,
@@ -3354,7 +3354,6 @@ void _showExpenseDetails(
         title: 'Expense Details',
         rows: [
           _FinanceDetailRowData('Category', expense.category),
-          _FinanceDetailRowData('Vendor', _presentText(expense.vendorName)),
           _FinanceDetailRowData(
             'Expense date',
             _dateLabel(expense.expenseDate),
@@ -3362,14 +3361,6 @@ void _showExpenseDetails(
           _FinanceDetailRowData(
             'Payment mode',
             _humanizeToken(expense.paymentMode),
-          ),
-          _FinanceDetailRowData(
-            'Bill number',
-            _presentText(expense.billNumber),
-          ),
-          _FinanceDetailRowData(
-            'Bill image',
-            _presentText(expense.billImagePath),
           ),
           _FinanceDetailRowData('Created by', _presentText(expense.createdBy)),
         ],

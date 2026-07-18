@@ -138,27 +138,18 @@ class InfraReportService {
             _emptySection('No expenses recorded.')
           else
             _premiumTable(
-              headers: const [
-                'Date',
-                'Category',
-                'Vendor',
-                'Mode',
-                'Bill',
-                'Amount',
+              headers: const ['S.No', 'Date', 'Category', 'Notes', 'Amount'],
+              rightAlignedColumns: const {4},
+              rows: [
+                for (var i = 0; i < expenses.length; i++)
+                  [
+                    '${i + 1}',
+                    _formatDate(expenses[i].expenseDate),
+                    expenses[i].category,
+                    _plainNotes(expenses[i].notes),
+                    _inr(expenses[i].amountPaise),
+                  ],
               ],
-              rightAlignedColumns: const {5},
-              rows: expenses
-                  .map(
-                    (e) => [
-                      _formatDate(e.expenseDate),
-                      e.category,
-                      e.vendorName ?? '-',
-                      _label(e.paymentMode),
-                      e.billNumber ?? '-',
-                      _inr(e.amountPaise),
-                    ],
-                  )
-                  .toList(),
             ),
         ],
       ),
@@ -455,27 +446,18 @@ class InfraReportService {
             _emptySection('No expense transactions available.')
           else
             _premiumTable(
-              headers: const [
-                'Bill',
-                'Date',
-                'Category',
-                'Vendor',
-                'Notes',
-                'Amount',
+              headers: const ['S.No', 'Date', 'Category', 'Notes', 'Amount'],
+              rightAlignedColumns: const {4},
+              rows: [
+                for (var i = 0; i < sorted.length; i++)
+                  [
+                    '${i + 1}',
+                    _formatDate(sorted[i].expenseDate),
+                    sorted[i].category,
+                    _plainNotes(sorted[i].notes),
+                    _inr(sorted[i].amountPaise),
+                  ],
               ],
-              rightAlignedColumns: const {5},
-              rows: sorted
-                  .map(
-                    (item) => [
-                      _present(item.billNumber),
-                      _formatDate(item.expenseDate),
-                      item.category,
-                      _present(item.vendorName),
-                      _plainNotes(item.notes),
-                      _inr(item.amountPaise),
-                    ],
-                  )
-                  .toList(),
             ),
         ],
       ),
@@ -707,7 +689,7 @@ class InfraReportService {
       metrics: [
         _PdfMetric('Expense Amount', _inr(expense.amountPaise), _red),
         _PdfMetric('Category', expense.category, _blue),
-        _PdfMetric('Vendor', _present(expense.vendorName), _gold),
+        _PdfMetric('Payment Mode', _label(expense.paymentMode), _gold),
         _PdfMetric('Expense Date', _formatDate(expense.expenseDate), _orange),
       ],
       sections: [
@@ -716,11 +698,8 @@ class InfraReportService {
           accent: _red,
           rows: [
             ['Category', expense.category],
-            ['Vendor', _present(expense.vendorName)],
             ['Expense Date', _formatDate(expense.expenseDate)],
             ['Payment Mode', _label(expense.paymentMode)],
-            ['Bill Number', _present(expense.billNumber)],
-            ['Bill Image', _present(expense.billImagePath)],
             ['Created By', _present(expense.createdBy)],
           ],
         ),
@@ -911,10 +890,17 @@ class InfraReportService {
                     pw.Row(
                       children: [
                         if (logo != null) ...[
-                          pw.Container(
-                            width: 44,
-                            height: 44,
-                            child: pw.Image(logo, fit: pw.BoxFit.contain),
+                          // Clip the logo to a rounded square so the opaque
+                          // corners baked into the PNG don't show as white
+                          // squares against the navy header.
+                          pw.ClipRRect(
+                            horizontalRadius: 13,
+                            verticalRadius: 13,
+                            child: pw.SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: pw.Image(logo, fit: pw.BoxFit.cover),
+                            ),
                           ),
                           pw.SizedBox(width: 10),
                         ],
@@ -1564,11 +1550,12 @@ class InfraReportService {
         normalized.contains('pending')) {
       return 1.15;
     }
-    if (normalized.contains('date') ||
+    if (normalized.contains('s.no') ||
+        normalized.contains('date') ||
         normalized.contains('mode') ||
         normalized.contains('bill') ||
         normalized.contains('status')) {
-      return 0.9;
+      return normalized.contains('s.no') ? 0.5 : 0.9;
     }
     return 1;
   }
