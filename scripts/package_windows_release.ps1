@@ -79,45 +79,64 @@ function Copy-VCRuntime {
     #>
     param([Parameter(Mandatory = $true)] [string]$Destination)
 
+    # These MUST be present next to the exe or a clean target machine fails with
+    # the "Bad Image" 0xc0e90002 error. vcruntime140_1.dll in particular is the
+    # one most often missing on machines with only an older redistributable.
+    $required = @('vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll')
+    # Nice-to-have companions that some C++ standard-library features pull in.
+    $optional = @(
+        'msvcp140_1.dll', 'msvcp140_2.dll', 'msvcp140_atomic_wait.dll',
+        'msvcp140_codecvt_ids.dll', 'concrt140.dll', 'vccorlib140.dll',
+        'vcruntime140_threads.dll'
+    )
+    $wanted = $required + $optional
+
+    # Build the ordered list of source directories to pull DLLs from.
+    $sourceDirs = New-Object System.Collections.Generic.List[string]
+
+    # Primary source: the official VC++ redistributable that ships with Visual
+    # Studio. Discover the CRT folder directly (its version can differ from
+    # Microsoft.VCRedistVersion.default.txt), preferring the newest.
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (-not (Test-Path $vswhere)) {
-        Write-Warning "vswhere.exe not found; VC++ runtime NOT bundled. Target machines will need the Microsoft Visual C++ Redistributable installed."
-        return
+    if (Test-Path $vswhere) {
+        $vsPath = & $vswhere -latest -products * -property installationPath 2>$null | Select-Object -First 1
+        if (-not [string]::IsNullOrWhiteSpace($vsPath)) {
+            $redistRoot = Join-Path $vsPath 'VC\Redist\MSVC'
+            if (Test-Path $redistRoot) {
+                foreach ($versionDir in (Get-ChildItem -Path $redistRoot -Directory | Sort-Object Name -Descending)) {
+                    $crt = Get-ChildItem -Path (Join-Path $versionDir.FullName 'x64') -Directory -Filter 'Microsoft.VC*.CRT' -ErrorAction SilentlyContinue |
+                        Sort-Object Name -Descending | Select-Object -First 1
+                    if ($crt) { $sourceDirs.Add($crt.FullName); break }
+                }
+            }
+        }
     }
 
-    $vsPath = & $vswhere -latest -products * -property installationPath 2>$null | Select-Object -First 1
-    if ([string]::IsNullOrWhiteSpace($vsPath)) {
-        Write-Warning "No Visual Studio installation located via vswhere; VC++ runtime NOT bundled."
-        return
+    # Fallback source: the live system runtime. It is always present on a host
+    # that can build the Windows app in the first place, and contains the exact
+    # same DLLs. Guarantees bundling even if the redist folder cannot be located.
+    $sourceDirs.Add((Join-Path $env:WINDIR 'System32'))
+
+    foreach ($name in $wanted) {
+        if (Test-Path (Join-Path $Destination $name)) { continue }
+        foreach ($dir in $sourceDirs) {
+            $src = Join-Path $dir $name
+            if (Test-Path $src) {
+                Copy-Item -Path $src -Destination $Destination -Force
+                Write-Host "  Bundled runtime DLL: $name (from $dir)"
+                break
+            }
+        }
     }
 
-    $redistRoot = Join-Path $vsPath 'VC\Redist\MSVC'
-    if (-not (Test-Path $redistRoot)) {
-        Write-Warning "VC++ redist root '$redistRoot' not found; VC++ runtime NOT bundled."
-        return
+    # Hard-fail if any required runtime DLL is still missing. Publishing a ZIP
+    # without these produces the exact "Bad Image" crash we are fixing, so we
+    # must never ship one silently.
+    $missing = @($required | Where-Object { -not (Test-Path (Join-Path $Destination $_)) })
+    if ($missing.Count -gt 0) {
+        throw "VC++ runtime bundling failed; missing: $($missing -join ', '). Install Visual Studio or the Microsoft Visual C++ Redistributable on the build host and retry."
     }
-
-    # Discover the CRT folder directly and prefer the newest version. The folder
-    # name under Redist\MSVC can differ slightly from the value in
-    # Microsoft.VCRedistVersion.default.txt, so we do not trust that file.
-    $crtFolder = $null
-    foreach ($versionDir in (Get-ChildItem -Path $redistRoot -Directory | Sort-Object Name -Descending)) {
-        $candidate = Get-ChildItem -Path (Join-Path $versionDir.FullName 'x64') -Directory -Filter 'Microsoft.VC*.CRT' -ErrorAction SilentlyContinue |
-            Sort-Object Name -Descending | Select-Object -First 1
-        if ($candidate) { $crtFolder = $candidate; break }
-    }
-
-    if (-not $crtFolder) {
-        Write-Warning "No 'Microsoft.VC*.CRT' folder found under '$redistRoot'; VC++ runtime NOT bundled."
-        return
-    }
-
-    $dlls = @(Get-ChildItem -Path $crtFolder.FullName -Filter '*.dll' -File)
-    foreach ($dll in $dlls) {
-        Copy-Item -Path $dll.FullName -Destination $Destination -Force
-        Write-Host "  Bundled runtime DLL: $($dll.Name)"
-    }
-    Write-Host "Bundled $($dlls.Count) Visual C++ runtime DLL(s) from '$($crtFolder.Name)'."
+    Write-Host "Verified Visual C++ runtime is bundled ($($required -join ', '))."
 }
 
 # --- Resolve and normalize the version --------------------------------------
