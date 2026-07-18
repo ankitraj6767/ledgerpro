@@ -663,9 +663,13 @@ class _GovtFundFormScreenState extends ConsumerState<GovtFundFormScreen> {
 // Add government receipt (receives a GovernmentFund as extra)
 // ---------------------------------------------------------------------------
 class GovtReceiptFormScreen extends ConsumerStatefulWidget {
-  const GovtReceiptFormScreen({super.key, required this.fund});
+  const GovtReceiptFormScreen({super.key, required this.fund, this.receipt});
 
   final GovernmentFund fund;
+
+  /// When non-null the form edits this existing receipt instead of adding a
+  /// new one.
+  final GovernmentFundReceipt? receipt;
 
   @override
   ConsumerState<GovtReceiptFormScreen> createState() =>
@@ -679,6 +683,29 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
   String _paymentMode = 'bank';
   DateTime _date = DateTime.now();
   bool _saving = false;
+
+  bool get _isEditing => widget.receipt != null;
+
+  /// Highest receipt amount the fund can still absorb. When editing, the
+  /// receipt's own current amount is already counted in the fund's received
+  /// total, so it becomes available again for this edit.
+  int get _availablePaise {
+    final base = widget.fund.pendingAmountPaise;
+    return _isEditing ? base + widget.receipt!.amountPaise : base;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final receipt = widget.receipt;
+    if (receipt != null) {
+      _amount.text = (receipt.amountPaise / 100).toStringAsFixed(2);
+      _reference.text = receipt.referenceNumber ?? '';
+      _notes.text = receipt.notes ?? '';
+      _paymentMode = receipt.paymentMode;
+      _date = receipt.receivedDate ?? DateTime.now();
+    }
+  }
 
   @override
   void dispose() {
@@ -699,7 +726,9 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Fund Receipt')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Fund Receipt' : 'Add Fund Receipt'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -707,7 +736,7 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
             child: ListTile(
               title: Text(widget.fund.departmentName),
               subtitle: Text(
-                'Pending: ₹${(widget.fund.pendingAmountPaise / 100).toStringAsFixed(2)}',
+                'Available: ₹${(_availablePaise / 100).toStringAsFixed(2)}',
               ),
             ),
           ),
@@ -733,7 +762,7 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: const Text('Save Receipt'),
+            label: Text(_isEditing ? 'Update Receipt' : 'Save Receipt'),
           ),
         ],
       ),
@@ -752,7 +781,7 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
       );
       return;
     }
-    if (amount > widget.fund.pendingAmountPaise) {
+    if (amount > _availablePaise) {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Receipt cannot exceed the pending sanctioned amount.'),
@@ -762,23 +791,40 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
     }
     setState(() => _saving = true);
     try {
-      await ref
-          .read(infraRepositoryProvider)
-          .addGovernmentReceipt(
-            governmentFundId: widget.fund.id,
-            amountPaise: amount,
-            receivedDate: _date,
-            paymentMode: _paymentMode,
-            referenceNumber: _reference.text.trim().isEmpty
-                ? null
-                : _reference.text.trim(),
-            notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
-          );
+      final repo = ref.read(infraRepositoryProvider);
+      final reference = _reference.text.trim().isEmpty
+          ? null
+          : _reference.text.trim();
+      final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
+      if (_isEditing) {
+        await repo.updateGovernmentReceipt(
+          receiptId: widget.receipt!.id,
+          amountPaise: amount,
+          receivedDate: _date,
+          paymentMode: _paymentMode,
+          referenceNumber: reference,
+          notes: notes,
+        );
+      } else {
+        await repo.addGovernmentReceipt(
+          governmentFundId: widget.fund.id,
+          amountPaise: amount,
+          receivedDate: _date,
+          paymentMode: _paymentMode,
+          referenceNumber: reference,
+          notes: notes,
+        );
+      }
+      ref.invalidate(fundReceiptsProvider(widget.fund.id));
       ref.invalidate(governmentFundsProvider(widget.fund.projectId));
       ref.invalidate(projectFinancialSummaryProvider(widget.fund.projectId));
       ref.invalidate(projectsProvider);
       ref.invalidate(dashboardSummaryProvider);
-      messenger.showSnackBar(const SnackBar(content: Text('Receipt saved.')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_isEditing ? 'Receipt updated.' : 'Receipt saved.'),
+        ),
+      );
       if (mounted) context.pop();
     } catch (error) {
       messenger.showSnackBar(

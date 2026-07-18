@@ -877,6 +877,30 @@ class InfraRepository {
     await _client.rpc('delete_government_fund', params: {'p_fund_id': fundId});
   }
 
+  Future<void> updateGovernmentReceipt({
+    required String receiptId,
+    required int amountPaise,
+    DateTime? receivedDate,
+    String paymentMode = 'bank',
+    String? referenceNumber,
+    String? notes,
+  }) async {
+    await _client.rpc(
+      'update_government_fund_receipt',
+      params: {
+        'p_receipt_id': receiptId,
+        'p_amount_paise': amountPaise,
+        'p_received_date': (receivedDate ?? DateTime.now())
+            .toIso8601String()
+            .split('T')
+            .first,
+        'p_payment_mode': paymentMode,
+        'p_reference_number': referenceNumber,
+        'p_notes': notes,
+      },
+    );
+  }
+
   Future<void> deleteGovernmentReceipt(String receiptId) async {
     await _client.rpc(
       'delete_government_receipt',

@@ -2003,6 +2003,7 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
                                 child: InkWell(
                                   onTap: () => _showGovernmentFundDetails(
                                     context,
+                                    widget.project.id,
                                     fund,
                                     onGeneratePdf: () =>
                                         _shareGovernmentFundPdf(fund),
@@ -2891,66 +2892,482 @@ Future<void> _shareReturnPdf(
 
 void _showGovernmentFundDetails(
   BuildContext context,
+  String projectId,
   GovernmentFund fund, {
   required Future<void> Function() onGeneratePdf,
 }) {
-  _showFinanceDetailsSheet(
-    context,
-    icon: Icons.account_balance_outlined,
-    accentColor: InfraColors.green,
-    title: fund.departmentName,
-    subtitle: _presentText(fund.schemeName, 'Government fund'),
-    amountLabel: 'Sanctioned amount',
-    amountPaise: fund.amountSanctionedPaise,
-    onGeneratePdf: onGeneratePdf,
-    sections: [
-      _FinanceDetailSectionData(
-        title: 'Fund Details',
-        rows: [
-          _FinanceDetailRowData('Department', fund.departmentName),
-          _FinanceDetailRowData('Scheme', _presentText(fund.schemeName)),
-          _FinanceDetailRowData(
-            'Status',
-            _governmentFundStatusLabel(fund.status),
-          ),
-          _FinanceDetailRowData(
-            'Sanction order',
-            _presentText(fund.sanctionOrderNumber),
-          ),
-          _FinanceDetailRowData('Sanction date', _dateLabel(fund.sanctionDate)),
-          _FinanceDetailRowData(
-            'Last received',
-            _dateLabel(fund.lastReceivedDate),
-          ),
-          _FinanceDetailRowData('Document', _presentText(fund.documentPath)),
-          _FinanceDetailRowData('Notes', _presentText(fund.notes)),
-        ],
-      ),
-      _FinanceDetailSectionData(
-        title: 'Money Movement',
-        rows: [
-          _FinanceDetailRowData.money('Sanctioned', fund.amountSanctionedPaise),
-          _FinanceDetailRowData.money(
-            'Received',
-            fund.amountReceivedPaise,
-            valueColor: InfraColors.green,
-          ),
-          _FinanceDetailRowData.money(
-            'Pending',
-            fund.pendingAmountPaise,
-            valueColor: InfraColors.orange,
-          ),
-        ],
-      ),
-      _FinanceDetailSectionData(
-        title: 'Record',
-        rows: [
-          _FinanceDetailRowData('Created', _dateTimeLabel(fund.createdAt)),
-          _FinanceDetailRowData('Updated', _dateTimeLabel(fund.updatedAt)),
-        ],
-      ),
-    ],
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => _GovtFundDetailsSheet(
+      projectId: projectId,
+      initialFund: fund,
+      onGeneratePdf: onGeneratePdf,
+    ),
   );
+}
+
+/// Live, receipt-aware detail sheet for a single government fund. It watches
+/// the funds and receipts providers so the summary, receipt list and totals
+/// stay in sync after any add/edit/delete (locally and via realtime).
+class _GovtFundDetailsSheet extends ConsumerWidget {
+  const _GovtFundDetailsSheet({
+    required this.projectId,
+    required this.initialFund,
+    required this.onGeneratePdf,
+  });
+
+  final String projectId;
+  final GovernmentFund initialFund;
+  final Future<void> Function() onGeneratePdf;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Prefer the live fund from the provider so edits/receipts reflect
+    // instantly; fall back to the fund we opened with if it is briefly absent.
+    final funds = ref.watch(governmentFundsProvider(projectId)).value;
+    final fund =
+        funds?.where((f) => f.id == initialFund.id).firstOrNull ?? initialFund;
+    final receiptsAsync = ref.watch(fundReceiptsProvider(fund.id));
+    final canManage = ref.watch(currentOrgPermissionsProvider).canManageFunds;
+
+    return FractionallySizedBox(
+      heightFactor: 0.9,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: InfraColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: InfraColors.border,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 10, 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: InfraColors.green.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_outlined,
+                      color: InfraColors.green,
+                      size: 25,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fund.departmentName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: InfraColors.textPrimary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          _presentText(fund.schemeName, 'Government fund'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: InfraColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                children: [
+                  _FinanceAmountPanel(
+                    label: 'Sanctioned amount',
+                    amountPaise: fund.amountSanctionedPaise,
+                    accentColor: InfraColors.green,
+                  ),
+                  const SizedBox(height: 12),
+                  _FinancePdfActionButton(onPressed: onGeneratePdf),
+                  const SizedBox(height: 12),
+                  _FinanceDetailSection(
+                    section: _FinanceDetailSectionData(
+                      title: 'Money Movement',
+                      rows: [
+                        _FinanceDetailRowData.money(
+                          'Sanctioned',
+                          fund.amountSanctionedPaise,
+                        ),
+                        _FinanceDetailRowData.money(
+                          'Received',
+                          fund.amountReceivedPaise,
+                          valueColor: InfraColors.green,
+                        ),
+                        _FinanceDetailRowData.money(
+                          'Pending',
+                          fund.pendingAmountPaise,
+                          valueColor: InfraColors.orange,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _ReceiptsPanel(
+                    fund: fund,
+                    receiptsAsync: receiptsAsync,
+                    canManage: canManage,
+                    onAdd: () => _openReceiptForm(context, fund),
+                    onEdit: (receipt) =>
+                        _openReceiptForm(context, fund, receipt: receipt),
+                    onDelete: (receipt) => _deleteReceipt(context, ref, receipt),
+                  ),
+                  const SizedBox(height: 12),
+                  _FinanceDetailSection(
+                    section: _FinanceDetailSectionData(
+                      title: 'Fund Details',
+                      rows: [
+                        _FinanceDetailRowData(
+                          'Department',
+                          fund.departmentName,
+                        ),
+                        _FinanceDetailRowData(
+                          'Scheme',
+                          _presentText(fund.schemeName),
+                        ),
+                        _FinanceDetailRowData(
+                          'Status',
+                          _governmentFundStatusLabel(fund.status),
+                        ),
+                        _FinanceDetailRowData(
+                          'Sanction order',
+                          _presentText(fund.sanctionOrderNumber),
+                        ),
+                        _FinanceDetailRowData(
+                          'Sanction date',
+                          _dateLabel(fund.sanctionDate),
+                        ),
+                        _FinanceDetailRowData(
+                          'Last received',
+                          _dateLabel(fund.lastReceivedDate),
+                        ),
+                        _FinanceDetailRowData(
+                          'Notes',
+                          _presentText(fund.notes),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _FinanceDetailSection(
+                    section: _FinanceDetailSectionData(
+                      title: 'Record',
+                      rows: [
+                        _FinanceDetailRowData(
+                          'Created',
+                          _dateTimeLabel(fund.createdAt),
+                        ),
+                        _FinanceDetailRowData(
+                          'Updated',
+                          _dateTimeLabel(fund.updatedAt),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openReceiptForm(
+    BuildContext context,
+    GovernmentFund fund, {
+    GovernmentFundReceipt? receipt,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GovtReceiptFormScreen(fund: fund, receipt: receipt),
+      ),
+    );
+  }
+
+  Future<void> _deleteReceipt(
+    BuildContext context,
+    WidgetRef ref,
+    GovernmentFundReceipt receipt,
+  ) {
+    return _confirmDelete(
+      context,
+      ref,
+      title: 'Delete receipt?',
+      message:
+          'This removes the ${Money.fromPaise(receipt.amountPaise).formatInr()} '
+          'receipt and reduces the received total for this fund.',
+      onConfirm: () async {
+        await ref
+            .read(infraRepositoryProvider)
+            .deleteGovernmentReceipt(receipt.id);
+        ref.invalidate(fundReceiptsProvider(receipt.governmentFundId));
+        ref.invalidate(governmentFundsProvider(receipt.projectId));
+        ref.invalidate(projectFinancialSummaryProvider(receipt.projectId));
+        ref.invalidate(projectsProvider);
+        ref.invalidate(dashboardSummaryProvider);
+      },
+    );
+  }
+}
+
+/// Premium, self-contained receipts list panel used inside the fund sheet.
+class _ReceiptsPanel extends StatelessWidget {
+  const _ReceiptsPanel({
+    required this.fund,
+    required this.receiptsAsync,
+    required this.canManage,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final GovernmentFund fund;
+  final AsyncValue<List<GovernmentFundReceipt>> receiptsAsync;
+  final bool canManage;
+  final VoidCallback onAdd;
+  final ValueChanged<GovernmentFundReceipt> onEdit;
+  final ValueChanged<GovernmentFundReceipt> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final receipts = receiptsAsync.value ?? const <GovernmentFundReceipt>[];
+    return Container(
+      decoration: BoxDecoration(
+        color: InfraColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: InfraColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Receipts',
+                    style: TextStyle(
+                      color: InfraColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: InfraColors.green.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    '${receipts.length}',
+                    style: const TextStyle(
+                      color: InfraColors.green,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                if (canManage) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Add receipt',
+                    onPressed: onAdd,
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: InfraColors.royalBlue,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (receiptsAsync.isLoading && receipts.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 18),
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else if (receiptsAsync.hasError && receipts.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Text(
+                  'Could not load receipts: ${receiptsAsync.error}',
+                  style: const TextStyle(
+                    color: InfraColors.red,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )
+            else if (receipts.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.receipt_long_outlined,
+                      size: 18,
+                      color: InfraColors.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        canManage
+                            ? 'No receipts yet. Tap + to record a received payment.'
+                            : 'No receipts recorded yet.',
+                        style: const TextStyle(
+                          color: InfraColors.textSecondary,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              for (var i = 0; i < receipts.length; i++) ...[
+                if (i > 0) const Divider(height: 18),
+                _ReceiptRow(
+                  receipt: receipts[i],
+                  canManage: canManage,
+                  onEdit: () => onEdit(receipts[i]),
+                  onDelete: () => onDelete(receipts[i]),
+                ),
+              ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReceiptRow extends StatelessWidget {
+  const _ReceiptRow({
+    required this.receipt,
+    required this.canManage,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final GovernmentFundReceipt receipt;
+  final bool canManage;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitleParts = <String>[
+      _dateLabel(receipt.receivedDate),
+      _humanizeToken(receipt.paymentMode),
+      if ((receipt.referenceNumber ?? '').trim().isNotEmpty)
+        'Ref ${receipt.referenceNumber!.trim()}',
+    ];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: InfraColors.green.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: const Icon(
+            Icons.south_west_rounded,
+            color: InfraColors.green,
+            size: 19,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                Money.fromPaise(receipt.amountPaise).formatInr(),
+                style: const TextStyle(
+                  color: InfraColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitleParts.join('  ·  '),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: InfraColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if ((receipt.notes ?? '').trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    receipt.notes!.trim(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: InfraColors.textSecondary,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (canManage)
+          _EntityMenu(onEdit: onEdit, onDelete: onDelete),
+      ],
+    );
+  }
 }
 
 void _showExpenseDetails(
