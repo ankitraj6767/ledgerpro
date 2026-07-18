@@ -77,7 +77,12 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
 
-    _hasPin = await _lock.hasPin;
+    // Secure-storage / keychain reads run over a platform channel that can
+    // intermittently stall (notably flutter_secure_storage on some Android
+    // keystore states). Bound them so a stalled read can never block the
+    // first frame; on failure we treat the device as having no PIN, which
+    // routes the user to set one rather than leaving a blank launch window.
+    _hasPin = await _readHasPin();
 
     // On cold start, only require an unlock when we have both a session and a
     // PIN AND the previous unlock has expired. Within the session window a
@@ -117,11 +122,30 @@ class AppSessionController extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// Reads whether a PIN is configured, tolerating a stalled or failing
+  /// secure-storage channel. A timeout/error is treated as "no PIN" so startup
+  /// is never blocked waiting on the platform.
+  Future<bool> _readHasPin() async {
+    try {
+      return await _lock.hasPin.timeout(const Duration(seconds: 3));
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Whether the last successful unlock is still within [_sessionValidity].
   Future<bool> _isWithinSessionWindow() async {
-    final lastUnlocked = await _lock.lastUnlockedAt;
-    if (lastUnlocked == null) return false;
-    return DateTime.now().toUtc().difference(lastUnlocked) < _sessionValidity;
+    try {
+      final lastUnlocked = await _lock.lastUnlockedAt.timeout(
+        const Duration(seconds: 3),
+      );
+      if (lastUnlocked == null) return false;
+      return DateTime.now().toUtc().difference(lastUnlocked) < _sessionValidity;
+    } catch (_) {
+      // On a stalled/failed read, require an unlock (safer default) rather
+      // than blocking startup.
+      return false;
+    }
   }
 
   Future<void> validateActiveWorkspaceAccess() async {

@@ -45,6 +45,23 @@ Future<void> main() async {
         return true;
       };
 
+      // Build/layout exceptions in release builds are replaced by Flutter's
+      // default `RenderErrorBox`, which paints a solid grey rectangle. When the
+      // widget that throws sits high in the tree (a route's root Scaffold on
+      // startup), that grey box fills the entire screen and looks like the app
+      // "crashed" with a dead grey screen the user has to force-close. Replace
+      // it with a safe, self-contained fallback that stays readable and offers
+      // a way back into the app instead of the alarming grey void.
+      ErrorWidget.builder = (FlutterErrorDetails details) {
+        _logError(
+          'ErrorWidget',
+          details.exception,
+          details.stack,
+          context: details.context?.toDescription(),
+        );
+        return const _AppErrorFallback();
+      };
+
       if (SupabaseConfig.isConfigured) {
         try {
           await Supabase.initialize(
@@ -74,10 +91,16 @@ Future<void> main() async {
       final sessionController = AppSessionController();
       final dashboardCache = DashboardCache();
       try {
+        // Bound the pre-first-frame work with a timeout. A platform channel
+        // that hangs (flutter_secure_storage on some Android keystore states,
+        // path_provider, or a stalled Supabase init) must never block runApp
+        // indefinitely — that leaves a permanently blank launch window the
+        // user has to force-close. On timeout we proceed with whatever state
+        // has loaded; the router guard falls back to splash/login safely.
         await Future.wait([
           sessionController.initialize(),
           dashboardCache.load(),
-        ]);
+        ]).timeout(const Duration(seconds: 8));
       } catch (error, stack) {
         // Never block first render on startup work; degrade gracefully.
         _logError('startup', error, stack);
@@ -97,6 +120,69 @@ Future<void> main() async {
     },
     (error, stack) => _logError('uncaughtZoneError', error, stack),
   );
+}
+
+/// Safe, self-contained replacement for Flutter's default grey `RenderErrorBox`.
+///
+/// This is installed as [ErrorWidget.builder] so a build/layout exception —
+/// which in release would otherwise paint a solid grey screen — instead shows
+/// a readable, on-brand message. It deliberately depends on nothing but core
+/// Flutter widgets and hardcoded colors, and wraps itself in [Directionality]
+/// and [Material], because [ErrorWidget.builder] can be invoked for a subtree
+/// that sits above (or outside) the app's `MaterialApp`/`Directionality`.
+class _AppErrorFallback extends StatelessWidget {
+  const _AppErrorFallback();
+
+  static const _navy = Color(0xFF03152E);
+  static const _gold = Color(0xFFD6A83A);
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Material(
+        color: _navy,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(
+                    Icons.refresh_rounded,
+                    color: _gold,
+                    size: 52,
+                  ),
+                  SizedBox(height: 18),
+                  Text(
+                    'Something needs a moment',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'This screen ran into a temporary problem. Please close and '
+                    'reopen the app — your data is safe.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 void _logError(
