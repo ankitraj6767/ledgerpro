@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/refresh/pull_to_refresh.dart';
+import '../../../core/richtext/rich_text_editor.dart';
+import '../../../core/richtext/rich_text_view.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
@@ -45,21 +47,26 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _note,
-                    decoration: const InputDecoration(
-                      hintText: 'Add a note',
-                      prefixIcon: Icon(Icons.note_add_outlined),
-                    ),
-                  ),
+                RichTextEditorField(
+                  controller: _note,
+                  label: 'Add a note',
+                  icon: Icons.note_add_outlined,
+                  hintText: 'Write a note. Use the toolbar to format…',
+                  minLines: 3,
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
+                const SizedBox(height: 10),
+                FilledButton.icon(
                   onPressed: _saving ? null : _add,
-                  child: const Icon(Icons.send),
+                  icon: _saving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send),
+                  label: const Text('Add note'),
                 ),
               ],
             ),
@@ -97,16 +104,36 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
                   itemBuilder: (context, index) {
                     final note = notes[index];
                     return Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.notes_outlined),
-                        title: Text(note.note),
-                        subtitle: note.createdAt == null
-                            ? null
-                            : Text(
-                                DateFormat(
-                                  'dd MMM yyyy HH:mm',
-                                ).format(note.createdAt!.toLocal()),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2, right: 12),
+                                  child: Icon(Icons.notes_outlined, size: 20),
+                                ),
+                                Expanded(child: RichTextView(note.note)),
+                              ],
+                            ),
+                            if (note.createdAt != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  DateFormat(
+                                    'dd MMM yyyy HH:mm',
+                                  ).format(note.createdAt!.toLocal()),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Colors.grey),
+                                ),
                               ),
+                          ],
+                        ),
                       ),
                     );
                   },

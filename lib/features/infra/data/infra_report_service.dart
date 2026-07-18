@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/money/money.dart';
+import '../../../core/richtext/rich_text_document.dart';
 import '../../../shared/models/infra_models.dart';
 
 /// Generates project finance reports from real data.
@@ -54,6 +55,14 @@ class InfraReportService {
           pw.SizedBox(height: 16),
           _projectPulse(project),
           pw.SizedBox(height: 16),
+          if (!richTextIsEmpty(project.description)) ...[
+            _richTextSection(
+              title: 'Project Description',
+              accent: _blue,
+              markdown: project.description,
+            )!,
+            pw.SizedBox(height: 16),
+          ],
           _kpiGrid(summary),
           pw.SizedBox(height: 18),
           _fundingSnapshot(summary),
@@ -241,7 +250,7 @@ class InfraReportService {
                       _formatDate(item.investmentDate),
                       _label(item.paymentMode),
                       _present(item.referenceNumber),
-                      _present(item.notes),
+                      _plainNotes(item.notes),
                       _inr(item.amountPaise),
                     ],
                   )
@@ -342,7 +351,7 @@ class InfraReportService {
                       _formatDate(item.investmentDate),
                       _label(item.paymentMode),
                       _present(item.referenceNumber),
-                      _present(item.notes),
+                      _plainNotes(item.notes),
                       _inr(item.amountPaise),
                     ],
                   )
@@ -366,7 +375,7 @@ class InfraReportService {
                       _formatDate(item.returnDate),
                       _label(item.paymentMode),
                       _present(item.referenceNumber),
-                      _present(item.notes),
+                      _plainNotes(item.notes),
                       _inr(item.amountPaise),
                     ],
                   )
@@ -462,7 +471,7 @@ class InfraReportService {
                       _formatDate(item.expenseDate),
                       item.category,
                       _present(item.vendorName),
-                      _present(item.notes),
+                      _plainNotes(item.notes),
                       _inr(item.amountPaise),
                     ],
                   )
@@ -627,7 +636,6 @@ class InfraReportService {
             ['Investment Date', _formatDate(investment.investmentDate)],
             ['Payment Mode', _label(investment.paymentMode)],
             ['Reference Number', _present(investment.referenceNumber)],
-            ['Notes', _present(investment.notes)],
           ],
         ),
         _PdfDetailSection(
@@ -639,6 +647,7 @@ class InfraReportService {
           ],
         ),
       ],
+      extraWidgets: _notesExtra(investment.notes, _gold),
     );
   }
 
@@ -670,7 +679,6 @@ class InfraReportService {
             ['Return Date', _formatDate(entry.returnDate)],
             ['Payment Mode', _label(entry.paymentMode)],
             ['Reference Number', _present(entry.referenceNumber)],
-            ['Notes', _present(entry.notes)],
           ],
         ),
         _PdfDetailSection(
@@ -682,6 +690,7 @@ class InfraReportService {
           ],
         ),
       ],
+      extraWidgets: _notesExtra(entry.notes, _red),
     );
   }
 
@@ -712,7 +721,6 @@ class InfraReportService {
             ['Payment Mode', _label(expense.paymentMode)],
             ['Bill Number', _present(expense.billNumber)],
             ['Bill Image', _present(expense.billImagePath)],
-            ['Notes', _present(expense.notes)],
             ['Created By', _present(expense.createdBy)],
           ],
         ),
@@ -725,6 +733,7 @@ class InfraReportService {
           ],
         ),
       ],
+      extraWidgets: _notesExtra(expense.notes, _red),
     );
   }
 
@@ -767,7 +776,6 @@ class InfraReportService {
             ['Sanction Date', _formatDate(fund.sanctionDate)],
             ['Last Received', _formatDate(fund.lastReceivedDate)],
             ['Document', _present(fund.documentPath)],
-            ['Notes', _present(fund.notes)],
           ],
         ),
         _PdfDetailSection(
@@ -789,6 +797,7 @@ class InfraReportService {
         ),
       ],
       extraWidgets: [
+        ..._notesExtra(fund.notes, _green),
         pw.SizedBox(height: 16),
         _sectionTitle(
           title: 'Receipt Ledger',
@@ -807,7 +816,7 @@ class InfraReportService {
                     _formatDate(receipt.receivedDate),
                     _label(receipt.paymentMode),
                     _present(receipt.referenceNumber),
-                    _present(receipt.notes),
+                    _plainNotes(receipt.notes),
                     _inr(receipt.amountPaise),
                   ],
                 )
@@ -1344,6 +1353,120 @@ class InfraReportService {
       ),
     );
   }
+
+  /// Renders a rich-text (Markdown subset) value as a titled, bordered block
+  /// so notes/descriptions appear in reports with the same formatting
+  /// (headings, bold, italic, lists, quotes, links) the user applied in the
+  /// app. Returns null when there is nothing to render.
+  pw.Widget? _richTextSection({
+    required String title,
+    required PdfColor accent,
+    required String? markdown,
+  }) {
+    final blocks = parseRichText(markdown);
+    if (blocks.isEmpty) return null;
+    final children = <pw.Widget>[];
+    for (var i = 0; i < blocks.length; i++) {
+      if (i > 0) children.add(pw.SizedBox(height: 5));
+      children.add(_richBlock(blocks[i]));
+    }
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _sectionTitle(title: title, subtitle: 'Formatted notes', accent: accent),
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.all(12),
+          decoration: pw.BoxDecoration(
+            color: _white,
+            border: pw.Border.all(color: _line),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: children,
+          ),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _richBlock(RtBlock block) {
+    switch (block.type) {
+      case RtBlockType.h1:
+        return pw.RichText(text: _richInline(block.spans, size: 15, bold: true));
+      case RtBlockType.h2:
+        return pw.RichText(text: _richInline(block.spans, size: 13, bold: true));
+      case RtBlockType.h3:
+        return pw.RichText(text: _richInline(block.spans, size: 11, bold: true));
+      case RtBlockType.bullet:
+        return _richListItem(block, '•  ');
+      case RtBlockType.ordered:
+        return _richListItem(block, '${block.orderedNumber ?? 1}.  ');
+      case RtBlockType.quote:
+        return pw.Container(
+          padding: const pw.EdgeInsets.only(left: 10, top: 3, bottom: 3),
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(left: pw.BorderSide(color: _line, width: 3)),
+          ),
+          child: pw.RichText(text: _richInline(block.spans, italic: true, color: _muted)),
+        );
+      case RtBlockType.paragraph:
+        return pw.RichText(text: _richInline(block.spans));
+    }
+  }
+
+  pw.Widget _richListItem(RtBlock block, String marker) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          marker,
+          style: pw.TextStyle(color: _ink, fontSize: 9.5, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.Expanded(child: pw.RichText(text: _richInline(block.spans))),
+      ],
+    );
+  }
+
+  pw.TextSpan _richInline(
+    List<RtSpan> spans, {
+    double size = 9.5,
+    bool bold = false,
+    bool italic = false,
+    PdfColor color = _ink,
+  }) {
+    return pw.TextSpan(
+      children: spans.map((span) {
+        final isLink = span.link != null;
+        return pw.TextSpan(
+          text: span.text,
+          style: pw.TextStyle(
+            color: isLink ? _blue : color,
+            fontSize: size,
+            fontWeight: (bold || span.bold) ? pw.FontWeight.bold : pw.FontWeight.normal,
+            fontStyle: (italic || span.italic)
+                ? pw.FontStyle.italic
+                : pw.FontStyle.normal,
+            decoration: isLink ? pw.TextDecoration.underline : pw.TextDecoration.none,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Extra widget list holding a formatted "Notes" block, or empty when there
+  /// are no notes. Appended after the detail sections in [_recordPdf].
+  List<pw.Widget> _notesExtra(String? markdown, PdfColor accent) {
+    final section = _richTextSection(
+      title: 'Notes',
+      accent: accent,
+      markdown: markdown,
+    );
+    return section == null ? const [] : [section];
+  }
+
+  /// Plain, marker-stripped form of rich text for compact table cells.
+  String _plainNotes(String? markdown) => _present(richTextToPlain(markdown));
 
   pw.Widget _emptySection(String message) {
     return pw.Container(

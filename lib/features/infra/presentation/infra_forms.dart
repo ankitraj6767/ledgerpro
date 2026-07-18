@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/richtext/rich_text_editor.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/models/infra_models.dart';
 import '../../../shared/widgets/access_denied_screen.dart';
@@ -143,7 +144,11 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
             ),
             const SizedBox(height: 12),
           ],
-          _text(_description, 'Description', Icons.notes_outlined, maxLines: 3),
+          RichTextEditorField(
+            controller: _description,
+            label: 'Description',
+            icon: Icons.notes_outlined,
+          ),
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _saving ? null : _save,
@@ -339,7 +344,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           const SizedBox(height: 12),
           _dateRow('Expense date', _date, (d) => setState(() => _date = d)),
           const SizedBox(height: 12),
-          _plainField(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
+          RichTextEditorField(
+            controller: _notes,
+            label: 'Notes',
+            icon: Icons.notes_outlined,
+          ),
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _saving ? null : _save,
@@ -567,7 +576,11 @@ class _GovtFundFormScreenState extends ConsumerState<GovtFundFormScreen> {
           const SizedBox(height: 12),
           _dateRow('Sanction date', _date, (d) => setState(() => _date = d)),
           const SizedBox(height: 12),
-          _plainField(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
+          RichTextEditorField(
+            controller: _notes,
+            label: 'Notes',
+            icon: Icons.notes_outlined,
+          ),
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _saving ? null : _save,
@@ -752,7 +765,11 @@ class _GovtReceiptFormScreenState extends ConsumerState<GovtReceiptFormScreen> {
           const SizedBox(height: 12),
           _dateRow('Received date', _date, (d) => setState(() => _date = d)),
           const SizedBox(height: 12),
-          _plainField(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
+          RichTextEditorField(
+            controller: _notes,
+            label: 'Notes',
+            icon: Icons.notes_outlined,
+          ),
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _saving ? null : _save,
@@ -962,7 +979,11 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
                 (d) => setState(() => _date = d),
               ),
               const SizedBox(height: 12),
-              _plainField(_notes, 'Notes', Icons.notes_outlined, maxLines: 3),
+              RichTextEditorField(
+                controller: _notes,
+                label: 'Notes',
+                icon: Icons.notes_outlined,
+              ),
               const SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: _saving || visibleInvestors.isEmpty ? null : _save,

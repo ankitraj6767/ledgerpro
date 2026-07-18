@@ -7,6 +7,8 @@ import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../core/money/money.dart';
 import '../../../core/refresh/pull_to_refresh.dart';
+import '../../../core/richtext/rich_text_document.dart';
+import '../../../core/richtext/rich_text_view.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/donut_expense_chart.dart';
 import '../../../shared/components/infra_components.dart';
@@ -2781,7 +2783,6 @@ void _showInvestmentDetails(
             'Reference number',
             _presentText(investment.referenceNumber),
           ),
-          _FinanceDetailRowData('Notes', _presentText(investment.notes)),
         ],
       ),
       _FinanceDetailSectionData(
@@ -2798,6 +2799,7 @@ void _showInvestmentDetails(
         ],
       ),
     ],
+    notesMarkdown: investment.notes,
   );
 }
 
@@ -2830,7 +2832,6 @@ void _showReturnDetails(
             'Reference number',
             _presentText(entry.referenceNumber),
           ),
-          _FinanceDetailRowData('Notes', _presentText(entry.notes)),
         ],
       ),
       _FinanceDetailSectionData(
@@ -2841,6 +2842,7 @@ void _showReturnDetails(
         ],
       ),
     ],
+    notesMarkdown: entry.notes,
   );
 }
 
@@ -3076,14 +3078,12 @@ class _GovtFundDetailsSheet extends ConsumerWidget {
                           'Last received',
                           _dateLabel(fund.lastReceivedDate),
                         ),
-                        _FinanceDetailRowData(
-                          'Notes',
-                          _presentText(fund.notes),
-                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
+                  if (!richTextIsEmpty(fund.notes))
+                    _FinanceNotesCard(notesMarkdown: fund.notes!),
                   _FinanceDetailSection(
                     section: _FinanceDetailSectionData(
                       title: 'Record',
@@ -3406,7 +3406,6 @@ void _showExpenseDetails(
             'Bill image',
             _presentText(expense.billImagePath),
           ),
-          _FinanceDetailRowData('Notes', _presentText(expense.notes)),
           _FinanceDetailRowData('Created by', _presentText(expense.createdBy)),
         ],
       ),
@@ -3418,6 +3417,7 @@ void _showExpenseDetails(
         ],
       ),
     ],
+    notesMarkdown: expense.notes,
   );
 }
 
@@ -3431,6 +3431,7 @@ void _showFinanceDetailsSheet(
   required int amountPaise,
   required Future<void> Function() onGeneratePdf,
   required List<_FinanceDetailSectionData> sections,
+  String? notesMarkdown,
 }) {
   showModalBottomSheet<void>(
     context: context,
@@ -3521,6 +3522,8 @@ void _showFinanceDetailsSheet(
                       _FinanceDetailSection(section: section),
                       const SizedBox(height: 12),
                     ],
+                    if (!richTextIsEmpty(notesMarkdown))
+                      _FinanceNotesCard(notesMarkdown: notesMarkdown!),
                   ],
                 ),
               ),
@@ -3652,6 +3655,53 @@ class _FinancePdfActionButtonState extends State<_FinancePdfActionButton> {
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+      ),
+    );
+  }
+}
+
+/// A dedicated card that renders a rich-text (Markdown subset) notes/description
+/// value using the shared [RichTextView], so formatting shows the same way it
+/// does in the editor and in generated PDFs.
+class _FinanceNotesCard extends StatelessWidget {
+  const _FinanceNotesCard({required this.notesMarkdown});
+
+  final String notesMarkdown;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: InfraColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: InfraColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Notes',
+              style: TextStyle(
+                color: InfraColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            RichTextView(
+              notesMarkdown,
+              baseStyle: const TextStyle(
+                color: InfraColors.textPrimary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
