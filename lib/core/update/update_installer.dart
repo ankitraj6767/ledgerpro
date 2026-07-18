@@ -56,7 +56,12 @@ class UpdateProgress {
 /// small detached batch script that waits for this process to exit, mirrors the
 /// new files over the install directory and relaunches the app.
 ///
-/// macOS / unsupported: opens the download URL in the browser as a fallback.
+/// macOS: downloads + verifies the release ZIP, extracts the notarized `.app`
+/// bundle with `ditto` (which preserves the code signature, symlinks and
+/// permissions), then launches a small detached shell script that waits for
+/// this process to exit, replaces the installed `.app` in place and relaunches.
+///
+/// unsupported: opens the download URL in the browser as a fallback.
 class UpdateInstaller {
   UpdateInstaller({UpdatePlatform? platform, http.Client? client})
     : platform = platform ?? currentUpdatePlatform(),
@@ -76,6 +81,7 @@ class UpdateInstaller {
         case UpdatePlatform.windows:
           await _installWindows(release, onProgress);
         case UpdatePlatform.macos:
+          await _installMacOS(release, onProgress);
         case UpdatePlatform.unsupported:
           await _openInBrowser(release, onProgress);
       }
@@ -240,7 +246,147 @@ rmdir /s /q "%WORK%" >nul 2>&1
   }
 
   // ---------------------------------------------------------------------------
-  // Fallback (macOS / unsupported): open the download in the browser.
+  // macOS
+  // ---------------------------------------------------------------------------
+  Future<void> _installMacOS(
+    PlatformRelease release,
+    void Function(UpdateProgress) onProgress,
+  ) async {
+    onProgress(const UpdateProgress(phase: InstallPhase.preparing));
+
+    // Only a real `.app` bundle install can be replaced in place. When running
+    // outside a bundle (e.g. `flutter run`), fall back to a browser download.
+    final exe = File(Platform.resolvedExecutable);
+    final installedApp = exe.parent.parent.parent; // <name>.app
+    if (!installedApp.path.toLowerCase().endsWith('.app')) {
+      await _openInBrowser(release, onProgress);
+      return;
+    }
+
+    final tempRoot = await getTemporaryDirectory();
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final workDir = Directory(p.join(tempRoot.path, 'ledgerpro_update_$stamp'));
+    if (workDir.existsSync()) {
+      workDir.deleteSync(recursive: true);
+    }
+    workDir.createSync(recursive: true);
+
+    final zipName = _safeFileName(release, fallback: 'ledgerpro-update.zip');
+    final zipFile = File(p.join(workDir.path, zipName));
+    await _download(release, zipFile, onProgress);
+
+    onProgress(const UpdateProgress(phase: InstallPhase.extracting));
+    final extractDir = Directory(p.join(workDir.path, 'payload'));
+    extractDir.createSync(recursive: true);
+
+    // Use ditto (not the Dart archive package) so the extracted bundle keeps its
+    // code signature, symlinks and permissions intact; otherwise Gatekeeper
+    // would reject the replaced app.
+    final unzip = await Process.run('/usr/bin/ditto', [
+      '-x',
+      '-k',
+      zipFile.path,
+      extractDir.path,
+    ]);
+    if (unzip.exitCode != 0) {
+      throw UpdateException(
+        'Could not extract the update (${unzip.stderr}).',
+      );
+    }
+
+    final newApp = _resolveMacAppBundle(extractDir);
+    if (newApp == null) {
+      throw const UpdateException(
+        'The downloaded update did not contain a macOS app bundle.',
+      );
+    }
+
+    onProgress(const UpdateProgress(phase: InstallPhase.launching));
+    final scriptFile = File(p.join(workDir.path, 'apply_update.sh'));
+    await scriptFile.writeAsString(
+      _macUpdaterScript(
+        newAppPath: newApp.path,
+        installedAppPath: installedApp.path,
+        processId: pid,
+        cleanupDir: workDir.path,
+      ),
+    );
+
+    // Launch detached so the script outlives this process, then exit so the
+    // running bundle can be replaced.
+    await Process.start(
+      '/bin/bash',
+      [scriptFile.path],
+      mode: ProcessStartMode.detached,
+    );
+
+    onProgress(const UpdateProgress(phase: InstallPhase.completed));
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    exit(0);
+  }
+
+  /// Finds the `.app` bundle inside the extracted payload. The ZIP is created
+  /// with `ditto --keepParent`, so the bundle sits at the extraction root; also
+  /// search one level deep as a fallback.
+  Directory? _resolveMacAppBundle(Directory extractDir) {
+    bool isApp(FileSystemEntity e) =>
+        e is Directory && e.path.toLowerCase().endsWith('.app');
+
+    for (final entity in extractDir.listSync()) {
+      if (isApp(entity)) return entity as Directory;
+    }
+    for (final dir in extractDir.listSync().whereType<Directory>()) {
+      for (final entity in dir.listSync()) {
+        if (isApp(entity)) return entity as Directory;
+      }
+    }
+    return null;
+  }
+
+  String _macUpdaterScript({
+    required String newAppPath,
+    required String installedAppPath,
+    required int processId,
+    required String cleanupDir,
+  }) {
+    // Wait for the app (by PID) to exit, swap the new bundle in for the old one
+    // (keeping a rollback copy), clear the download quarantine flag, relaunch,
+    // then delete the temporary working directory. User data lives under
+    // ~/Library, not inside the bundle, so it is untouched.
+    return '''
+#!/bin/bash
+NEW="$newAppPath"
+DST="$installedAppPath"
+PIDV=$processId
+WORK="$cleanupDir"
+
+for _ in \$(seq 1 60); do
+  if ! kill -0 "\$PIDV" 2>/dev/null; then break; fi
+  sleep 1
+done
+
+rm -rf "\$DST.old" 2>/dev/null
+if [ -d "\$DST" ]; then
+  mv "\$DST" "\$DST.old" 2>/dev/null
+fi
+
+if /usr/bin/ditto "\$NEW" "\$DST"; then
+  rm -rf "\$DST.old" 2>/dev/null
+else
+  rm -rf "\$DST" 2>/dev/null
+  mv "\$DST.old" "\$DST" 2>/dev/null
+fi
+
+/usr/bin/xattr -dr com.apple.quarantine "\$DST" 2>/dev/null
+/usr/bin/open "\$DST"
+
+cd /tmp
+rm -rf "\$WORK" 2>/dev/null
+''';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fallback (unsupported): open the download in the browser.
   // ---------------------------------------------------------------------------
   Future<void> _openInBrowser(
     PlatformRelease release,

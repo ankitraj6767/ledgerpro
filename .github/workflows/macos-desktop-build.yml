@@ -1,5 +1,7 @@
 name: macOS Desktop Build
 
+# Manual-only build for test artifacts. Pushes to main are handled by the
+# "macOS Desktop Release" workflow, which builds and publishes the update.
 on:
   workflow_dispatch:
     inputs:
@@ -8,22 +10,6 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/macos-desktop-build.yml"
-      - "analysis_options.yaml"
-      - "assets/**"
-      - "lib/**"
-      - "macos/**"
-      - "pubspec.yaml"
-      - "pubspec.lock"
-      - "scripts/build_macos_release.sh"
-      - "scripts/notarize_macos_app.sh"
-      - "scripts/package_macos_release.sh"
-      - "scripts/sign_macos_app.sh"
-      - "test/**"
 
 jobs:
   build:
