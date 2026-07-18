@@ -23,6 +23,39 @@ import '../../shared/models/infra_models.dart';
 import '../../shared/widgets/infra_shell.dart';
 import '../constants/app_constants.dart';
 
+/// Safely resolves a route's `extra` payload into an [InfraProject].
+///
+/// `extra` is normally the live object, but after Android state restoration
+/// (app killed/backgrounded then resumed) go_router serializes it to JSON, so
+/// on restore it comes back as a `Map<String, dynamic>`. Casting that Map
+/// directly (`extra as InfraProject?`) throws and crashes the whole route.
+/// This reconstructs the object from JSON when possible, and otherwise returns
+/// null so the screen loads fresh data from its path id.
+InfraProject? _projectFromExtra(Object? extra) {
+  if (extra is InfraProject) return extra;
+  if (extra is Map) {
+    try {
+      return InfraProject.fromJson(Map<String, dynamic>.from(extra));
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
+}
+
+/// See [_projectFromExtra]: same safe handling for a [GovernmentFund] `extra`.
+GovernmentFund? _fundFromExtra(Object? extra) {
+  if (extra is GovernmentFund) return extra;
+  if (extra is Map) {
+    try {
+      return GovernmentFund.fromJson(Map<String, dynamic>.from(extra));
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
+}
+
 class AppRouter {
   const AppRouter._();
 
@@ -42,7 +75,8 @@ class AppRouter {
         ),
         GoRoute(
           path: AppRoutes.otp,
-          builder: (context, state) => OtpScreen(phone: state.extra as String?),
+          builder: (context, state) =>
+              OtpScreen(phone: state.extra is String ? state.extra as String : null),
         ),
         GoRoute(
           path: AppRoutes.unlock,
@@ -96,13 +130,13 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.editProjectPath,
           builder: (context, state) =>
-              ProjectFormScreen(project: state.extra as InfraProject?),
+              ProjectFormScreen(project: _projectFromExtra(state.extra)),
         ),
         GoRoute(
           path: AppRoutes.projectDetailPath,
           builder: (context, state) => ProjectDetailScreen(
             projectId: state.pathParameters['projectId']!,
-            initialProject: state.extra as InfraProject?,
+            initialProject: _projectFromExtra(state.extra),
             initialTabIndex:
                 int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0,
           ),
@@ -110,7 +144,7 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.newInvestmentPath,
           builder: (context, state) {
-            final project = state.extra as InfraProject?;
+            final project = _projectFromExtra(state.extra);
             if (project == null) return const _MissingExtraScreen();
             return InvestmentFormScreen(project: project);
           },
@@ -118,7 +152,7 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.newGovtFundPath,
           builder: (context, state) {
-            final project = state.extra as InfraProject?;
+            final project = _projectFromExtra(state.extra);
             if (project == null) return const _MissingExtraScreen();
             return GovtFundFormScreen(project: project);
           },
@@ -126,7 +160,7 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.newGovtReceiptPath,
           builder: (context, state) {
-            final fund = state.extra as GovernmentFund?;
+            final fund = _fundFromExtra(state.extra);
             if (fund == null) return const _MissingExtraScreen();
             return GovtReceiptFormScreen(fund: fund);
           },
@@ -134,7 +168,7 @@ class AppRouter {
         GoRoute(
           path: AppRoutes.newExpensePath,
           builder: (context, state) {
-            final project = state.extra as InfraProject?;
+            final project = _projectFromExtra(state.extra);
             if (project == null) return const _MissingExtraScreen();
             return ExpenseFormScreen(project: project);
           },
@@ -143,14 +177,14 @@ class AppRouter {
           path: AppRoutes.projectNotesPath,
           builder: (context, state) => ProjectNotesScreen(
             projectId: state.pathParameters['projectId']!,
-            project: state.extra as InfraProject?,
+            project: _projectFromExtra(state.extra),
           ),
         ),
         GoRoute(
           path: AppRoutes.projectReportsPath,
           builder: (context, state) => ProjectReportsScreen(
             projectId: state.pathParameters['projectId']!,
-            project: state.extra as InfraProject?,
+            project: _projectFromExtra(state.extra),
           ),
         ),
 
