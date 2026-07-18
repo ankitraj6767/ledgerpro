@@ -21,6 +21,8 @@
 /// existing saved notes/descriptions keep rendering exactly as before.
 library;
 
+import 'dart:convert';
+
 enum RtBlockType { paragraph, h1, h2, h3, bullet, ordered, quote }
 
 /// An inline run of text with formatting flags.
@@ -58,10 +60,125 @@ class RtBlock {
 
 /// Parses [source] into a list of [RtBlock]s. Never throws: malformed markup is
 /// treated as literal text.
+///
+/// [source] may be either:
+///  * a Parchment/Quill **Delta JSON** string (produced by the rich editor), or
+///  * legacy plain text / a small Markdown subset.
+///
+/// Both are supported so existing saved notes/descriptions keep rendering, and
+/// so the in-app view and the PDF renderer share a single code path.
 List<RtBlock> parseRichText(String? source) {
   final text = source ?? '';
   if (text.trim().isEmpty) return const [];
 
+  final deltaOps = _tryDeltaOps(text);
+  if (deltaOps != null) {
+    // Structurally a Delta document: a lone newline / whitespace-only doc has
+    // no renderable content.
+    final plain = deltaOps
+        .map((e) => (e as Map)['insert'])
+        .whereType<String>()
+        .join();
+    if (plain.trim().isEmpty) return const [];
+    return _blocksFromDelta(deltaOps);
+  }
+
+  return _parseMarkdown(text);
+}
+
+/// Returns the Delta ops list when [text] is a structurally valid Delta JSON
+/// document, otherwise null. A fast prefix check avoids JSON-decoding ordinary
+/// notes.
+List<dynamic>? _tryDeltaOps(String text) {
+  final trimmed = text.trimLeft();
+  if (!trimmed.startsWith('[')) return null;
+  try {
+    final decoded = jsonDecode(text);
+    if (decoded is List &&
+        decoded.isNotEmpty &&
+        decoded.every((e) => e is Map && e.containsKey('insert'))) {
+      return decoded;
+    }
+  } catch (_) {
+    // Not JSON -> treat as markdown/plain text.
+  }
+  return null;
+}
+
+/// Converts a Parchment/Quill Delta ops list into [RtBlock]s.
+List<RtBlock> _blocksFromDelta(List<dynamic> ops) {
+  final blocks = <RtBlock>[];
+  var pending = <RtSpan>[];
+  var orderedRun = 0;
+
+  for (final op in ops) {
+    if (op is! Map) continue;
+    final insert = op['insert'];
+    if (insert is! String) continue; // skip embeds
+    final attributes = op['attributes'];
+    final inline = attributes is Map ? attributes : const {};
+
+    final segments = insert.split('\n');
+    for (var s = 0; s < segments.length; s++) {
+      final segment = segments[s];
+      if (segment.isNotEmpty) {
+        pending.add(_deltaSpan(segment, inline));
+      }
+      final isLast = s == segments.length - 1;
+      if (!isLast) {
+        // The newline carries this line's block attributes.
+        final type = _deltaLineType(inline);
+        int? number;
+        if (type == RtBlockType.ordered) {
+          orderedRun += 1;
+          number = orderedRun;
+        } else {
+          orderedRun = 0;
+        }
+        blocks.add(
+          RtBlock(
+            type,
+            pending.isEmpty ? const [RtSpan('')] : pending,
+            orderedNumber: number,
+          ),
+        );
+        pending = <RtSpan>[];
+      }
+    }
+  }
+
+  if (pending.isNotEmpty) {
+    blocks.add(RtBlock(RtBlockType.paragraph, pending));
+  }
+  return blocks;
+}
+
+RtSpan _deltaSpan(String text, Map inline) {
+  final link = inline['a'];
+  return RtSpan(
+    text,
+    bold: inline['b'] == true,
+    italic: inline['i'] == true,
+    code: inline['c'] == true,
+    link: link is String ? link : null,
+  );
+}
+
+RtBlockType _deltaLineType(Map attributes) {
+  final heading = attributes['heading'];
+  if (heading == 1) return RtBlockType.h1;
+  if (heading == 2) return RtBlockType.h2;
+  if (heading is int && heading >= 3) return RtBlockType.h3;
+
+  final block = attributes['block'];
+  if (block == 'ul' || block == 'cl') return RtBlockType.bullet;
+  if (block == 'ol') return RtBlockType.ordered;
+  if (block == 'quote') return RtBlockType.quote;
+  return RtBlockType.paragraph;
+}
+
+/// Parses the legacy plain-text / Markdown-subset form.
+List<RtBlock> _parseMarkdown(String text) {
   final lines = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
   final blocks = <RtBlock>[];
   var orderedRun = 0; // running counter for consecutive ordered items

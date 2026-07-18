@@ -1,4 +1,6 @@
+import 'package:fleather/fleather.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'constants/app_constants.dart';
@@ -16,6 +18,14 @@ class LedgerProApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: InfraTheme.light(),
       themeMode: ThemeMode.light,
+      // Required by the Fleather rich-text editor for its toolbar/menu strings.
+      // Material/Widgets/Cupertino defaults are still provided automatically.
+      localizationsDelegates: const [
+        FleatherLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: router,
     );
   }

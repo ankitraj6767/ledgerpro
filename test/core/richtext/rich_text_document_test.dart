@@ -82,6 +82,80 @@ void main() {
     });
   });
 
+  group('Delta (Fleather/Quill) parsing', () {
+    test('bold inline run inside a paragraph', () {
+      final blocks = parseRichText(
+        '[{"insert":"hello "},{"insert":"world","attributes":{"b":true}},{"insert":"\\n"}]',
+      );
+      expect(blocks, hasLength(1));
+      expect(blocks.single.type, RtBlockType.paragraph);
+      final spans = blocks.single.spans;
+      expect(spans.map((s) => s.text).join(), 'hello world');
+      expect(spans.firstWhere((s) => s.text == 'world').bold, isTrue);
+    });
+
+    test('heading line attribute', () {
+      final blocks = parseRichText(
+        '[{"insert":"Title"},{"insert":"\\n","attributes":{"heading":2}}]',
+      );
+      expect(blocks.single.type, RtBlockType.h2);
+    });
+
+    test('ordered list numbers increment', () {
+      final blocks = parseRichText(
+        '[{"insert":"a"},{"insert":"\\n","attributes":{"block":"ol"}},'
+        '{"insert":"b"},{"insert":"\\n","attributes":{"block":"ol"}}]',
+      );
+      expect(blocks[0].type, RtBlockType.ordered);
+      expect(blocks[0].orderedNumber, 1);
+      expect(blocks[1].orderedNumber, 2);
+    });
+
+    test('bullet and quote line attributes', () {
+      expect(
+        parseRichText('[{"insert":"x"},{"insert":"\\n","attributes":{"block":"ul"}}]')
+            .single
+            .type,
+        RtBlockType.bullet,
+      );
+      expect(
+        parseRichText('[{"insert":"x"},{"insert":"\\n","attributes":{"block":"quote"}}]')
+            .single
+            .type,
+        RtBlockType.quote,
+      );
+    });
+
+    test('link attribute is preserved', () {
+      final span = parseRichText(
+        '[{"insert":"site","attributes":{"a":"https://x.y"}},{"insert":"\\n"}]',
+      ).single.spans.first;
+      expect(span.text, 'site');
+      expect(span.link, 'https://x.y');
+    });
+
+    test('empty document (lone newline) is treated as empty', () {
+      expect(parseRichText('[{"insert":"\\n"}]'), isEmpty);
+      expect(richTextIsEmpty('[{"insert":"\\n"}]'), isTrue);
+    });
+
+    test('richTextToPlain flattens a delta', () {
+      expect(
+        richTextToPlain(
+          '[{"insert":"hello "},{"insert":"world","attributes":{"b":true}},{"insert":"\\n"}]',
+        ),
+        'hello world',
+      );
+    });
+
+    test('a note that merely starts with [ is still treated as text', () {
+      // Not valid Delta JSON -> parsed as markdown/plain, not delta.
+      final blocks = parseRichText('[note] pending review');
+      expect(blocks.single.type, RtBlockType.paragraph);
+      expect(blocks.single.spans.map((s) => s.text).join(), '[note] pending review');
+    });
+  });
+
   group('richTextToPlain', () {
     test('strips markers and keeps content', () {
       expect(
