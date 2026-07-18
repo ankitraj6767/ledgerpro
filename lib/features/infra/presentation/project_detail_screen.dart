@@ -1496,16 +1496,6 @@ class _InvestmentHistoryTile extends ConsumerWidget {
           Money.fromPaise(investment.amountPaise).formatInr(),
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
         ),
-        subtitle: Text(
-          [
-            if (investment.investmentDate != null)
-              DateFormat('dd MMM yyyy').format(investment.investmentDate!),
-            _humanizeToken(investment.paymentMode),
-          ].join(' · '),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12),
-        ),
         trailing: canManage
             ? _EntityMenu(
                 onEdit: () => Navigator.of(context).push(
@@ -1582,16 +1572,6 @@ class _ReturnHistoryTile extends ConsumerWidget {
         title: Text(
           Money.fromPaise(returnEntry.amountPaise).formatInr(),
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-        ),
-        subtitle: Text(
-          [
-            if (returnEntry.returnDate != null)
-              DateFormat('dd MMM yyyy').format(returnEntry.returnDate!),
-            _humanizeToken(returnEntry.paymentMode),
-          ].join(' · '),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12),
         ),
         trailing: canManage
             ? _EntityMenu(
