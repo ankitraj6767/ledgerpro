@@ -54,6 +54,72 @@ function Get-PubspecVersion {
     throw "Could not find a 'version:' entry in pubspec.yaml."
 }
 
+function Copy-VCRuntime {
+    <#
+        Copies the Microsoft Visual C++ runtime redistributable DLLs into the
+        release directory (app-local deployment).
+
+        The Flutter runner and several plugin DLLs (notably
+        flutter_secure_storage_windows_plugin.dll) link dynamically against the
+        MSVC runtime: vcruntime140.dll, vcruntime140_1.dll, msvcp140.dll and
+        friends. On target machines without an up-to-date "Microsoft Visual C++
+        Redistributable", one of those dependencies is missing, so a plugin DLL
+        fails to load and Windows reports the "Bad Image" error with status
+        0xc0e90002.
+
+        Shipping these DLLs next to the executable makes the app self-contained:
+        the Windows loader resolves them from the application directory first, so
+        no machine-wide install is required on the target. Microsoft explicitly
+        permits this app-local redistribution of the CRT DLLs.
+
+        Best-effort: if Visual Studio / the redist cannot be located (for example
+        when packaging on a host without VS), a warning is emitted and packaging
+        continues. On the CI Windows runner VS is always present, so released
+        ZIPs always include the runtime.
+    #>
+    param([Parameter(Mandatory = $true)] [string]$Destination)
+
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    if (-not (Test-Path $vswhere)) {
+        Write-Warning "vswhere.exe not found; VC++ runtime NOT bundled. Target machines will need the Microsoft Visual C++ Redistributable installed."
+        return
+    }
+
+    $vsPath = & $vswhere -latest -products * -property installationPath 2>$null | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($vsPath)) {
+        Write-Warning "No Visual Studio installation located via vswhere; VC++ runtime NOT bundled."
+        return
+    }
+
+    $redistRoot = Join-Path $vsPath 'VC\Redist\MSVC'
+    if (-not (Test-Path $redistRoot)) {
+        Write-Warning "VC++ redist root '$redistRoot' not found; VC++ runtime NOT bundled."
+        return
+    }
+
+    # Discover the CRT folder directly and prefer the newest version. The folder
+    # name under Redist\MSVC can differ slightly from the value in
+    # Microsoft.VCRedistVersion.default.txt, so we do not trust that file.
+    $crtFolder = $null
+    foreach ($versionDir in (Get-ChildItem -Path $redistRoot -Directory | Sort-Object Name -Descending)) {
+        $candidate = Get-ChildItem -Path (Join-Path $versionDir.FullName 'x64') -Directory -Filter 'Microsoft.VC*.CRT' -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending | Select-Object -First 1
+        if ($candidate) { $crtFolder = $candidate; break }
+    }
+
+    if (-not $crtFolder) {
+        Write-Warning "No 'Microsoft.VC*.CRT' folder found under '$redistRoot'; VC++ runtime NOT bundled."
+        return
+    }
+
+    $dlls = @(Get-ChildItem -Path $crtFolder.FullName -Filter '*.dll' -File)
+    foreach ($dll in $dlls) {
+        Copy-Item -Path $dll.FullName -Destination $Destination -Force
+        Write-Host "  Bundled runtime DLL: $($dll.Name)"
+    }
+    Write-Host "Bundled $($dlls.Count) Visual C++ runtime DLL(s) from '$($crtFolder.Name)'."
+}
+
 # --- Resolve and normalize the version --------------------------------------
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = Get-PubspecVersion
@@ -98,6 +164,13 @@ $checksumPath = Join-Path $distFull $checksumName
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 
 Copy-Item -Path (Join-Path $releaseFull '*') -Destination $stagingDir -Recurse -Force
+
+# --- Bundle the Visual C++ runtime (app-local deployment) -------------------
+# Makes the app self-contained so it launches on machines that do not have the
+# Microsoft Visual C++ Redistributable installed. Without this, plugin DLLs such
+# as flutter_secure_storage_windows_plugin.dll fail to load with the Windows
+# "Bad Image" error (status 0xc0e90002).
+Copy-VCRuntime -Destination $stagingDir
 
 # --- Create the ZIP ---------------------------------------------------------
 # Prefer the .NET API (deterministic single top-level folder via
