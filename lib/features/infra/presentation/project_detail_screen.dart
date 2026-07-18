@@ -1481,6 +1481,7 @@ class _InvestmentHistoryTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       child: ListTile(
+        contentPadding: const EdgeInsets.only(left: 16, right: 4),
         onTap: () => _showInvestmentDetails(
           context,
           investment,
@@ -1557,6 +1558,7 @@ class _ReturnHistoryTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       child: ListTile(
+        contentPadding: const EdgeInsets.only(left: 16, right: 4),
         onTap: () => _showReturnDetails(
           context,
           returnEntry,
