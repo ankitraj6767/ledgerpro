@@ -2174,6 +2174,10 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
 // ---------------------------------------------------------------------------
 // Expenses tab
 // ---------------------------------------------------------------------------
+
+/// How the flat expense list is ordered.
+enum _ExpenseSortKey { serial, date, name }
+
 class _ExpensesTab extends ConsumerStatefulWidget {
   const _ExpensesTab({required this.project});
 
@@ -2187,6 +2191,259 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
   final _searchController = TextEditingController();
   String _query = '';
   final Set<String> _selectedExpenseIds = {};
+
+  // Sorting: default to newest expense first (most common expectation).
+  _ExpenseSortKey _sortKey = _ExpenseSortKey.date;
+  bool _sortAscending = false;
+
+  static bool _defaultAscendingFor(_ExpenseSortKey key) {
+    switch (key) {
+      case _ExpenseSortKey.date:
+        return false; // newest first
+      case _ExpenseSortKey.name:
+        return true; // A → Z
+      case _ExpenseSortKey.serial:
+        return true; // 1, 2, 3 …
+    }
+  }
+
+  /// Stable serial numbers from creation order (oldest = #1) so the S.No shown
+  /// on each row — and the "S.No" sort — stay consistent regardless of the
+  /// current ordering or any active filter.
+  Map<String, int> _expenseSerials(List<ProjectExpense> all) {
+    final ordered = [...all]..sort((a, b) {
+      final da = a.createdAt ?? a.expenseDate ?? DateTime(0);
+      final db = b.createdAt ?? b.expenseDate ?? DateTime(0);
+      return da.compareTo(db);
+    });
+    final map = <String, int>{};
+    for (var i = 0; i < ordered.length; i++) {
+      map[ordered[i].id] = i + 1;
+    }
+    return map;
+  }
+
+  List<ProjectExpense> _sortExpenses(
+    List<ProjectExpense> items,
+    Map<String, int> serialOf,
+  ) {
+    int compare(ProjectExpense a, ProjectExpense b) {
+      switch (_sortKey) {
+        case _ExpenseSortKey.date:
+          final da = a.expenseDate ?? DateTime(0);
+          final db = b.expenseDate ?? DateTime(0);
+          final byDate = da.compareTo(db);
+          return byDate != 0
+              ? byDate
+              : (serialOf[a.id] ?? 0).compareTo(serialOf[b.id] ?? 0);
+        case _ExpenseSortKey.name:
+          final byName = a.category.toLowerCase().compareTo(
+            b.category.toLowerCase(),
+          );
+          return byName != 0
+              ? byName
+              : (serialOf[a.id] ?? 0).compareTo(serialOf[b.id] ?? 0);
+        case _ExpenseSortKey.serial:
+          return (serialOf[a.id] ?? 0).compareTo(serialOf[b.id] ?? 0);
+      }
+    }
+
+    final list = [...items]
+      ..sort((a, b) => _sortAscending ? compare(a, b) : -compare(a, b));
+    return list;
+  }
+
+  Widget _buildSortControl() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: SegmentedButton<_ExpenseSortKey>(
+              segments: const [
+                ButtonSegment(
+                  value: _ExpenseSortKey.date,
+                  label: Text('Date'),
+                ),
+                ButtonSegment(
+                  value: _ExpenseSortKey.name,
+                  label: Text('Name'),
+                ),
+                ButtonSegment(
+                  value: _ExpenseSortKey.serial,
+                  label: Text('S.No'),
+                ),
+              ],
+              selected: {_sortKey},
+              showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                textStyle: WidgetStatePropertyAll(
+                  TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
+              ),
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _sortKey = selection.first;
+                  _sortAscending = _defaultAscendingFor(_sortKey);
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: _sortAscending ? 'Ascending' : 'Descending',
+            child: Material(
+              color: InfraColors.navy.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => setState(() => _sortAscending = !_sortAscending),
+                child: Padding(
+                  padding: const EdgeInsets.all(9),
+                  child: Icon(
+                    _sortAscending
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    size: 20,
+                    color: InfraColors.navy,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _serialBadge(int serial) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: InfraColors.navy.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '#$serial',
+        style: const TextStyle(
+          color: InfraColors.navy,
+          fontWeight: FontWeight.w900,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _expenseTile(
+    ProjectExpense e,
+    int serial,
+    OrgPermissions permissions,
+  ) {
+    final isSelected = _selectedExpenseIds.contains(e.id);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(6, 2, 6, 2),
+        leading: Checkbox(
+          activeColor: InfraColors.royalBlue,
+          value: isSelected,
+          onChanged: (val) {
+            setState(() {
+              if (val == true) {
+                _selectedExpenseIds.add(e.id);
+              } else {
+                _selectedExpenseIds.remove(e.id);
+              }
+            });
+          },
+        ),
+        title: Row(
+          children: [
+            _serialBadge(serial),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                e.category.trim().isEmpty ? 'General Expense' : e.category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            [
+              if (e.expenseDate != null)
+                DateFormat('dd MMM yyyy').format(e.expenseDate!),
+              if (e.paymentMode.isNotEmpty) _humanizeToken(e.paymentMode),
+            ].join(' · '),
+            style: const TextStyle(
+              fontSize: 11,
+              color: InfraColors.textSecondary,
+            ),
+          ),
+        ),
+        onTap: () => _showExpenseDetails(
+          context,
+          e,
+          onGeneratePdf: () => _shareExpensePdf(e),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AmountText(
+              paise: e.amountPaise,
+              color: InfraColors.red,
+              size: 13,
+              weight: FontWeight.w700,
+            ),
+            _EntityMenu(
+              onEdit: permissions.canEditExpense(e)
+                  ? () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ExpenseFormScreen(
+                          project: widget.project,
+                          expense: e,
+                        ),
+                      ),
+                    )
+                  : null,
+              onDelete: permissions.canDeleteExpense
+                  ? () => _confirmDelete(
+                      context,
+                      ref,
+                      title: 'Delete expense?',
+                      message:
+                          'Remove ${e.category} '
+                          '(${Money.fromPaise(e.amountPaise).formatInr()})?',
+                      onConfirm: () async {
+                        await ref
+                            .read(infraRepositoryProvider)
+                            .deleteExpense(e.id);
+                        ref.invalidate(
+                          projectExpensesProvider(widget.project.id),
+                        );
+                        ref.invalidate(
+                          projectFinancialSummaryProvider(widget.project.id),
+                        );
+                        ref.invalidate(projectsProvider);
+                        ref.invalidate(dashboardSummaryProvider);
+                      },
+                    )
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -2273,22 +2530,8 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 (sum, e) => sum + e.amountPaise,
               );
 
-              final groupedExpenses = <String, List<ProjectExpense>>{};
-              for (final e in filtered) {
-                final cat = e.category.trim();
-                groupedExpenses.putIfAbsent(cat, () => []).add(e);
-              }
-
-              final sortedCategories = groupedExpenses.keys.toList()
-                ..sort((a, b) {
-                  final dateA = groupedExpenses[a]!
-                      .map((e) => e.expenseDate ?? DateTime(0))
-                      .reduce((max, d) => d.isAfter(max) ? d : max);
-                  final dateB = groupedExpenses[b]!
-                      .map((e) => e.expenseDate ?? DateTime(0))
-                      .reduce((max, d) => d.isAfter(max) ? d : max);
-                  return dateB.compareTo(dateA);
-                });
+              final serialOf = _expenseSerials(expenses);
+              final sortedList = _sortExpenses(filtered, serialOf);
 
               final isSelectionActive = _selectedExpenseIds.isNotEmpty;
               final isAllSelected =
@@ -2299,7 +2542,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 children: [
                   _FinanceSearchBar(
                     controller: _searchController,
-                    hintText: 'Search expenses, vendor, category',
+                    hintText: 'Search expenses, category, notes',
                     query: _query,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
@@ -2310,6 +2553,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                           )
                         : null,
                   ),
+                  if (filtered.isNotEmpty) _buildSortControl(),
                   if (isSelectionActive)
                     Card(
                       color: InfraColors.royalBlue.withValues(alpha: 0.08),
@@ -2446,7 +2690,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                 title: 'No matching expenses',
                                 query: _query,
                                 messageTail:
-                                    'Try vendor, category, payment mode, bill number, or amount.',
+                                    'Try category, payment mode, notes, or amount.',
                               ),
                             ],
                           )
@@ -2484,186 +2728,13 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              ...sortedCategories.map((cat) {
-                                final catExpenses = groupedExpenses[cat]!;
-                                final catTotal = catExpenses.fold<int>(
-                                  0,
-                                  (sum, e) => sum + e.amountPaise,
-                                );
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: ExpansionTile(
-                                    shape: const Border(),
-                                    collapsedShape: const Border(),
-                                    backgroundColor: Colors.transparent,
-                                    collapsedBackgroundColor:
-                                        Colors.transparent,
-                                    title: Text(
-                                      cat,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        color: InfraColors.textPrimary,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      '${catExpenses.length} ${catExpenses.length == 1 ? 'expense' : 'expenses'}',
-                                      style: const TextStyle(
-                                        color: InfraColors.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        AmountText(
-                                          paise: catTotal,
-                                          color: InfraColors.red,
-                                          size: 15,
-                                          weight: FontWeight.w900,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Icon(
-                                          Icons.keyboard_arrow_down_rounded,
-                                          color: InfraColors.textSecondary,
-                                        ),
-                                      ],
-                                    ),
-                                    showTrailingIcon: false,
-                                    children: catExpenses.map((e) {
-                                      final isSelected = _selectedExpenseIds
-                                          .contains(e.id);
-                                      return Container(
-                                        decoration: const BoxDecoration(
-                                          border: Border(
-                                            top: BorderSide(
-                                              color: InfraColors.border,
-                                              width: 0.5,
-                                            ),
-                                          ),
-                                        ),
-                                        child: ListTile(
-                                          dense: true,
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 4,
-                                              ),
-                                          leading: Checkbox(
-                                            activeColor: InfraColors.royalBlue,
-                                            value: isSelected,
-                                            onChanged: (val) {
-                                              setState(() {
-                                                if (val == true) {
-                                                  _selectedExpenseIds.add(e.id);
-                                                } else {
-                                                  _selectedExpenseIds.remove(
-                                                    e.id,
-                                                  );
-                                                }
-                                              });
-                                            },
-                                          ),
-                                          title: Text(
-                                            (e.vendorName ?? '').isNotEmpty
-                                                ? e.vendorName!
-                                                : 'General Expense',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          subtitle: Text(
-                                            [
-                                              if (e.expenseDate != null)
-                                                DateFormat(
-                                                  'dd MMM yyyy',
-                                                ).format(e.expenseDate!),
-                                              if (e.paymentMode.isNotEmpty)
-                                                _humanizeToken(e.paymentMode),
-                                            ].join(' · '),
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          onTap: () => _showExpenseDetails(
-                                            context,
-                                            e,
-                                            onGeneratePdf: () =>
-                                                _shareExpensePdf(e),
-                                          ),
-                                          trailing: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              AmountText(
-                                                paise: e.amountPaise,
-                                                color: InfraColors.red,
-                                                size: 13,
-                                                weight: FontWeight.w700,
-                                              ),
-                                              _EntityMenu(
-                                                onEdit:
-                                                    permissions.canEditExpense(
-                                                      e,
-                                                    )
-                                                    ? () => Navigator.of(context).push(
-                                                        MaterialPageRoute<void>(
-                                                          builder: (_) =>
-                                                              ExpenseFormScreen(
-                                                                project: widget
-                                                                    .project,
-                                                                expense: e,
-                                                              ),
-                                                        ),
-                                                      )
-                                                    : null,
-                                                onDelete:
-                                                    permissions.canDeleteExpense
-                                                    ? () => _confirmDelete(
-                                                        context,
-                                                        ref,
-                                                        title:
-                                                            'Delete expense?',
-                                                        message:
-                                                            'Remove ${e.category} '
-                                                            '(${Money.fromPaise(e.amountPaise).formatInr()})?',
-                                                        onConfirm: () async {
-                                                          await ref
-                                                              .read(
-                                                                infraRepositoryProvider,
-                                                              )
-                                                              .deleteExpense(
-                                                                e.id,
-                                                              );
-                                                          ref.invalidate(
-                                                            projectExpensesProvider(
-                                                              widget.project.id,
-                                                            ),
-                                                          );
-                                                          ref.invalidate(
-                                                            projectFinancialSummaryProvider(
-                                                              widget.project.id,
-                                                            ),
-                                                          );
-                                                          ref.invalidate(
-                                                            projectsProvider,
-                                                          );
-                                                          ref.invalidate(
-                                                            dashboardSummaryProvider,
-                                                          );
-                                                        },
-                                                      )
-                                                    : null,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                );
-                              }),
+                              ...sortedList.map(
+                                (e) => _expenseTile(
+                                  e,
+                                  serialOf[e.id] ?? 0,
+                                  permissions,
+                                ),
+                              ),
                             ],
                           ),
                     ),
