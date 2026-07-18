@@ -233,12 +233,6 @@ class ProfileScreen extends ConsumerWidget {
               'Audit logs',
               AppRoutes.auditLogs,
             ),
-          _tile(
-            context,
-            Icons.sync_outlined,
-            'Sync queue',
-            AppRoutes.syncQueue,
-          ),
           _tile(context, Icons.lock_outline, 'App lock', AppRoutes.appLock),
           const _AppUpdateTile(),
           const SizedBox(height: 16),
