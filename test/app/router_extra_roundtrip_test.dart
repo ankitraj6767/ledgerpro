@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerpro_mobile/shared/models/infra_models.dart';
 
 /// Guards against the crash:
-///   type '_Map<String, dynamic>' is not a subtype of type 'InfraProject?'
+///   `type '_Map<String, dynamic>' is not a subtype of type 'InfraProject?'`
 ///
 /// After Android state restoration, go_router hands a route's `extra` back as a
 /// JSON `Map` instead of the original object. The router must reconstruct the
