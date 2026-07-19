@@ -13,6 +13,7 @@ import 'app/constants/app_constants.dart';
 import 'app/constants/supabase_config.dart';
 import 'app/router/app_router.dart';
 import 'core/cache/dashboard_cache.dart';
+import 'core/cache/project_detail_cache.dart';
 import 'core/security/app_session_controller.dart';
 
 /// The app router, kept at top level so the crash-recovery fallback can send
@@ -97,6 +98,7 @@ Future<void> main() async {
       // immediately instead of empty placeholders.
       final sessionController = AppSessionController();
       final dashboardCache = DashboardCache();
+      final projectDetailCache = ProjectDetailCache();
       try {
         // Bound the pre-first-frame work with a timeout. A platform channel
         // that hangs (flutter_secure_storage on some Android keystore states,
@@ -107,6 +109,7 @@ Future<void> main() async {
         await Future.wait([
           sessionController.initialize(),
           dashboardCache.load(),
+          projectDetailCache.load(),
         ]).timeout(const Duration(seconds: 8));
       } catch (error, stack) {
         // Never block first render on startup work; degrade gracefully.
@@ -121,6 +124,7 @@ Future<void> main() async {
           overrides: [
             appSessionControllerProvider.overrideWithValue(sessionController),
             dashboardCacheProvider.overrideWithValue(dashboardCache),
+            projectDetailCacheProvider.overrideWithValue(projectDetailCache),
           ],
           child: LedgerProApp(router: router),
         ),

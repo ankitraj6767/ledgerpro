@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/cache/dashboard_cache.dart';
+import '../../core/cache/project_detail_cache.dart';
 import '../../core/money/money.dart';
 import '../../shared/models/infra_models.dart';
 
@@ -160,6 +161,43 @@ final dashboardCacheWriterProvider = Provider<void>((ref) {
             role: org.role,
             summary: summary,
             projects: projects,
+          ),
+        );
+  }
+});
+
+/// The persisted financial snapshot for [projectId] belonging to the *current*
+/// user, or null when there is no cache or it belongs to a different account.
+/// Lets the project detail Overview tab render real values on the first frame
+/// instead of spinners while the live providers refresh (stale-while-revalidate).
+final cachedProjectDetailProvider =
+    Provider.family<ProjectDetailSnapshot?, String>((ref, projectId) {
+      final cache = ref.watch(projectDetailCacheProvider);
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (cache.userId != userId) return null;
+      return cache.snapshot(projectId);
+    });
+
+/// Side-effect provider that persists a project's financial summary + expenses
+/// once both have loaded. Watched by the Overview tab so the on-disk snapshot
+/// stays fresh for the next cold start.
+final projectDetailCacheWriterProvider = Provider.family<void, String>((
+  ref,
+  projectId,
+) {
+  final summary = ref.watch(projectFinancialSummaryProvider(projectId)).value;
+  final expenses = ref.watch(projectExpensesProvider(projectId)).value;
+  final userId = Supabase.instance.client.auth.currentUser?.id;
+  if (summary != null && expenses != null && userId != null) {
+    ref
+        .read(projectDetailCacheProvider)
+        .save(
+          userId: userId,
+          snapshot: ProjectDetailSnapshot(
+            projectId: projectId,
+            summary: summary,
+            expenses: expenses,
+            savedAt: DateTime.now(),
           ),
         );
   }

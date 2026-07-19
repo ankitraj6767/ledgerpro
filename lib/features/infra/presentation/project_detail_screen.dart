@@ -301,9 +301,22 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Persist this project's data so the next cold start renders instantly.
+    ref.watch(projectDetailCacheWriterProvider(project.id));
+
     final summaryAsync = ref.watch(projectFinancialSummaryProvider(project.id));
     final expensesAsync = ref.watch(projectExpensesProvider(project.id));
     final permissions = ref.watch(currentOrgPermissionsProvider);
+    final cached = ref.watch(cachedProjectDetailProvider(project.id));
+
+    // Prefer live data, then fall back to the last-known cached snapshot so a
+    // returning user sees real values on the first frame instead of spinners
+    // (stale-while-revalidate). Only surface an error/spinner when there is no
+    // cached value to show.
+    final summary = summaryAsync.value ?? cached?.summary;
+    final expenses = expensesAsync.value ?? cached?.expenses;
+    final summaryError = summary == null && summaryAsync.hasError;
+    final expensesError = expenses == null && expensesAsync.hasError;
 
     return RefreshIndicator(
       onRefresh: () => ref.refreshProject(project.id),
@@ -316,119 +329,116 @@ class _OverviewTab extends ConsumerWidget {
         SectionCard(
           title: 'Government Funds',
           icon: Icons.account_balance_outlined,
-          child: summaryAsync.when(
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(8),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            error: (e, _) => Text('Error: $e'),
-            data: (s) => Column(
-              children: [
-                _kv('Amount Sanctioned', s.totalGovtSanctionedPaise),
-                _kv(
-                  'Received Till Date',
-                  s.totalGovtReceivedPaise,
-                  color: InfraColors.green,
+          child: summary != null
+              ? Column(
+                  children: [
+                    _kv('Amount Sanctioned', summary.totalGovtSanctionedPaise),
+                    _kv(
+                      'Received Till Date',
+                      summary.totalGovtReceivedPaise,
+                      color: InfraColors.green,
+                    ),
+                    _kv(
+                      'Pending Amount',
+                      summary.pendingGovtPaise,
+                      color: InfraColors.orange,
+                    ),
+                  ],
+                )
+              : summaryError
+              ? Text('Error: ${summaryAsync.error}')
+              : const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8),
+                    child: CircularProgressIndicator(),
+                  ),
                 ),
-                _kv(
-                  'Pending Amount',
-                  s.pendingGovtPaise,
-                  color: InfraColors.orange,
-                ),
-              ],
-            ),
-          ),
         ),
         const SizedBox(height: 12),
         SectionCard(
           title: 'Financial Summary',
           icon: Icons.summarize_outlined,
-          child: summaryAsync.when(
-            loading: () => const SizedBox.shrink(),
-            error: (e, _) => Text('Error: $e'),
-            data: (s) {
-              final balanceColor = s.availableBalancePaise >= 0
-                  ? InfraColors.green
-                  : InfraColors.red;
-              return Column(
-                children: [
-                  _FundingHealthPanel(summary: s),
-                  const SizedBox(height: 14),
-                  _kv(
-                    'Estimated Project Cost',
-                    project.totalEstimatedCostPaise,
-                    color: InfraColors.navy,
-                  ),
-                  _kv(
-                    'Net Investment',
-                    s.totalInvestmentPaise,
-                    color: InfraColors.gold,
-                  ),
-                  _kv(
-                    'Government Fund Received',
-                    s.totalGovtReceivedPaise,
-                    color: InfraColors.green,
-                  ),
-                  _kv(
-                    'Total Expenses',
-                    s.totalExpensePaise,
-                    color: InfraColors.red,
-                  ),
-                  const Divider(height: 22),
-                  _kv(
-                    'Available Balance',
-                    s.availableBalancePaise,
-                    color: balanceColor,
-                    bold: true,
-                  ),
-                ],
-              );
-            },
-          ),
+          child: summary != null
+              ? Column(
+                  children: [
+                    _FundingHealthPanel(summary: summary),
+                    const SizedBox(height: 14),
+                    _kv(
+                      'Estimated Project Cost',
+                      project.totalEstimatedCostPaise,
+                      color: InfraColors.navy,
+                    ),
+                    _kv(
+                      'Net Investment',
+                      summary.totalInvestmentPaise,
+                      color: InfraColors.gold,
+                    ),
+                    _kv(
+                      'Government Fund Received',
+                      summary.totalGovtReceivedPaise,
+                      color: InfraColors.green,
+                    ),
+                    _kv(
+                      'Total Expenses',
+                      summary.totalExpensePaise,
+                      color: InfraColors.red,
+                    ),
+                    const Divider(height: 22),
+                    _kv(
+                      'Available Balance',
+                      summary.availableBalancePaise,
+                      color: summary.availableBalancePaise >= 0
+                          ? InfraColors.green
+                          : InfraColors.red,
+                      bold: true,
+                    ),
+                  ],
+                )
+              : summaryError
+              ? Text('Error: ${summaryAsync.error}')
+              : const SizedBox.shrink(),
         ),
         const SizedBox(height: 12),
         SectionCard(
           title: 'Expenses Summary',
           icon: Icons.pie_chart_outline,
-          child: expensesAsync.when(
-            loading: () => const SizedBox(
-              height: 100,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Text('Error: $e'),
-            data: (expenses) {
-              if (expenses.isEmpty) {
-                return const Text('No expenses recorded yet.');
-              }
-              final byCategory = <String, int>{};
-              for (final e in expenses) {
-                byCategory[e.category] =
-                    (byCategory[e.category] ?? 0) + e.amountPaise;
-              }
-              final entries = byCategory.entries.toList()
-                ..sort((a, b) => b.value.compareTo(a.value));
-              final slices = <DonutSlice>[];
-              for (var i = 0; i < entries.length; i++) {
-                slices.add(
-                  DonutSlice(
-                    label: entries[i].key,
-                    amountPaise: entries[i].value,
-                    color: DonutExpenseChart
-                        .palette[i % DonutExpenseChart.palette.length],
-                  ),
-                );
-              }
-              return DonutExpenseChart(slices: slices);
-            },
-          ),
+          child: expenses != null
+              ? (expenses.isEmpty
+                    ? const Text('No expenses recorded yet.')
+                    : _expensesDonut(expenses))
+              : expensesError
+              ? Text('Error: ${expensesAsync.error}')
+              : const SizedBox(
+                  height: 100,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
         ),
         const SizedBox(height: 12),
         _QuickActions(project: project, permissions: permissions),
       ],
       ),
     );
+  }
+
+  Widget _expensesDonut(List<ProjectExpense> expenses) {
+    final byCategory = <String, int>{};
+    for (final e in expenses) {
+      byCategory[e.category] = (byCategory[e.category] ?? 0) + e.amountPaise;
+    }
+    final entries = byCategory.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final slices = <DonutSlice>[];
+    for (var i = 0; i < entries.length; i++) {
+      slices.add(
+        DonutSlice(
+          label: entries[i].key,
+          amountPaise: entries[i].value,
+          color:
+              DonutExpenseChart.palette[i % DonutExpenseChart.palette.length],
+        ),
+      );
+    }
+    return DonutExpenseChart(slices: slices);
   }
 
   Widget _kv(String label, int paise, {Color? color, bool bold = false}) {
