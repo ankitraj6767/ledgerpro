@@ -383,12 +383,22 @@ class InfraReportService {
     required String organizationName,
     required InfraProject project,
     required List<ProjectExpense> expenses,
+    // When true, the Expense Ledger keeps the exact order of [expenses] as
+    // passed in (used to match the on-screen sort). When false (default), it
+    // falls back to newest-first by date, preserving the original report order.
+    bool preserveOrder = false,
+    // Optional stable serial numbers (expense id -> S.No) so the printed
+    // "S.No" column matches the numbers shown on each row on screen. When
+    // omitted, a positional 1..N index is used.
+    Map<String, int>? serialOf,
   }) async {
     final doc = pw.Document();
     final generatedAt = DateTime.now();
     final logo = await _loadLogo();
-    final sorted = [...expenses]
-      ..sort((a, b) => _compareDateDesc(a.expenseDate, b.expenseDate));
+    final sorted = preserveOrder
+        ? [...expenses]
+        : ([...expenses]
+            ..sort((a, b) => _compareDateDesc(a.expenseDate, b.expenseDate)));
     final total = sorted.fold<int>(0, (sum, item) => sum + item.amountPaise);
 
     doc.addPage(
@@ -451,7 +461,7 @@ class InfraReportService {
               rows: [
                 for (var i = 0; i < sorted.length; i++)
                   [
-                    '${i + 1}',
+                    '${serialOf?[sorted[i].id] ?? (i + 1)}',
                     _formatDate(sorted[i].expenseDate),
                     sorted[i].category,
                     _plainNotes(sorted[i].notes),

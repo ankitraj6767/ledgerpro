@@ -2490,7 +2490,10 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     }
   }
 
-  Future<void> _shareSelectedExpensesPdf(List<ProjectExpense> selected) async {
+  Future<void> _shareSelectedExpensesPdf(
+    List<ProjectExpense> selected,
+    Map<String, int> serialOf,
+  ) async {
     try {
       final org = await ref.read(infraWorkspaceProvider.future);
       const service = InfraReportService();
@@ -2498,6 +2501,9 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
         organizationName: org.name,
         project: widget.project,
         expenses: selected,
+        // Print in the exact order shown on screen, with the same S.No values.
+        preserveOrder: true,
+        serialOf: serialOf,
       );
       await service.share(file, isPdf: true);
       if (!mounted) return;
@@ -2643,7 +2649,10 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                     ),
                                   ),
                                   onPressed: () {
-                                    final selectedExpenses = filtered
+                                    // Build from the on-screen sorted list so
+                                    // the PDF prints in the same order the user
+                                    // sorted by (Date / Name / S.No).
+                                    final selectedExpenses = sortedList
                                         .where(
                                           (e) => _selectedExpenseIds.contains(
                                             e.id,
@@ -2653,6 +2662,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                     if (selectedExpenses.isNotEmpty) {
                                       _shareSelectedExpensesPdf(
                                         selectedExpenses,
+                                        serialOf,
                                       );
                                     }
                                   },
