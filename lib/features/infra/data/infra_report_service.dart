@@ -387,10 +387,6 @@ class InfraReportService {
     // passed in (used to match the on-screen sort). When false (default), it
     // falls back to newest-first by date, preserving the original report order.
     bool preserveOrder = false,
-    // Optional stable serial numbers (expense id -> S.No) so the printed
-    // "S.No" column matches the numbers shown on each row on screen. When
-    // omitted, a positional 1..N index is used.
-    Map<String, int>? serialOf,
   }) async {
     final doc = pw.Document();
     final generatedAt = DateTime.now();
@@ -461,7 +457,8 @@ class InfraReportService {
               rows: [
                 for (var i = 0; i < sorted.length; i++)
                   [
-                    '${serialOf?[sorted[i].id] ?? (i + 1)}',
+                    // Running 1..N index over the printed (sorted) rows.
+                    '${i + 1}',
                     _formatDate(sorted[i].expenseDate),
                     sorted[i].category,
                     _plainNotes(sorted[i].notes),

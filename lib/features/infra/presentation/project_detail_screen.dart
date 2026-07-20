@@ -2186,7 +2186,7 @@ class _GovtFundsTabState extends ConsumerState<_GovtFundsTab> {
 // ---------------------------------------------------------------------------
 
 /// How the flat expense list is ordered.
-enum _ExpenseSortKey { serial, date, name }
+enum _ExpenseSortKey { date, name }
 
 class _ExpensesTab extends ConsumerStatefulWidget {
   const _ExpensesTab({required this.project});
@@ -2212,49 +2212,31 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
         return false; // newest first
       case _ExpenseSortKey.name:
         return true; // A → Z
-      case _ExpenseSortKey.serial:
-        return true; // 1, 2, 3 …
     }
   }
 
-  /// Stable serial numbers from creation order (oldest = #1) so the S.No shown
-  /// on each row — and the "S.No" sort — stay consistent regardless of the
-  /// current ordering or any active filter.
-  Map<String, int> _expenseSerials(List<ProjectExpense> all) {
-    final ordered = [...all]..sort((a, b) {
-      final da = a.createdAt ?? a.expenseDate ?? DateTime(0);
-      final db = b.createdAt ?? b.expenseDate ?? DateTime(0);
-      return da.compareTo(db);
-    });
-    final map = <String, int>{};
-    for (var i = 0; i < ordered.length; i++) {
-      map[ordered[i].id] = i + 1;
+  List<ProjectExpense> _sortExpenses(List<ProjectExpense> items) {
+    // Deterministic tie-breaker (equal date or equal category) so the order is
+    // stable across rebuilds: fall back to creation order, then id.
+    int stableTie(ProjectExpense a, ProjectExpense b) {
+      final ca = a.createdAt ?? a.expenseDate ?? DateTime(0);
+      final cb = b.createdAt ?? b.expenseDate ?? DateTime(0);
+      final byCreated = ca.compareTo(cb);
+      return byCreated != 0 ? byCreated : a.id.compareTo(b.id);
     }
-    return map;
-  }
 
-  List<ProjectExpense> _sortExpenses(
-    List<ProjectExpense> items,
-    Map<String, int> serialOf,
-  ) {
     int compare(ProjectExpense a, ProjectExpense b) {
       switch (_sortKey) {
         case _ExpenseSortKey.date:
           final da = a.expenseDate ?? DateTime(0);
           final db = b.expenseDate ?? DateTime(0);
           final byDate = da.compareTo(db);
-          return byDate != 0
-              ? byDate
-              : (serialOf[a.id] ?? 0).compareTo(serialOf[b.id] ?? 0);
+          return byDate != 0 ? byDate : stableTie(a, b);
         case _ExpenseSortKey.name:
           final byName = a.category.toLowerCase().compareTo(
             b.category.toLowerCase(),
           );
-          return byName != 0
-              ? byName
-              : (serialOf[a.id] ?? 0).compareTo(serialOf[b.id] ?? 0);
-        case _ExpenseSortKey.serial:
-          return (serialOf[a.id] ?? 0).compareTo(serialOf[b.id] ?? 0);
+          return byName != 0 ? byName : stableTie(a, b);
       }
     }
 
@@ -2278,10 +2260,6 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 ButtonSegment(
                   value: _ExpenseSortKey.name,
                   label: Text('Name'),
-                ),
-                ButtonSegment(
-                  value: _ExpenseSortKey.serial,
-                  label: Text('S.No'),
                 ),
               ],
               selected: {_sortKey},
@@ -2327,29 +2305,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     );
   }
 
-  Widget _serialBadge(int serial) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: InfraColors.navy.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        '#$serial',
-        style: const TextStyle(
-          color: InfraColors.navy,
-          fontWeight: FontWeight.w900,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _expenseTile(
-    ProjectExpense e,
-    int serial,
-    OrgPermissions permissions,
-  ) {
+  Widget _expenseTile(ProjectExpense e, OrgPermissions permissions) {
     final isSelected = _selectedExpenseIds.contains(e.id);
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -2369,22 +2325,11 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
             });
           },
         ),
-        title: Row(
-          children: [
-            _serialBadge(serial),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                e.category.trim().isEmpty ? 'General Expense' : e.category,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
+        title: Text(
+          e.category.trim().isEmpty ? 'General Expense' : e.category,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 2),
@@ -2490,10 +2435,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     }
   }
 
-  Future<void> _shareSelectedExpensesPdf(
-    List<ProjectExpense> selected,
-    Map<String, int> serialOf,
-  ) async {
+  Future<void> _shareSelectedExpensesPdf(List<ProjectExpense> selected) async {
     try {
       final org = await ref.read(infraWorkspaceProvider.future);
       const service = InfraReportService();
@@ -2501,9 +2443,9 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
         organizationName: org.name,
         project: widget.project,
         expenses: selected,
-        // Print in the exact order shown on screen, with the same S.No values.
+        // Print in the exact order shown on screen. S.No is a running 1..N
+        // index over the printed rows (handled inside expensesPdf).
         preserveOrder: true,
-        serialOf: serialOf,
       );
       await service.share(file, isPdf: true);
       if (!mounted) return;
@@ -2546,8 +2488,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 (sum, e) => sum + e.amountPaise,
               );
 
-              final serialOf = _expenseSerials(expenses);
-              final sortedList = _sortExpenses(filtered, serialOf);
+              final sortedList = _sortExpenses(filtered);
 
               final isSelectionActive = _selectedExpenseIds.isNotEmpty;
               final isAllSelected =
@@ -2662,7 +2603,6 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                     if (selectedExpenses.isNotEmpty) {
                                       _shareSelectedExpensesPdf(
                                         selectedExpenses,
-                                        serialOf,
                                       );
                                     }
                                   },
@@ -2749,11 +2689,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                               ),
                               const SizedBox(height: 8),
                               ...sortedList.map(
-                                (e) => _expenseTile(
-                                  e,
-                                  serialOf[e.id] ?? 0,
-                                  permissions,
-                                ),
+                                (e) => _expenseTile(e, permissions),
                               ),
                             ],
                           ),
