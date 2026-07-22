@@ -36,7 +36,8 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
     if (roleAsync.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (!ref.watch(currentOrgPermissionsProvider).canAddNotes) {
+    final permissions = ref.watch(currentOrgPermissionsProvider);
+    if (!permissions.canAddNotes) {
       return const AccessDeniedScreen();
     }
 
@@ -117,6 +118,13 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
                                   child: Icon(Icons.notes_outlined, size: 20),
                                 ),
                                 Expanded(child: RichTextView(note.note)),
+                                if (permissions.canEditNotes ||
+                                    permissions.canDeleteNotes)
+                                  _noteMenu(
+                                    note,
+                                    canEdit: permissions.canEditNotes,
+                                    canDelete: permissions.canDeleteNotes,
+                                  ),
                               ],
                             ),
                             if (note.createdAt != null)
@@ -168,6 +176,155 @@ class _ProjectNotesScreenState extends ConsumerState<ProjectNotesScreen> {
       );
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Widget _noteMenu(
+    ProjectNote note, {
+    required bool canEdit,
+    required bool canDelete,
+  }) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, size: 20),
+      tooltip: 'Note actions',
+      onSelected: (value) {
+        if (value == 'edit') {
+          _editNote(note);
+        } else if (value == 'delete') {
+          _deleteNote(note);
+        }
+      },
+      itemBuilder: (context) => [
+        if (canEdit)
+          const PopupMenuItem(value: 'edit', child: Text('Edit')),
+        if (canDelete)
+          const PopupMenuItem(
+            value: 'delete',
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _editNote(ProjectNote note) async {
+    final controller = TextEditingController(text: note.note);
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        var saving = false;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Edit note',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  RichTextEditorField(
+                    controller: controller,
+                    label: 'Note',
+                    icon: Icons.notes_outlined,
+                    hintText: 'Update the note. Use the toolbar to format…',
+                    minLines: 3,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            if (controller.text.trim().isEmpty) return;
+                            setSheetState(() => saving = true);
+                            try {
+                              await ref
+                                  .read(infraRepositoryProvider)
+                                  .updateNote(
+                                    noteId: note.id,
+                                    note: controller.text.trim(),
+                                  );
+                              if (sheetContext.mounted) {
+                                Navigator.of(sheetContext).pop(true);
+                              }
+                            } catch (error) {
+                              setSheetState(() => saving = false);
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Could not update note: $error',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    icon: saving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: const Text('Save changes'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+    controller.dispose();
+    if (saved == true) {
+      ref.invalidate(projectNotesProvider(widget.projectId));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Note updated.')));
+      }
+    }
+  }
+
+  Future<void> _deleteNote(ProjectNote note) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete note?'),
+        content: const Text(
+          'This note will be removed. This cannot be undone from the app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(infraRepositoryProvider).deleteNote(note.id);
+      ref.invalidate(projectNotesProvider(widget.projectId));
+      messenger.showSnackBar(const SnackBar(content: Text('Note deleted.')));
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not delete note: $error')),
+      );
     }
   }
 }

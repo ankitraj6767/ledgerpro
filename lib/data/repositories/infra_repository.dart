@@ -1110,6 +1110,27 @@ class InfraRepository {
     });
   }
 
+  Future<void> updateNote({
+    required String noteId,
+    required String note,
+  }) async {
+    await _client
+        .from('project_notes')
+        .update({'note': note})
+        .eq('id', noteId)
+        .isFilter('deleted_at', null);
+  }
+
+  /// Soft-deletes a note (sets deleted_at) so it drops out of [fetchNotes],
+  /// matching how the other financial records are removed.
+  Future<void> deleteNote(String noteId) async {
+    await _client
+        .from('project_notes')
+        .update({'deleted_at': DateTime.now().toIso8601String()})
+        .eq('id', noteId)
+        .isFilter('deleted_at', null);
+  }
+
   // --------------------------------------------------------------------------
   // Audit logs
   // --------------------------------------------------------------------------
