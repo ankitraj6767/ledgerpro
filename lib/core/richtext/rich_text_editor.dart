@@ -152,9 +152,12 @@ class _RichTextEditorFieldState extends State<RichTextEditorField> {
         FleatherField(
           controller: _fleather,
           focusNode: _focusNode,
-          minHeight: widget.minLines * 24.0,
-          maxHeight: 360,
-          padding: const EdgeInsets.all(12),
+          // Give the text region extra height and padding so the placeholder /
+          // first line has clear breathing room above the formatting toolbar
+          // (previously they sat cramped together).
+          minHeight: widget.minLines * 28.0 + 16,
+          maxHeight: 380,
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
           onLaunchUrl: _openLink,
           decoration: InputDecoration(
             hintText: widget.hintText,
