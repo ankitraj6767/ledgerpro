@@ -24,8 +24,13 @@ class AppRoutes {
   static const home = '/home';
   static const projects = '/projects';
   static const expenses = '/expenses';
-  static const reports = '/reports';
+  static const challans = '/challans';
   static const profile = '/profile';
+
+  /// Global reports. No longer a bottom-nav destination (replaced by
+  /// [challans]) but kept as a full-screen route so existing deep links and
+  /// shortcuts keep working. Project-level reports are unaffected.
+  static const reports = '/reports';
 
   // Projects
   static const newProject = '/projects/new';
@@ -64,6 +69,10 @@ class AppRoutes {
   static const projectDocumentsPath = '/projects/:projectId/documents';
   static const projectNotesPath = '/projects/:projectId/notes';
   static const projectReportsPath = '/projects/:projectId/reports';
+
+  // Challans
+  static String challanDetail(String id) => '/challans/$id';
+  static const challanDetailPath = '/challans/:challanId';
 
   // Other
   static const staff = '/staff';

@@ -6,6 +6,8 @@ import '../../features/app_lock/presentation/app_lock_screen.dart';
 import '../../features/app_lock/presentation/unlock_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/otp_screen.dart';
+import '../../features/challans/presentation/challan_detail_screen.dart';
+import '../../features/challans/presentation/challan_screen.dart';
 import '../../features/infra/presentation/infra_forms.dart';
 import '../../features/infra/presentation/infra_home_screen.dart';
 import '../../features/infra/presentation/infra_tabs.dart';
@@ -75,8 +77,9 @@ class AppRouter {
         ),
         GoRoute(
           path: AppRoutes.otp,
-          builder: (context, state) =>
-              OtpScreen(phone: state.extra is String ? state.extra as String : null),
+          builder: (context, state) => OtpScreen(
+            phone: state.extra is String ? state.extra as String : null,
+          ),
         ),
         GoRoute(
           path: AppRoutes.unlock,
@@ -92,7 +95,7 @@ class AppRouter {
         ),
 
         // ------------------------------------------------------------------
-        // Bottom-nav shell. 
+        // Bottom-nav shell.
         // ------------------------------------------------------------------
         ShellRoute(
           builder: (context, state, child) => InfraShell(child: child),
@@ -110,14 +113,34 @@ class AppRouter {
               builder: (context, state) => const GlobalExpensesScreen(),
             ),
             GoRoute(
-              path: AppRoutes.reports,
-              builder: (context, state) => const GlobalReportsScreen(),
+              path: AppRoutes.challans,
+              builder: (context, state) => const ChallanScreen(),
             ),
             GoRoute(
               path: AppRoutes.profile,
               builder: (context, state) => const ProfileScreen(),
             ),
           ],
+        ),
+
+        // ------------------------------------------------------------------
+        // Challans (full-screen, pushed over the shell)
+        // ------------------------------------------------------------------
+        GoRoute(
+          path: AppRoutes.challanDetailPath,
+          builder: (context, state) => ChallanDetailScreen(
+            challanId: state.pathParameters['challanId']!,
+          ),
+        ),
+
+        // ------------------------------------------------------------------
+        // Global reports. Replaced by Challan in the bottom nav, but kept as a
+        // full-screen route so existing deep links keep resolving. Project-level
+        // reports (AppRoutes.projectReportsPath) are untouched.
+        // ------------------------------------------------------------------
+        GoRoute(
+          path: AppRoutes.reports,
+          builder: (context, state) => const GlobalReportsScreen(),
         ),
 
         // ------------------------------------------------------------------

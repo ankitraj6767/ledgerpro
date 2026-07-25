@@ -28,7 +28,7 @@ class InfraShell extends ConsumerWidget {
     AppRoutes.home,
     AppRoutes.projects,
     AppRoutes.expenses,
-    AppRoutes.reports,
+    AppRoutes.challans,
     AppRoutes.profile,
   ];
 
@@ -36,14 +36,14 @@ class InfraShell extends ConsumerWidget {
     _ShellItem(Icons.home_outlined, Icons.home, 'Home'),
     _ShellItem(Icons.business_outlined, Icons.business, 'Projects'),
     _ShellItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Expenses'),
-    _ShellItem(Icons.bar_chart_outlined, Icons.bar_chart, 'Reports'),
+    _ShellItem(Icons.verified_outlined, Icons.verified, 'Challan'),
     _ShellItem(Icons.person_outline, Icons.person, 'Profile'),
   ];
 
   int _indexFor(String path) {
     if (path.startsWith(AppRoutes.projects)) return 1;
     if (path.startsWith(AppRoutes.expenses)) return 2;
-    if (path.startsWith(AppRoutes.reports)) return 3;
+    if (path.startsWith(AppRoutes.challans)) return 3;
     if (path.startsWith(AppRoutes.profile) ||
         path.startsWith(AppRoutes.settings) ||
         path.startsWith(AppRoutes.customers) ||
@@ -312,7 +312,7 @@ class _CommandBarState extends ConsumerState<_CommandBar> {
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => context.go(AppRoutes.projects),
                 decoration: const InputDecoration(
-                  hintText: 'Search projects, expenses, reports',
+                  hintText: 'Search projects, expenses, challans',
                   prefixIcon: Icon(Icons.search),
                   isDense: true,
                 ),

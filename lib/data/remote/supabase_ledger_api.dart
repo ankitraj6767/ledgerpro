@@ -32,6 +32,7 @@ class SupabaseLedgerApi implements QueuedMutationRemote {
     'project_documents',
     'customer_project_assignments',
     'project_audit_logs',
+    'epass_challans',
   ];
 
   static const _tableByEntity = <String, String>{

@@ -85,6 +85,24 @@ class OrgPermissions {
   }
 
   bool get canDeleteExpense => canManageProjects;
+
+  // --- E-Pass challans -------------------------------------------------------
+  // UI gating mirrors the `epass_challans` RLS policies, but RLS and the RPCs
+  // remain the final authority: hiding a button never grants or denies access.
+
+  /// Everyone with org access can read challans. Customers are additionally
+  /// narrowed to their assigned projects by RLS.
+  bool get canViewChallans => canReadOrg;
+
+  /// Owner, manager, accountant and site staff can add challans.
+  /// Viewers and customers cannot.
+  bool get canAddChallan =>
+      canManageProjects || role == OrgMemberRole.siteStaff;
+
+  /// Soft-delete is restricted to owner and manager.
+  bool get canArchiveChallan => canManageUsers;
+
+  bool get canExportChallans => canManageProjects;
 }
 
 /// Canonical expense categories for infrastructure projects.

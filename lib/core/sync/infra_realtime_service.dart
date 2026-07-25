@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/remote/supabase_ledger_api.dart';
 import '../../data/repositories/infra_repository.dart';
+import '../../features/challans/application/challan_providers.dart';
 
 final infraRealtimeBridgeProvider = Provider<void>((ref) {
   final api = ref.watch(supabaseLedgerApiProvider);
@@ -24,7 +25,7 @@ final infraRealtimeBridgeProvider = Provider<void>((ref) {
     onChange: (payload) {
       if (disposed) return;
       try {
-        _invalidateInfraProviders(ref, payload);
+        invalidateInfraProviders(ref, payload);
       } catch (error, stack) {
         // Provider was torn down (or invalidation raced a rebuild); ignore.
         debugPrint('infraRealtimeBridge invalidate skipped: $error\n$stack');
@@ -38,7 +39,25 @@ final infraRealtimeBridgeProvider = Provider<void>((ref) {
   });
 });
 
-void _invalidateInfraProviders(Ref ref, PostgresChangePayload payload) {
+/// Maps a Realtime change onto the providers that must be re-fetched.
+@visibleForTesting
+void invalidateInfraProviders(Ref ref, PostgresChangePayload payload) {
+  final challanRecord = payload.newRecord.isNotEmpty
+      ? payload.newRecord
+      : payload.oldRecord;
+
+  // Challans are self-contained: an epass_challans change must not invalidate
+  // the whole workspace or unrelated project providers. Saving a challan never
+  // alters project financials, so those providers stay warm.
+  if (payload.table == 'epass_challans') {
+    ref.invalidate(challansProvider);
+    final challanId = challanRecord['id']?.toString();
+    if (challanId != null && challanId.isNotEmpty) {
+      ref.invalidate(challanByIdProvider(challanId));
+    }
+    return;
+  }
+
   ref.invalidate(infraWorkspaceProvider);
   ref.invalidate(organizationProfileProvider);
   ref.invalidate(dashboardSummaryProvider);
