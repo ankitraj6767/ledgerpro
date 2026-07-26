@@ -51,7 +51,7 @@ void main() {
   });
 
   group('rejected captures', () {
-    test('un-searched page asks the user to complete CAPTCHA', () {
+    test('un-searched page tells the user to press Search', () {
       final result = adapter.evaluate(
         request: request(),
         rawHtml: PortalFixtures.searchFormOnly,
@@ -59,7 +59,10 @@ void main() {
 
       expect(result.success, isFalse);
       expect(result.errorKind, ChallanErrorKind.captchaNotCompleted.name);
-      expect(result.errorMessage, contains('CAPTCHA'));
+      // This portal page has no CAPTCHA, so the guidance must lead with Search
+      // and only mention verification conditionally.
+      expect(result.errorMessage, contains('Search'));
+      expect(result.errorMessage, contains('verification'));
     });
 
     test('no-record page reports challan not found', () {

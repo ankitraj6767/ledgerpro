@@ -33,21 +33,21 @@ class ChallanDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Challan Details'),
         actions: [
-          if (permissions.canArchiveChallan)
+          if (permissions.canDeleteChallan)
             challanAsync.maybeWhen(
               data: (challan) => challan == null
                   ? const SizedBox.shrink()
                   : PopupMenuButton<String>(
                       onSelected: (value) {
-                        if (value == 'archive') {
-                          _confirmArchive(context, ref, challan);
+                        if (value == 'delete') {
+                          _confirmDelete(context, ref, challan);
                         }
                       },
                       itemBuilder: (context) => const [
                         PopupMenuItem(
-                          value: 'archive',
+                          value: 'delete',
                           child: Text(
-                            'Archive challan',
+                            'Delete challan',
                             style: TextStyle(color: InfraColors.red),
                           ),
                         ),
@@ -288,7 +288,7 @@ class ChallanDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmArchive(
+  Future<void> _confirmDelete(
     BuildContext context,
     WidgetRef ref,
     EPassChallan challan,
@@ -296,11 +296,11 @@ class ChallanDetailScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Archive this challan?'),
+        title: const Text('Delete this challan?'),
         content: Text(
-          'Challan ${challan.challanNumber} will be archived. '
-          'It stays in the audit trail and the challan number cannot be '
-          'reused, so this does not free it up for re-entry.',
+          'Challan ${challan.challanNumber} will be removed from your challan '
+          'list. The deletion is recorded in the audit trail, and the challan '
+          'number becomes free again so you can re-add it later.',
         ),
         actions: [
           TextButton(
@@ -310,7 +310,7 @@ class ChallanDetailScreen extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: InfraColors.red),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Archive'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -318,7 +318,7 @@ class ChallanDetailScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      await ref.read(challanRepositoryProvider).archiveChallan(challan.id);
+      await ref.read(challanRepositoryProvider).deleteChallan(challan.id);
       ref.invalidate(challansProvider);
       ref.invalidate(challanByIdProvider(challan.id));
       if (!context.mounted) return;

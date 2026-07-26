@@ -70,6 +70,10 @@ abstract class CapturedPortalPayload with _$CapturedPortalPayload {
     /// `portal_payload` so a future release can backfill without re-capturing.
     @Default(<String, String>{}) Map<String, String> rawFields,
 
+    /// The portal's own status line (e.g. "No Record Found"), when it printed
+    /// one. Used to explain the outcome to the user in the portal's own words.
+    String? portalMessage,
+
     /// SHA-256 of the normalized payload. Lets support confirm two devices read
     /// the same page without ever storing the page itself.
     String? responseHash,
@@ -98,9 +102,16 @@ abstract class CapturedPortalPayload with _$CapturedPortalPayload {
 
   bool get hasAllMandatoryFields => missingMandatoryFields.isEmpty;
 
+  /// Number of actual challan fields read off the page.
+  ///
+  /// Excludes `portalMessage`, which the portal renders even when the search
+  /// returned nothing, so it is never evidence that data was captured.
+  int get dataFieldCount =>
+      rawFields.keys.where((key) => key != 'portalMessage').length;
+
   /// True when the page produced no recognizable challan fields at all, which
   /// means the user has not searched yet (or the layout changed entirely).
-  bool get isEmpty => rawFields.isEmpty && challanNumber == null;
+  bool get isEmpty => dataFieldCount == 0 && challanNumber == null;
 }
 
 /// Outcome of one capture attempt against a portal adapter.

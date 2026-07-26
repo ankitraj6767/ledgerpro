@@ -220,7 +220,12 @@ void main() {
         find.textContaining('LedgerPro never stores your government'),
         findsOneWidget,
       );
-      expect(find.textContaining('You complete the CAPTCHA'), findsOneWidget);
+      expect(
+        find.textContaining('press the portal\'s own Search button'),
+        findsOneWidget,
+      );
+      // Users must be told that "NA" means the search has not returned yet.
+      expect(find.textContaining('reads "NA"'), findsOneWidget);
     });
 
     testWidgets('offline disables the portal and offers manual entry', (

@@ -99,8 +99,13 @@ class OrgPermissions {
   bool get canAddChallan =>
       canManageProjects || role == OrgMemberRole.siteStaff;
 
-  /// Soft-delete is restricted to owner and manager.
-  bool get canArchiveChallan => canManageUsers;
+  /// Deleting a challan is restricted to owner and manager. Deleting frees the
+  /// challan number, so the same challan can be added again afterwards.
+  bool get canDeleteChallan => canManageUsers;
+
+  /// Legacy name retained so existing callers keep compiling.
+  @Deprecated('Use canDeleteChallan instead')
+  bool get canArchiveChallan => canDeleteChallan;
 
   bool get canExportChallans => canManageProjects;
 }

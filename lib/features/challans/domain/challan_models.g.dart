@@ -34,6 +34,7 @@ _CapturedPortalPayload _$CapturedPortalPayloadFromJson(
         (k, e) => MapEntry(k, e as String),
       ) ??
       const <String, String>{},
+  portalMessage: json['portalMessage'] as String?,
   responseHash: json['responseHash'] as String?,
   capturedAt: json['capturedAt'] == null
       ? null
@@ -60,6 +61,7 @@ Map<String, dynamic> _$CapturedPortalPayloadToJson(
   'quantityUnit': instance.quantityUnit,
   'royaltyAmountPaise': instance.royaltyAmountPaise,
   'rawFields': instance.rawFields,
+  'portalMessage': instance.portalMessage,
   'responseHash': instance.responseHash,
   'capturedAt': instance.capturedAt?.toIso8601String(),
 };

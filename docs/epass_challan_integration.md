@@ -227,6 +227,33 @@ Otherwise the user gets an actionable error and **nothing is saved**:
 | Different challan returned | "The portal returned challan X, but you entered Y" |
 | Wrong financial year | "…does not belong to the selected financial year" |
 
+### Live portal facts (verified against the real page)
+
+Captured from `ViewPassDetailsNew.aspx` and pinned by fixtures in
+`portal_result_fixtures.dart` (`realPortalUnsearched`, `realPortalFilled`,
+`realPortalNoRecord`):
+
+- **Every detail span ships with the literal text `NA`** until a search
+  succeeds. `NA` (and `N/A`, `NIL`, `-`, `--`, `null`, `None`, …) is treated as
+  **absent**, never as a value. Without this, an un-searched page looked like a
+  partially-readable result and produced a misleading
+  "missing: challan date, quantity" error.
+- **This page has no CAPTCHA.** The form is challan no + vehicle no + financial
+  year + Search. User-facing copy therefore leads with "press Search" and only
+  mentions verification conditionally.
+- Control ids are **flat** (`lblchallanno`, not `ctl00_…_lblchallanno`), so
+  suffix matching covers both shapes.
+- `lblunit` holds the quantity **unit** in its own control, separate from
+  `lblquantity`.
+- "Challan Generate from" is rendered by **`lbluser`**.
+- The label is "Consig**ner** Name" (not "Consignor").
+- `lblresult` / `lblMsg` carry the portal's own status line, e.g.
+  "No Record Found" — read to distinguish *no such challan* from *not searched
+  yet*. It is excluded from `dataFieldCount`, so it never counts as captured
+  data.
+- The financial-year dropdown uses exactly `2026-2027` formatting, matching the
+  prefill.
+
 ### When the portal layout changes
 
 Symptom: users report "Portal layout changed" or missing-field errors.
@@ -289,11 +316,14 @@ Indexes: `(organization_id, created_at desc)`, `(project_id, challan_date desc)`
 create unique index epass_challans_unique_challan_idx
   on public.epass_challans (
     organization_id, source_portal, financial_year, normalized_challan_number
-  );
+  )
+  where deleted_at is null;
 ```
 
-Deliberately **not** partial on `deleted_at is null`: a soft-deleted row keeps
-occupying the slot, so archiving a challan does not free its number for re-entry.
+Scoped to **live rows only** (`where deleted_at is null`, set by migration
+`20260726090000`). Deleting a challan therefore frees its number so the same
+challan can be added again — which is the point of offering Delete rather than
+Archive.
 
 Checked at two levels:
 
@@ -316,7 +346,8 @@ Because the pre-check can race a concurrent insert, the RPC also catches
 | Function | Purpose |
 |----------|---------|
 | `create_epass_challan(...)` | Authenticates `auth.uid()`, resolves the org **from the project** (so the client cannot claim another org), verifies role, rejects `official_api`, normalizes server-side, duplicate-checks, inserts, writes a `challan_created` / `manual_challan_created` audit row, returns the row. All atomic. |
-| `archive_epass_challan(uuid)` | Owner/manager only. Soft-delete plus `challan_archived` audit row. |
+| `delete_epass_challan(uuid)` | Owner/manager only. Soft-delete plus `challan_deleted` audit row. Frees the challan number for re-entry. |
+| `archive_epass_challan(uuid)` | Superseded by `delete_epass_challan`; kept so any older client keeps working. |
 | `record_challan_duplicate_block(uuid, text)` | Writes the `duplicate_save_blocked` audit row. Separate function because `create_epass_challan` **raises** on a duplicate, which would roll back an audit row written in the same transaction. |
 
 All are `security definer` with `set search_path = public, ledger_private, pg_temp`.
@@ -343,7 +374,7 @@ using (ledger_private.can_read_project_data(organization_id, project_id))
 -- update (archive): owner / manager only
 ```
 
-| Role | View | Add | Archive | Export |
+| Role | View | Add | Delete | Export |
 |------|:----:|:---:|:-------:|:------:|
 | Owner | ✅ all | ✅ | ✅ | ✅ |
 | Manager | ✅ all | ✅ | ✅ | ✅ |
@@ -356,7 +387,8 @@ Customer scoping comes from `ledger_private.can_read_project_data`, which routes
 customers through `customer_project_assignments`.
 
 Matching UI getters on `OrgPermissions`: `canViewChallans`, `canAddChallan`,
-`canArchiveChallan`, `canExportChallans`. **UI gating mirrors RLS but is never
+`canDeleteChallan`, `canExportChallans` (`canArchiveChallan` is retained as a
+deprecated alias). **UI gating mirrors RLS but is never
 the authority** — hiding a button neither grants nor denies access.
 
 Grants: `select, insert, update` on the table to `authenticated` only (no
@@ -444,7 +476,8 @@ Audit rows are written to `project_audit_logs` with `entity_table =
 |--------|-----------|
 | `challan_created` | `create_epass_challan` |
 | `manual_challan_created` | `create_epass_challan` (manual method) |
-| `challan_archived` | `archive_epass_challan` |
+| `challan_deleted` | `delete_epass_challan` |
+| `challan_archived` | `archive_epass_challan` (legacy) |
 | `duplicate_save_blocked` | `record_challan_duplicate_block` |
 
 Never logged or stored: CAPTCHA values, passwords, cookies, authorization

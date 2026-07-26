@@ -54,9 +54,11 @@ class GovernmentPortalStep extends ConsumerWidget {
             items: [
               'The portal opens with your financial year and challan number '
                   'filled in.',
-              'You complete the CAPTCHA (and login, if the portal asks).',
-              'You press the portal\'s own Search button.',
-              'Once the result is on screen, press "Capture displayed details".',
+              'You press the portal\'s own Search button, and complete any '
+                  'CAPTCHA or login it asks for.',
+              'Wait until the e-Pass details actually appear — until then every '
+                  'field on the portal reads "NA".',
+              'Then press "Capture displayed details".',
             ],
           ),
           const SizedBox(height: 16),

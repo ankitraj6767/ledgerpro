@@ -246,7 +246,7 @@ void main() {
         final permissions = OrgPermissions(role);
         expect(permissions.canViewChallans, isTrue);
         expect(permissions.canAddChallan, isTrue);
-        expect(permissions.canArchiveChallan, isTrue);
+        expect(permissions.canDeleteChallan, isTrue);
         expect(permissions.canExportChallans, isTrue);
       }
     });
@@ -257,7 +257,7 @@ void main() {
       expect(permissions.canViewChallans, isTrue);
       expect(permissions.canAddChallan, isTrue);
       expect(permissions.canExportChallans, isTrue);
-      expect(permissions.canArchiveChallan, isFalse);
+      expect(permissions.canDeleteChallan, isFalse);
     });
 
     test('site staff can view and add but not archive or export', () {
@@ -265,7 +265,7 @@ void main() {
 
       expect(permissions.canViewChallans, isTrue);
       expect(permissions.canAddChallan, isTrue);
-      expect(permissions.canArchiveChallan, isFalse);
+      expect(permissions.canDeleteChallan, isFalse);
       expect(permissions.canExportChallans, isFalse);
     });
 
@@ -274,7 +274,7 @@ void main() {
         final permissions = OrgPermissions(role);
         expect(permissions.canViewChallans, isTrue);
         expect(permissions.canAddChallan, isFalse);
-        expect(permissions.canArchiveChallan, isFalse);
+        expect(permissions.canDeleteChallan, isFalse);
         expect(permissions.canExportChallans, isFalse);
       }
     });

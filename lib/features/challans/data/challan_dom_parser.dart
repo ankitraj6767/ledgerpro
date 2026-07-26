@@ -21,8 +21,15 @@ enum ChallanField {
   vehicleNumber,
   mineralName,
   quantity,
+
+  /// The live portal renders the unit in its own `lblunit` control, separate
+  /// from the quantity value.
+  quantityUnit,
   consigneeName,
   royaltyAmount,
+
+  /// The portal's own status/error message (`lblresult` / `lblMsg`).
+  portalMessage,
 }
 
 /// Resilient extractor for the government e-Pass result page.
@@ -80,6 +87,9 @@ class ChallanDomParser {
     ChallanField.consignorName: [
       'consignor name',
       'consignor',
+      // The live portal spells it "Consigner Name".
+      'consigner name',
+      'consigner',
       'कंसाइनर का नाम',
       'प्रेषक का नाम',
       'प्रेषक',
@@ -129,7 +139,16 @@ class ChallanDomParser {
       'खनिज नाम',
       'खनिज',
     ],
-    ChallanField.quantity: ['quantity', 'qty', 'मात्रा', 'परिमाण'],
+    ChallanField.quantity: [
+      'quantity',
+      'qty',
+      'net quantity',
+      'total quantity',
+      'quantity in mt',
+      'मात्रा',
+      'परिमाण',
+    ],
+    ChallanField.quantityUnit: ['unit', 'uom', 'इकाई'],
     ChallanField.consigneeName: [
       'consignee name',
       'consignee',
@@ -143,6 +162,30 @@ class ChallanDomParser {
       'रॉयल्टी राशि',
       'स्वामित्व राशि',
     ],
+  };
+
+  /// Placeholder strings the portal prints when a field has no value.
+  ///
+  /// The live e-Pass page renders every detail span as the literal `NA` before
+  /// a search returns anything. Treating those as real values is what made an
+  /// un-searched page look like a partially-readable result, so they must map to
+  /// null everywhere.
+  static const _placeholderValues = <String>{
+    'na',
+    'n/a',
+    'n.a.',
+    'n.a',
+    'nil',
+    'null',
+    'undefined',
+    'none',
+    '-',
+    '--',
+    '---',
+    '.',
+    '0',
+    '--select--',
+    '--select all--',
   };
 
   /// Known ASP.NET label-control id suffixes, checked case-insensitively.
@@ -160,16 +203,31 @@ class ChallanDomParser {
       'lblchallanvalidity',
       'lblvalidupto',
     ],
-    ChallanField.consignorName: ['lblconsignorname', 'lblconsignor'],
-    ChallanField.generatedFrom: ['lblgeneratefrom', 'lblgeneratedfrom'],
+    // The live portal spells it "Consigner", and uses lblconsignername.
+    ChallanField.consignorName: [
+      'lblconsignorname',
+      'lblconsignor',
+      'lblconsignername',
+      'lblconsigner',
+    ],
+    // "Challan Generate from" is rendered by lbluser on the live portal.
+    ChallanField.generatedFrom: [
+      'lblgeneratefrom',
+      'lblgeneratedfrom',
+      'lbluser',
+    ],
     ChallanField.sourceLocation: ['lbllocation', 'lblsource', 'lblsourceloc'],
     ChallanField.destination: ['lbldestination', 'lbldestinationloc'],
     ChallanField.vehicleType: ['lblvehicletype'],
     ChallanField.vehicleNumber: ['lblvehicleno', 'lblvehiclenumber'],
     ChallanField.mineralName: ['lblmineralname', 'lblmineral'],
     ChallanField.quantity: ['lblquantity', 'lblqty'],
+    // Separate unit control on the live portal.
+    ChallanField.quantityUnit: ['lblunit', 'lbluom'],
     ChallanField.consigneeName: ['lblconsigneename', 'lblconsignee'],
     ChallanField.royaltyAmount: ['lblroyaltyamount', 'lblroyalty'],
+    // The portal's own red status line, e.g. "No Record Found".
+    ChallanField.portalMessage: ['lblresult', 'lblmsg'],
   };
 
   /// Markers proving the page is actually showing an e-Pass result section.
@@ -199,14 +257,25 @@ class ChallanDomParser {
   // ---------------------------------------------------------------------------
 
   /// True when the page explicitly says there is no such challan.
+  ///
+  /// Checks the portal's own status control (`lblresult` / `lblMsg`) as well as
+  /// the visible text, and only trusts it when no challan value was rendered.
   bool reportsNoRecord(String rawHtml) {
-    final text = _normalizeLabel(_visibleText(html_parser.parse(rawHtml)));
-    // Only trust a no-record banner when no challan value was rendered.
-    if (_noRecordMarkers.any(text.contains)) {
-      final probe = parse(rawHtml);
-      return probe.challanNumber == null;
+    final document = html_parser.parse(rawHtml);
+    final found = _collect(document);
+    if (found.containsKey(ChallanField.challanNumber)) return false;
+
+    final message = _normalizeLabel(found[ChallanField.portalMessage] ?? '');
+    if (message.isNotEmpty && _noRecordMarkers.any(message.contains)) {
+      return true;
     }
-    return false;
+    final text = _normalizeLabel(_visibleText(document));
+    return _noRecordMarkers.any(text.contains);
+  }
+
+  /// The portal's own status message, when it printed one.
+  String? portalMessage(String rawHtml) {
+    return _collect(html_parser.parse(rawHtml))[ChallanField.portalMessage];
   }
 
   /// True when the page is actually showing rendered challan *values*.
@@ -217,7 +286,8 @@ class ChallanDomParser {
   bool hasResultSection(String rawHtml) {
     final document = html_parser.parse(rawHtml);
     final found = _collect(document);
-    if (found.length < 3) return false;
+    // The portal's status message is not evidence of a result.
+    if (_dataFieldCount(found) < 3) return false;
     if (found.containsKey(ChallanField.challanNumber)) return true;
     final text = _normalizeLabel(_visibleText(document));
     return _resultMarkers.any(text.contains);
@@ -242,7 +312,11 @@ class ChallanDomParser {
 
     final quantityRaw = found[ChallanField.quantity];
     final quantity = _parseQuantity(quantityRaw);
-    final unit = _parseQuantityUnit(quantityRaw);
+    // Prefer the portal's dedicated unit control, then any unit printed inside
+    // the quantity text itself. Still null when the portal showed neither.
+    final unit =
+        _normalizeUnit(found[ChallanField.quantityUnit]) ??
+        _parseQuantityUnit(quantityRaw);
 
     final payload = CapturedPortalPayload(
       challanNumber: ChallanText.cleanOrNull(found[ChallanField.challanNumber]),
@@ -265,6 +339,7 @@ class ChallanDomParser {
       quantityText: _parseQuantityText(quantityRaw),
       quantityUnit: unit,
       royaltyAmountPaise: parseRupeesToPaise(found[ChallanField.royaltyAmount]),
+      portalMessage: found[ChallanField.portalMessage],
       rawFields: rawFields,
       capturedAt: capturedAt ?? DateTime.now(),
     );
@@ -336,7 +411,7 @@ class ChallanDomParser {
             valueIndex + 1 < texts.length) {
           valueIndex++;
         }
-        final value = ChallanText.cleanOrNull(texts[valueIndex]);
+        final value = _meaningful(texts[valueIndex]);
         if (value == null) continue;
         // A value cell that is *exactly* a known label means the row is a
         // header pair. Fuzzy matching must not be used here: real values like
@@ -354,7 +429,7 @@ class ChallanDomParser {
         final field = _fieldForLabel(_cellText(items[i]));
         if (field == null) continue;
         if (items[i + 1].localName != 'dd') continue;
-        final value = ChallanText.cleanOrNull(_cellText(items[i + 1]));
+        final value = _meaningful(_cellText(items[i + 1]));
         if (value != null) out.putIfAbsent(field, () => value);
       }
     }
@@ -371,7 +446,7 @@ class ChallanDomParser {
       if (field == null || out.containsKey(field)) continue;
       final sibling = label.nextElementSibling;
       if (sibling == null) continue;
-      final value = ChallanText.cleanOrNull(_cellText(sibling));
+      final value = _meaningful(_cellText(sibling));
       if (value == null || _isExactLabel(value)) continue;
       out[field] = value;
     }
@@ -398,7 +473,7 @@ class ChallanDomParser {
       for (final match in matches) {
         final field = _fieldForLabel(match.group(1) ?? '');
         if (field == null || out.containsKey(field)) continue;
-        final value = ChallanText.cleanOrNull(match.group(2));
+        final value = _meaningful(match.group(2));
         if (value != null) out[field] = value;
       }
     }
@@ -413,8 +488,11 @@ class ChallanDomParser {
   /// The portal renders wall-clock IST with no offset, so interpreting it in the
   /// device's local zone would shift the date for users outside India.
   static DateTime? parsePortalDate(String? raw) {
-    final text = ChallanText.cleanOrNull(raw);
+    final text = _meaningful(raw);
     if (text == null) return null;
+
+    final textual = _parseTextualMonthDate(text);
+    if (textual != null) return textual;
 
     final match = RegExp(
       r'(\d{1,4})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{2,4})'
@@ -463,10 +541,104 @@ class ChallanDomParser {
     return asUtcWallClock.subtract(istOffset);
   }
 
+  static const _monthNames = <String, int>{
+    'jan': 1,
+    'feb': 2,
+    'mar': 3,
+    'apr': 4,
+    'may': 5,
+    'jun': 6,
+    'jul': 7,
+    'aug': 8,
+    'sep': 9,
+    'sept': 9,
+    'oct': 10,
+    'nov': 11,
+    'dec': 12,
+  };
+
+  /// Handles `26-Jul-2026`, `26 Jul 2026 10:30 AM` and `Jul 26, 2026`.
+  ///
+  /// ASP.NET pages frequently render a textual month depending on server
+  /// culture, and a purely numeric parser would silently return null for those —
+  /// which surfaces as a bogus "challan date missing" error.
+  static DateTime? _parseTextualMonthDate(String text) {
+    final dayFirst = RegExp(
+      r'(\d{1,2})\s*[-/ ]\s*([A-Za-z]{3,9})\.?\s*[-/, ]\s*(\d{2,4})'
+      r'(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?)?',
+    ).firstMatch(text);
+    final monthFirst = RegExp(
+      r'([A-Za-z]{3,9})\.?\s*[-/ ]\s*(\d{1,2})\s*[-/, ]\s*(\d{2,4})'
+      r'(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?)?',
+    ).firstMatch(text);
+
+    final int day;
+    final int month;
+    final int rawYear;
+    final RegExpMatch match;
+    if (dayFirst != null) {
+      final name = dayFirst.group(2)!.toLowerCase();
+      final resolved =
+          _monthNames[name.length > 3 ? name.substring(0, 3) : name];
+      if (resolved == null) return null;
+      day = int.parse(dayFirst.group(1)!);
+      month = resolved;
+      rawYear = int.parse(dayFirst.group(3)!);
+      match = dayFirst;
+    } else if (monthFirst != null) {
+      final name = monthFirst.group(1)!.toLowerCase();
+      final resolved =
+          _monthNames[name.length > 3 ? name.substring(0, 3) : name];
+      if (resolved == null) return null;
+      month = resolved;
+      day = int.parse(monthFirst.group(2)!);
+      rawYear = int.parse(monthFirst.group(3)!);
+      match = monthFirst;
+    } else {
+      return null;
+    }
+
+    final year = rawYear < 100 ? rawYear + 2000 : rawYear;
+    if (day < 1 || day > 31) return null;
+    return _istToUtc(
+      year: year,
+      month: month,
+      day: day,
+      hour: int.tryParse(match.group(4) ?? '') ?? 0,
+      minute: int.tryParse(match.group(5) ?? '') ?? 0,
+      second: int.tryParse(match.group(6) ?? '') ?? 0,
+      meridiem: match.group(7)?.toLowerCase(),
+    );
+  }
+
+  /// Builds an instant from IST wall-clock components.
+  static DateTime? _istToUtc({
+    required int year,
+    required int month,
+    required int day,
+    required int hour,
+    required int minute,
+    required int second,
+    String? meridiem,
+  }) {
+    var resolvedHour = hour;
+    if (meridiem == 'pm' && resolvedHour < 12) resolvedHour += 12;
+    if (meridiem == 'am' && resolvedHour == 12) resolvedHour = 0;
+    if (resolvedHour > 23 || minute > 59 || second > 59) return null;
+    return DateTime.utc(
+      year,
+      month,
+      day,
+      resolvedHour,
+      minute,
+      second,
+    ).subtract(const Duration(hours: 5, minutes: 30));
+  }
+
   /// Exact decimal text for the quantity, e.g. `"12.500"`. Kept as a string so
   /// the value reaches Postgres `numeric` without a binary-float round trip.
   static String? _parseQuantityText(String? raw) {
-    final text = ChallanText.cleanOrNull(raw);
+    final text = _meaningful(raw);
     if (text == null) return null;
     final match = RegExp(r'(\d+(?:,\d{2,3})*(?:\.\d+)?)').firstMatch(text);
     if (match == null) return null;
@@ -485,16 +657,24 @@ class ChallanDomParser {
 
   /// Returns the unit only when the portal actually printed one.
   static String? _parseQuantityUnit(String? raw) {
-    final text = ChallanText.cleanOrNull(raw);
+    final text = _meaningful(raw);
     if (text == null) return null;
     final match = RegExp(
       r'\b(MT|M\.T\.?|METRIC\s*TON(?:NE)?S?|TONNES?|TONS?|CUM|CBM|M3|M\^3|CFT|KG|QUINTAL)\b',
       caseSensitive: false,
     ).firstMatch(text);
     if (match == null) return null;
-    final unit = match.group(1)!.toUpperCase().replaceAll(RegExp(r'[\s.]'), '');
+    return _normalizeUnit(match.group(1));
+  }
+
+  /// Folds the unit spellings the portal uses onto canonical values.
+  static String? _normalizeUnit(String? raw) {
+    final text = _meaningful(raw);
+    if (text == null) return null;
+    final unit = text.toUpperCase().replaceAll(RegExp(r'[\s.]'), '');
+    if (unit.isEmpty) return null;
     return switch (unit) {
-      'MT' || 'MT.' || 'METRICTON' || 'METRICTONS' => 'MT',
+      'MT' || 'METRICTON' || 'METRICTONS' => 'MT',
       'METRICTONNE' || 'METRICTONNES' || 'TONNE' || 'TONNES' => 'MT',
       'TON' || 'TONS' => 'MT',
       'CUM' || 'CBM' || 'M3' || 'M^3' => 'CUM',
@@ -504,7 +684,7 @@ class ChallanDomParser {
 
   /// Rupee text → integer paise using string math, so no float rounding.
   static int? parseRupeesToPaise(String? raw) {
-    final text = ChallanText.cleanOrNull(raw);
+    final text = _meaningful(raw);
     if (text == null) return null;
     final match = RegExp(r'(\d+(?:,\d{2,3})*(?:\.\d{1,2})?)').firstMatch(text);
     if (match == null) return null;
@@ -522,7 +702,7 @@ class ChallanDomParser {
   /// Display form of a vehicle number: uppercase, internal spacing collapsed.
   /// The strict comparison key is produced by [ChallanText.normalizeToken].
   static String? _normalizeVehicleDisplay(String? raw) {
-    final text = ChallanText.cleanOrNull(raw);
+    final text = _meaningful(raw);
     if (text == null) return null;
     return text.toUpperCase();
   }
@@ -568,6 +748,25 @@ class ChallanDomParser {
     return best;
   }
 
+  /// Cleans a raw cell value and maps portal placeholders to null.
+  ///
+  /// This is the single gate every extracted value passes through, so a page
+  /// full of `NA` yields an empty result set rather than a set of fake values.
+  static String? _meaningful(String? raw) {
+    final cleaned = ChallanText.cleanOrNull(raw);
+    if (cleaned == null) return null;
+    if (_placeholderValues.contains(cleaned.toLowerCase())) return null;
+    return cleaned;
+  }
+
+  /// Fields that represent actual challan data (excludes the portal's own
+  /// status message, which is present even when no result was returned).
+  static int _dataFieldCount(Map<ChallanField, String> found) {
+    return found.keys
+        .where((field) => field != ChallanField.portalMessage)
+        .length;
+  }
+
   /// Lowercase, HTML-entity-decoded, punctuation-folded label key.
   static String _normalizeLabel(String raw) {
     var text = _decodeEntities(raw).toLowerCase();
@@ -591,17 +790,17 @@ class ChallanDomParser {
     if (element.localName == 'input') {
       final type = (element.attributes['type'] ?? 'text').toLowerCase();
       if (type == 'hidden') return null;
-      return ChallanText.cleanOrNull(element.attributes['value']);
+      return _meaningful(element.attributes['value']);
     }
     if (element.localName == 'select') {
       for (final option in element.querySelectorAll('option')) {
         if (option.attributes.containsKey('selected')) {
-          return ChallanText.cleanOrNull(_cellText(option));
+          return _meaningful(_cellText(option));
         }
       }
       return null;
     }
-    return ChallanText.cleanOrNull(_cellText(element));
+    return _meaningful(_cellText(element));
   }
 
   /// Visible text of the document with script/style content removed.

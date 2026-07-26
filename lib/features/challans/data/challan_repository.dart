@@ -116,7 +116,9 @@ class ChallanRepository {
   ///
   /// Only a UX affordance: the unique index and the RPC remain the authority,
   /// and RLS guarantees nothing from another organization is ever returned.
-  /// Soft-deleted rows count as duplicates, matching the unique index.
+  ///
+  /// Deleted rows are excluded, matching the partial unique index: deleting a
+  /// challan frees its number so the same challan can be added again.
   Future<EPassChallan?> challanExists({
     required String organizationId,
     required String financialYear,
@@ -133,6 +135,7 @@ class ChallanRepository {
           .eq('source_portal', sourcePortal)
           .eq('financial_year', financialYear.trim())
           .eq('normalized_challan_number', normalized)
+          .isFilter('deleted_at', null)
           .limit(1)
           .maybeSingle();
       if (row == null) return null;
@@ -212,15 +215,23 @@ class ChallanRepository {
     });
   }
 
-  /// Soft-deletes a challan (owner/manager only, enforced server-side).
-  Future<void> archiveChallan(String challanId) {
+  /// Deletes a challan (owner/manager only, enforced server-side).
+  ///
+  /// A soft delete, consistent with every other financial table here, so the
+  /// audit trail survives. Because uniqueness applies to live rows only, the
+  /// challan number becomes available again after deletion.
+  Future<void> deleteChallan(String challanId) {
     return _guard(
       () => _client.rpc(
-        'archive_epass_challan',
+        'delete_epass_challan',
         params: {'p_challan_id': challanId},
       ),
     );
   }
+
+  /// Legacy alias kept so older callers keep working.
+  @Deprecated('Use deleteChallan instead')
+  Future<void> archiveChallan(String challanId) => deleteChallan(challanId);
 
   /// Records that a duplicate save was blocked. Best-effort: a failure here must
   /// never mask the duplicate error the user needs to see.

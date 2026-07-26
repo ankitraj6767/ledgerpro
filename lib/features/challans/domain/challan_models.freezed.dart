@@ -25,7 +25,9 @@ mixin _$CapturedPortalPayload {
  String? get quantityUnit; int? get royaltyAmountPaise;/// Raw label/value pairs exactly as normalized off the page, including
 /// fields this app version does not model yet. Persisted to
 /// `portal_payload` so a future release can backfill without re-capturing.
- Map<String, String> get rawFields;/// SHA-256 of the normalized payload. Lets support confirm two devices read
+ Map<String, String> get rawFields;/// The portal's own status line (e.g. "No Record Found"), when it printed
+/// one. Used to explain the outcome to the user in the portal's own words.
+ String? get portalMessage;/// SHA-256 of the normalized payload. Lets support confirm two devices read
 /// the same page without ever storing the page itself.
  String? get responseHash; DateTime? get capturedAt;
 /// Create a copy of CapturedPortalPayload
@@ -40,16 +42,16 @@ $CapturedPortalPayloadCopyWith<CapturedPortalPayload> get copyWith => _$Captured
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CapturedPortalPayload&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.mineralName, mineralName) || other.mineralName == mineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityText, quantityText) || other.quantityText == quantityText)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&const DeepCollectionEquality().equals(other.rawFields, rawFields)&&(identical(other.responseHash, responseHash) || other.responseHash == responseHash)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CapturedPortalPayload&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.mineralName, mineralName) || other.mineralName == mineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityText, quantityText) || other.quantityText == quantityText)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&const DeepCollectionEquality().equals(other.rawFields, rawFields)&&(identical(other.portalMessage, portalMessage) || other.portalMessage == portalMessage)&&(identical(other.responseHash, responseHash) || other.responseHash == responseHash)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,challanNumber,uidNumber,challanDate,validUntil,consignorName,consigneeName,generatedFrom,sourceLocation,destination,vehicleType,vehicleNumber,mineralName,quantity,quantityText,quantityUnit,royaltyAmountPaise,const DeepCollectionEquality().hash(rawFields),responseHash,capturedAt]);
+int get hashCode => Object.hashAll([runtimeType,challanNumber,uidNumber,challanDate,validUntil,consignorName,consigneeName,generatedFrom,sourceLocation,destination,vehicleType,vehicleNumber,mineralName,quantity,quantityText,quantityUnit,royaltyAmountPaise,const DeepCollectionEquality().hash(rawFields),portalMessage,responseHash,capturedAt]);
 
 @override
 String toString() {
-  return 'CapturedPortalPayload(challanNumber: $challanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, consignorName: $consignorName, consigneeName: $consigneeName, generatedFrom: $generatedFrom, sourceLocation: $sourceLocation, destination: $destination, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, mineralName: $mineralName, quantity: $quantity, quantityText: $quantityText, quantityUnit: $quantityUnit, royaltyAmountPaise: $royaltyAmountPaise, rawFields: $rawFields, responseHash: $responseHash, capturedAt: $capturedAt)';
+  return 'CapturedPortalPayload(challanNumber: $challanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, consignorName: $consignorName, consigneeName: $consigneeName, generatedFrom: $generatedFrom, sourceLocation: $sourceLocation, destination: $destination, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, mineralName: $mineralName, quantity: $quantity, quantityText: $quantityText, quantityUnit: $quantityUnit, royaltyAmountPaise: $royaltyAmountPaise, rawFields: $rawFields, portalMessage: $portalMessage, responseHash: $responseHash, capturedAt: $capturedAt)';
 }
 
 
@@ -60,7 +62,7 @@ abstract mixin class $CapturedPortalPayloadCopyWith<$Res>  {
   factory $CapturedPortalPayloadCopyWith(CapturedPortalPayload value, $Res Function(CapturedPortalPayload) _then) = _$CapturedPortalPayloadCopyWithImpl;
 @useResult
 $Res call({
- String? challanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, String? consignorName, String? consigneeName, String? generatedFrom, String? sourceLocation, String? destination, String? vehicleType, String? vehicleNumber, String? mineralName, double? quantity, String? quantityText, String? quantityUnit, int? royaltyAmountPaise, Map<String, String> rawFields, String? responseHash, DateTime? capturedAt
+ String? challanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, String? consignorName, String? consigneeName, String? generatedFrom, String? sourceLocation, String? destination, String? vehicleType, String? vehicleNumber, String? mineralName, double? quantity, String? quantityText, String? quantityUnit, int? royaltyAmountPaise, Map<String, String> rawFields, String? portalMessage, String? responseHash, DateTime? capturedAt
 });
 
 
@@ -77,7 +79,7 @@ class _$CapturedPortalPayloadCopyWithImpl<$Res>
 
 /// Create a copy of CapturedPortalPayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? challanNumber = freezed,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? consignorName = freezed,Object? consigneeName = freezed,Object? generatedFrom = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? vehicleType = freezed,Object? vehicleNumber = freezed,Object? mineralName = freezed,Object? quantity = freezed,Object? quantityText = freezed,Object? quantityUnit = freezed,Object? royaltyAmountPaise = freezed,Object? rawFields = null,Object? responseHash = freezed,Object? capturedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? challanNumber = freezed,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? consignorName = freezed,Object? consigneeName = freezed,Object? generatedFrom = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? vehicleType = freezed,Object? vehicleNumber = freezed,Object? mineralName = freezed,Object? quantity = freezed,Object? quantityText = freezed,Object? quantityUnit = freezed,Object? royaltyAmountPaise = freezed,Object? rawFields = null,Object? portalMessage = freezed,Object? responseHash = freezed,Object? capturedAt = freezed,}) {
   return _then(_self.copyWith(
 challanNumber: freezed == challanNumber ? _self.challanNumber : challanNumber // ignore: cast_nullable_to_non_nullable
 as String?,uidNumber: freezed == uidNumber ? _self.uidNumber : uidNumber // ignore: cast_nullable_to_non_nullable
@@ -96,7 +98,8 @@ as double?,quantityText: freezed == quantityText ? _self.quantityText : quantity
 as String?,quantityUnit: freezed == quantityUnit ? _self.quantityUnit : quantityUnit // ignore: cast_nullable_to_non_nullable
 as String?,royaltyAmountPaise: freezed == royaltyAmountPaise ? _self.royaltyAmountPaise : royaltyAmountPaise // ignore: cast_nullable_to_non_nullable
 as int?,rawFields: null == rawFields ? _self.rawFields : rawFields // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,responseHash: freezed == responseHash ? _self.responseHash : responseHash // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,portalMessage: freezed == portalMessage ? _self.portalMessage : portalMessage // ignore: cast_nullable_to_non_nullable
+as String?,responseHash: freezed == responseHash ? _self.responseHash : responseHash // ignore: cast_nullable_to_non_nullable
 as String?,capturedAt: freezed == capturedAt ? _self.capturedAt : capturedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
@@ -183,10 +186,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? challanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  String? consignorName,  String? consigneeName,  String? generatedFrom,  String? sourceLocation,  String? destination,  String? vehicleType,  String? vehicleNumber,  String? mineralName,  double? quantity,  String? quantityText,  String? quantityUnit,  int? royaltyAmountPaise,  Map<String, String> rawFields,  String? responseHash,  DateTime? capturedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? challanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  String? consignorName,  String? consigneeName,  String? generatedFrom,  String? sourceLocation,  String? destination,  String? vehicleType,  String? vehicleNumber,  String? mineralName,  double? quantity,  String? quantityText,  String? quantityUnit,  int? royaltyAmountPaise,  Map<String, String> rawFields,  String? portalMessage,  String? responseHash,  DateTime? capturedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CapturedPortalPayload() when $default != null:
-return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.consignorName,_that.consigneeName,_that.generatedFrom,_that.sourceLocation,_that.destination,_that.vehicleType,_that.vehicleNumber,_that.mineralName,_that.quantity,_that.quantityText,_that.quantityUnit,_that.royaltyAmountPaise,_that.rawFields,_that.responseHash,_that.capturedAt);case _:
+return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.consignorName,_that.consigneeName,_that.generatedFrom,_that.sourceLocation,_that.destination,_that.vehicleType,_that.vehicleNumber,_that.mineralName,_that.quantity,_that.quantityText,_that.quantityUnit,_that.royaltyAmountPaise,_that.rawFields,_that.portalMessage,_that.responseHash,_that.capturedAt);case _:
   return orElse();
 
 }
@@ -204,10 +207,10 @@ return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.vali
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? challanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  String? consignorName,  String? consigneeName,  String? generatedFrom,  String? sourceLocation,  String? destination,  String? vehicleType,  String? vehicleNumber,  String? mineralName,  double? quantity,  String? quantityText,  String? quantityUnit,  int? royaltyAmountPaise,  Map<String, String> rawFields,  String? responseHash,  DateTime? capturedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? challanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  String? consignorName,  String? consigneeName,  String? generatedFrom,  String? sourceLocation,  String? destination,  String? vehicleType,  String? vehicleNumber,  String? mineralName,  double? quantity,  String? quantityText,  String? quantityUnit,  int? royaltyAmountPaise,  Map<String, String> rawFields,  String? portalMessage,  String? responseHash,  DateTime? capturedAt)  $default,) {final _that = this;
 switch (_that) {
 case _CapturedPortalPayload():
-return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.consignorName,_that.consigneeName,_that.generatedFrom,_that.sourceLocation,_that.destination,_that.vehicleType,_that.vehicleNumber,_that.mineralName,_that.quantity,_that.quantityText,_that.quantityUnit,_that.royaltyAmountPaise,_that.rawFields,_that.responseHash,_that.capturedAt);case _:
+return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.consignorName,_that.consigneeName,_that.generatedFrom,_that.sourceLocation,_that.destination,_that.vehicleType,_that.vehicleNumber,_that.mineralName,_that.quantity,_that.quantityText,_that.quantityUnit,_that.royaltyAmountPaise,_that.rawFields,_that.portalMessage,_that.responseHash,_that.capturedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -224,10 +227,10 @@ return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.vali
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? challanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  String? consignorName,  String? consigneeName,  String? generatedFrom,  String? sourceLocation,  String? destination,  String? vehicleType,  String? vehicleNumber,  String? mineralName,  double? quantity,  String? quantityText,  String? quantityUnit,  int? royaltyAmountPaise,  Map<String, String> rawFields,  String? responseHash,  DateTime? capturedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? challanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  String? consignorName,  String? consigneeName,  String? generatedFrom,  String? sourceLocation,  String? destination,  String? vehicleType,  String? vehicleNumber,  String? mineralName,  double? quantity,  String? quantityText,  String? quantityUnit,  int? royaltyAmountPaise,  Map<String, String> rawFields,  String? portalMessage,  String? responseHash,  DateTime? capturedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _CapturedPortalPayload() when $default != null:
-return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.consignorName,_that.consigneeName,_that.generatedFrom,_that.sourceLocation,_that.destination,_that.vehicleType,_that.vehicleNumber,_that.mineralName,_that.quantity,_that.quantityText,_that.quantityUnit,_that.royaltyAmountPaise,_that.rawFields,_that.responseHash,_that.capturedAt);case _:
+return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.consignorName,_that.consigneeName,_that.generatedFrom,_that.sourceLocation,_that.destination,_that.vehicleType,_that.vehicleNumber,_that.mineralName,_that.quantity,_that.quantityText,_that.quantityUnit,_that.royaltyAmountPaise,_that.rawFields,_that.portalMessage,_that.responseHash,_that.capturedAt);case _:
   return null;
 
 }
@@ -239,7 +242,7 @@ return $default(_that.challanNumber,_that.uidNumber,_that.challanDate,_that.vali
 @JsonSerializable()
 
 class _CapturedPortalPayload extends CapturedPortalPayload {
-  const _CapturedPortalPayload({this.challanNumber, this.uidNumber, this.challanDate, this.validUntil, this.consignorName, this.consigneeName, this.generatedFrom, this.sourceLocation, this.destination, this.vehicleType, this.vehicleNumber, this.mineralName, this.quantity, this.quantityText, this.quantityUnit, this.royaltyAmountPaise, final  Map<String, String> rawFields = const <String, String>{}, this.responseHash, this.capturedAt}): _rawFields = rawFields,super._();
+  const _CapturedPortalPayload({this.challanNumber, this.uidNumber, this.challanDate, this.validUntil, this.consignorName, this.consigneeName, this.generatedFrom, this.sourceLocation, this.destination, this.vehicleType, this.vehicleNumber, this.mineralName, this.quantity, this.quantityText, this.quantityUnit, this.royaltyAmountPaise, final  Map<String, String> rawFields = const <String, String>{}, this.portalMessage, this.responseHash, this.capturedAt}): _rawFields = rawFields,super._();
   factory _CapturedPortalPayload.fromJson(Map<String, dynamic> json) => _$CapturedPortalPayloadFromJson(json);
 
 @override final  String? challanNumber;
@@ -278,6 +281,9 @@ class _CapturedPortalPayload extends CapturedPortalPayload {
   return EqualUnmodifiableMapView(_rawFields);
 }
 
+/// The portal's own status line (e.g. "No Record Found"), when it printed
+/// one. Used to explain the outcome to the user in the portal's own words.
+@override final  String? portalMessage;
 /// SHA-256 of the normalized payload. Lets support confirm two devices read
 /// the same page without ever storing the page itself.
 @override final  String? responseHash;
@@ -296,16 +302,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CapturedPortalPayload&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.mineralName, mineralName) || other.mineralName == mineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityText, quantityText) || other.quantityText == quantityText)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&const DeepCollectionEquality().equals(other._rawFields, _rawFields)&&(identical(other.responseHash, responseHash) || other.responseHash == responseHash)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CapturedPortalPayload&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.mineralName, mineralName) || other.mineralName == mineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityText, quantityText) || other.quantityText == quantityText)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&const DeepCollectionEquality().equals(other._rawFields, _rawFields)&&(identical(other.portalMessage, portalMessage) || other.portalMessage == portalMessage)&&(identical(other.responseHash, responseHash) || other.responseHash == responseHash)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,challanNumber,uidNumber,challanDate,validUntil,consignorName,consigneeName,generatedFrom,sourceLocation,destination,vehicleType,vehicleNumber,mineralName,quantity,quantityText,quantityUnit,royaltyAmountPaise,const DeepCollectionEquality().hash(_rawFields),responseHash,capturedAt]);
+int get hashCode => Object.hashAll([runtimeType,challanNumber,uidNumber,challanDate,validUntil,consignorName,consigneeName,generatedFrom,sourceLocation,destination,vehicleType,vehicleNumber,mineralName,quantity,quantityText,quantityUnit,royaltyAmountPaise,const DeepCollectionEquality().hash(_rawFields),portalMessage,responseHash,capturedAt]);
 
 @override
 String toString() {
-  return 'CapturedPortalPayload(challanNumber: $challanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, consignorName: $consignorName, consigneeName: $consigneeName, generatedFrom: $generatedFrom, sourceLocation: $sourceLocation, destination: $destination, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, mineralName: $mineralName, quantity: $quantity, quantityText: $quantityText, quantityUnit: $quantityUnit, royaltyAmountPaise: $royaltyAmountPaise, rawFields: $rawFields, responseHash: $responseHash, capturedAt: $capturedAt)';
+  return 'CapturedPortalPayload(challanNumber: $challanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, consignorName: $consignorName, consigneeName: $consigneeName, generatedFrom: $generatedFrom, sourceLocation: $sourceLocation, destination: $destination, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, mineralName: $mineralName, quantity: $quantity, quantityText: $quantityText, quantityUnit: $quantityUnit, royaltyAmountPaise: $royaltyAmountPaise, rawFields: $rawFields, portalMessage: $portalMessage, responseHash: $responseHash, capturedAt: $capturedAt)';
 }
 
 
@@ -316,7 +322,7 @@ abstract mixin class _$CapturedPortalPayloadCopyWith<$Res> implements $CapturedP
   factory _$CapturedPortalPayloadCopyWith(_CapturedPortalPayload value, $Res Function(_CapturedPortalPayload) _then) = __$CapturedPortalPayloadCopyWithImpl;
 @override @useResult
 $Res call({
- String? challanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, String? consignorName, String? consigneeName, String? generatedFrom, String? sourceLocation, String? destination, String? vehicleType, String? vehicleNumber, String? mineralName, double? quantity, String? quantityText, String? quantityUnit, int? royaltyAmountPaise, Map<String, String> rawFields, String? responseHash, DateTime? capturedAt
+ String? challanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, String? consignorName, String? consigneeName, String? generatedFrom, String? sourceLocation, String? destination, String? vehicleType, String? vehicleNumber, String? mineralName, double? quantity, String? quantityText, String? quantityUnit, int? royaltyAmountPaise, Map<String, String> rawFields, String? portalMessage, String? responseHash, DateTime? capturedAt
 });
 
 
@@ -333,7 +339,7 @@ class __$CapturedPortalPayloadCopyWithImpl<$Res>
 
 /// Create a copy of CapturedPortalPayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? challanNumber = freezed,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? consignorName = freezed,Object? consigneeName = freezed,Object? generatedFrom = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? vehicleType = freezed,Object? vehicleNumber = freezed,Object? mineralName = freezed,Object? quantity = freezed,Object? quantityText = freezed,Object? quantityUnit = freezed,Object? royaltyAmountPaise = freezed,Object? rawFields = null,Object? responseHash = freezed,Object? capturedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? challanNumber = freezed,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? consignorName = freezed,Object? consigneeName = freezed,Object? generatedFrom = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? vehicleType = freezed,Object? vehicleNumber = freezed,Object? mineralName = freezed,Object? quantity = freezed,Object? quantityText = freezed,Object? quantityUnit = freezed,Object? royaltyAmountPaise = freezed,Object? rawFields = null,Object? portalMessage = freezed,Object? responseHash = freezed,Object? capturedAt = freezed,}) {
   return _then(_CapturedPortalPayload(
 challanNumber: freezed == challanNumber ? _self.challanNumber : challanNumber // ignore: cast_nullable_to_non_nullable
 as String?,uidNumber: freezed == uidNumber ? _self.uidNumber : uidNumber // ignore: cast_nullable_to_non_nullable
@@ -352,7 +358,8 @@ as double?,quantityText: freezed == quantityText ? _self.quantityText : quantity
 as String?,quantityUnit: freezed == quantityUnit ? _self.quantityUnit : quantityUnit // ignore: cast_nullable_to_non_nullable
 as String?,royaltyAmountPaise: freezed == royaltyAmountPaise ? _self.royaltyAmountPaise : royaltyAmountPaise // ignore: cast_nullable_to_non_nullable
 as int?,rawFields: null == rawFields ? _self._rawFields : rawFields // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,responseHash: freezed == responseHash ? _self.responseHash : responseHash // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,portalMessage: freezed == portalMessage ? _self.portalMessage : portalMessage // ignore: cast_nullable_to_non_nullable
+as String?,responseHash: freezed == responseHash ? _self.responseHash : responseHash // ignore: cast_nullable_to_non_nullable
 as String?,capturedAt: freezed == capturedAt ? _self.capturedAt : capturedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

@@ -69,7 +69,8 @@ class DuplicateChallanDialog extends ConsumerWidget {
           const SizedBox(height: 12),
           const Text(
             'A challan can only be saved once per organization and financial '
-            'year. Nothing was changed.',
+            'year. Nothing was changed. If this entry is wrong, open it and '
+            'delete it — the number becomes free to add again.',
             style: TextStyle(
               fontSize: 11.5,
               height: 1.35,

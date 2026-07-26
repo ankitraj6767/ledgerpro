@@ -78,7 +78,7 @@ class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
     // data as a portal capture.
     final missing = payload.missingMandatoryFields;
     if (missing.isNotEmpty) {
-      if (payload.rawFields.isEmpty) {
+      if (payload.dataFieldCount == 0) {
         return _failure(ChallanException.captchaNotCompleted);
       }
       // Losing the challan number, or most of the mandatory set, is structural.

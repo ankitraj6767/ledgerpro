@@ -64,11 +64,16 @@ class ChallanException implements Exception {
     recoveryHint: 'Wait for the page to load fully, then capture again.',
   );
 
+  /// The portal is showing its blank form (every detail field reads "NA").
+  ///
+  /// The wording covers both cases: this page currently has no CAPTCHA at all,
+  /// so most of the time the user simply has not pressed Search yet.
   static const captchaNotCompleted = ChallanException(
     ChallanErrorKind.captchaNotCompleted,
-    'No challan result found on the page yet.',
+    'The portal has not shown any challan details yet.',
     recoveryHint:
-        'Complete the CAPTCHA on the portal and press its Search button, then capture.',
+        'On the portal, press its Search button (and complete any verification '
+        'it asks for), wait for the details to appear, then press Capture.',
   );
 
   static const challanNotFound = ChallanException(
