@@ -10,6 +10,7 @@ import '../../../shared/components/infra_components.dart';
 import '../application/challan_providers.dart';
 import '../domain/challan_exceptions.dart';
 import '../domain/challan_models.dart';
+import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
 import '../domain/material_type.dart';
 import 'widgets/challan_card.dart';
@@ -110,7 +111,7 @@ class ChallanDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            challan.verificationStatus.label,
+            challan.verificationStatus.labelFor(challan.portal),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -224,7 +225,10 @@ class ChallanDetailScreen extends ConsumerWidget {
             icon: Icons.shield_outlined,
             child: Column(
               children: [
-                _row('Status', challan.verificationStatus.label),
+                _row(
+                  'Status',
+                  challan.verificationStatus.labelFor(challan.portal),
+                ),
                 _row('Method', challan.verificationMethod.label),
                 _row('Captured at', _formatLocal(challan.capturedAt)),
                 _row('Saved at', _formatLocal(challan.createdAt)),
@@ -242,10 +246,10 @@ class ChallanDetailScreen extends ConsumerWidget {
     );
   }
 
-  static String _portalLabel(String sourcePortal) => switch (sourcePortal) {
-    'bihar_khanan_soft' => 'Bihar Khanan Soft (e-Pass)',
-    _ => sourcePortal,
-  };
+  /// Portal name for display, resolved through the portal enum so a new portal
+  /// only has to be added in one place.
+  static String _portalLabel(String sourcePortal) =>
+      ChallanPortalMapping.fromDb(sourcePortal).displayName;
 
   static String _formatIst(DateTime? value) {
     if (value == null) return '—';

@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../domain/challan_models.dart';
+import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
 import '../domain/material_type.dart';
 
@@ -49,6 +50,9 @@ abstract class ChallanFlowState with _$ChallanFlowState {
 
   const factory ChallanFlowState({
     @Default(ChallanFlowStep.selection) ChallanFlowStep step,
+
+    /// Which state government portal this entry is being captured from.
+    @Default(ChallanPortal.bihar) ChallanPortal portal,
     String? projectId,
     ChallanMaterialType? materialType,
     @Default('') String financialYear,
@@ -109,7 +113,7 @@ abstract class ChallanFlowState with _$ChallanFlowState {
   bool get isBusy => isCapturing || isSaving || isCheckingDuplicate;
 
   /// Builds the draft handed to the repository. Null until a capture exists.
-  EPassChallanDraft? toDraft({required String portalUrl}) {
+  EPassChallanDraft? toDraft({String? portalUrl}) {
     final captured = payload;
     if (captured == null || projectId == null) return null;
     return EPassChallanDraft(
@@ -122,7 +126,8 @@ abstract class ChallanFlowState with _$ChallanFlowState {
           captureResult?.status ?? ChallanVerificationStatus.manualUnverified,
       verificationMethod:
           captureResult?.method ?? ChallanVerificationMethod.manualEntry,
-      portalUrl: portalUrl,
+      portalUrl: portalUrl ?? portal.url,
+      sourcePortal: portal.dbValue,
     );
   }
 }

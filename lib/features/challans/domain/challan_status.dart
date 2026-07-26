@@ -1,3 +1,5 @@
+import 'challan_portal.dart';
+
 /// How a challan record's data was obtained.
 ///
 /// The status deliberately never collapses to a generic "verified": the UI must
@@ -61,6 +63,15 @@ extension ChallanVerificationStatusMapping on ChallanVerificationStatus {
     ChallanVerificationStatus.officialApiVerified => 'Official API Verified',
     ChallanVerificationStatus.invalid => 'Invalid',
     ChallanVerificationStatus.expired => 'Expired',
+  };
+
+  /// Portal-aware label, e.g. "Captured from Jharkhand Government Portal".
+  ///
+  /// Prefer this over [label] wherever the record's portal is known, so a
+  /// Jharkhand capture is never described as a Bihar one.
+  String labelFor(ChallanPortal portal) => switch (this) {
+    ChallanVerificationStatus.portalCaptured => portal.capturedStatusLabel,
+    _ => label,
   };
 
   /// Compact label for list badges where horizontal space is tight.

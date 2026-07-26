@@ -10,17 +10,26 @@ class PortalSecurityNotice extends StatelessWidget {
   const PortalSecurityNotice({
     super.key,
     required this.host,
+    this.stateName = 'Bihar',
     this.dense = false,
   });
 
   /// The full government domain, displayed prominently.
   final String host;
 
+  /// State whose portal is being shown, e.g. "Bihar" or "Jharkhand".
+  final String stateName;
+
   final bool dense;
 
+  /// Bihar wording retained for backward compatibility.
   static const message =
       'You are viewing the Bihar Government portal. Complete CAPTCHA or login '
       'manually. LedgerPro never stores your government credentials.';
+
+  static String messageFor(String stateName) =>
+      'You are viewing the $stateName Government portal. Complete CAPTCHA or '
+      'login manually. LedgerPro never stores your government credentials.';
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +70,7 @@ class PortalSecurityNotice extends StatelessWidget {
           ),
           SizedBox(height: dense ? 4 : 6),
           Text(
-            message,
+            messageFor(stateName),
             style: TextStyle(
               fontSize: dense ? 11 : 12,
               height: 1.35,

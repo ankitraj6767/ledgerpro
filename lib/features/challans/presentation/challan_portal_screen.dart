@@ -8,8 +8,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../app/theme/infra_theme.dart';
 import '../application/challan_providers.dart';
-import '../data/bihar_epass_portal_adapter.dart';
 import '../data/challan_portal_adapter.dart';
+import '../domain/challan_portal.dart';
 import 'widgets/portal_security_notice.dart';
 
 /// Top-level in-app WebView for the Bihar Government e-Pass portal.
@@ -30,9 +30,13 @@ import 'widgets/portal_security_notice.dart';
 class ChallanPortalScreen extends ConsumerStatefulWidget {
   const ChallanPortalScreen({
     super.key,
+    required this.portal,
     required this.challanNumber,
     required this.financialYear,
   });
+
+  /// Which state government portal to open.
+  final ChallanPortal portal;
 
   final String challanNumber;
   final String financialYear;
@@ -46,7 +50,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   WebViewController? _controller;
   bool _loading = true;
   bool _prefilled = false;
-  String _currentUrl = BiharEPassWebViewAdapter.url;
+  late String _currentUrl = widget.portal.url;
   String? _blockedNotice;
   String? _tlsError;
 
@@ -55,6 +59,10 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
     super.initState();
     _initController();
   }
+
+  /// Host allow-list for the portal currently being shown.
+  PortalNavigationPolicy get _navigationPolicy =>
+      PortalNavigationPolicy(allowedHost: widget.portal.host);
 
   void _initController() {
     if (!ChallanPortalSupport.supportsInAppWebView()) return;
@@ -65,9 +73,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (request) {
-            if (BiharEPassWebViewAdapter.navigationPolicy.allowsInApp(
-              request.url,
-            )) {
+            if (_navigationPolicy.allowsInApp(request.url)) {
               return NavigationDecision.navigate;
             }
             // Unrelated or non-HTTPS destinations leave the app entirely.
@@ -113,7 +119,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse(BiharEPassWebViewAdapter.url));
+      ..loadRequest(Uri.parse(widget.portal.url));
 
     _controller = controller;
   }
@@ -147,6 +153,8 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   try {
     var year = ${jsonEncode(widget.financialYear)};
     var challan = ${jsonEncode(widget.challanNumber)};
+    // Jharkhand's page has no financial-year selector at all.
+    var fillYear = ${widget.portal.hasFinancialYearSelector};
 
     function fire(el) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -161,7 +169,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
              key.indexOf('otp') >= 0 || el.type === 'password';
     }
 
-    var selects = document.querySelectorAll('select');
+    var selects = fillYear ? document.querySelectorAll('select') : [];
     for (var i = 0; i < selects.length; i++) {
       var sel = selects[i];
       if (isProtected(sel)) continue;
@@ -272,7 +280,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
     await WebViewCookieManager().clearCookies();
     await controller.clearCache();
     await controller.clearLocalStorage();
-    await controller.loadRequest(Uri.parse(BiharEPassWebViewAdapter.url));
+    await controller.loadRequest(Uri.parse(widget.portal.url));
     if (!mounted) return;
     setState(() {
       _prefilled = false;
@@ -284,13 +292,12 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   Widget build(BuildContext context) {
     final controller = _controller;
     final state = ref.watch(challanFlowControllerProvider);
-    final host =
-        Uri.tryParse(_currentUrl)?.host ?? BiharEPassWebViewAdapter.host;
+    final host = Uri.tryParse(_currentUrl)?.host ?? widget.portal.host;
 
     return Scaffold(
       backgroundColor: InfraColors.background,
       appBar: AppBar(
-        title: const Text('Bihar Government Portal'),
+        title: Text('${widget.portal.stateName} Government Portal'),
         actions: [
           IconButton(
             tooltip: 'Refresh portal',
@@ -301,7 +308,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
             onSelected: (value) {
               switch (value) {
                 case 'external':
-                  _openExternally(BiharEPassWebViewAdapter.url);
+                  _openExternally(widget.portal.url);
                 case 'clear':
                   _clearSession();
               }
@@ -320,7 +327,11 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: PortalSecurityNotice(host: host, dense: true),
+            child: PortalSecurityNotice(
+              host: host,
+              stateName: widget.portal.stateName,
+              dense: true,
+            ),
           ),
           if (_tlsError != null)
             _Banner(

@@ -3,10 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/network/network_monitor.dart';
 import '../../../data/repositories/infra_repository.dart';
-import '../data/bihar_epass_portal_adapter.dart';
 import '../data/challan_portal_adapter.dart';
 import '../data/challan_repository.dart';
+import '../data/epass_portal_adapter.dart';
 import '../domain/challan_models.dart';
+import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
 import '../domain/material_type.dart';
 import 'challan_flow_controller.dart';
@@ -16,13 +17,14 @@ final challanRepositoryProvider = Provider<ChallanRepository>((ref) {
   return ChallanRepository(Supabase.instance.client);
 });
 
-/// Portal capture strategy. Swap this for an authorized government API adapter
-/// when one becomes available — nothing else in the feature changes.
-final challanVerificationAdapterProvider = Provider<ChallanVerificationAdapter>(
-  (ref) {
-    return const BiharEPassWebViewAdapter();
-  },
-);
+/// Portal capture strategy, resolved per state government portal.
+///
+/// Swap an entry for an authorized government API adapter when one becomes
+/// available — nothing else in the feature changes.
+final challanVerificationAdapterProvider =
+    Provider.family<ChallanVerificationAdapter, ChallanPortal>((ref, portal) {
+      return EPassWebViewAdapter(portal);
+    });
 
 /// Connectivity as a plain bool for the challan UI.
 ///

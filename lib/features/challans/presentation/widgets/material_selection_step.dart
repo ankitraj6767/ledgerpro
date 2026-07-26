@@ -9,6 +9,7 @@ import '../../../../shared/models/infra_models.dart';
 import '../../application/challan_flow_controller.dart';
 import '../../application/challan_flow_state.dart';
 import '../../application/challan_providers.dart';
+import '../../domain/challan_portal.dart';
 import '../../domain/material_type.dart';
 
 /// Step 1 — project, material, financial year and challan number.
@@ -52,6 +53,38 @@ class _MaterialSelectionStepState extends ConsumerState<MaterialSelectionStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const _FieldLabel('State portal', required: true),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<ChallanPortal>(
+            initialValue: state.portal,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.account_balance_outlined),
+            ),
+            items: [
+              for (final portal in ChallanPortal.values)
+                DropdownMenuItem(
+                  value: portal,
+                  child: Text(
+                    portal.stateName,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: (value) {
+              if (value != null) controller.selectPortal(value);
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Opens ${state.portal.host}',
+            style: const TextStyle(
+              fontSize: 11,
+              color: InfraColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+
           projectsAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
@@ -111,16 +144,16 @@ class _MaterialSelectionStepState extends ConsumerState<MaterialSelectionStep> {
           ),
           const SizedBox(height: 16),
 
-          const _FieldLabel('Challan number'),
+          _FieldLabel(state.portal.challanNumberLabel),
           const SizedBox(height: 8),
           TextField(
             controller: _challanController,
             textCapitalization: TextCapitalization.characters,
             textInputAction: TextInputAction.done,
             inputFormatters: [LengthLimitingTextInputFormatter(64)],
-            decoration: const InputDecoration(
-              hintText: 'e.g. BR2026001234',
-              prefixIcon: Icon(Icons.confirmation_number_outlined),
+            decoration: InputDecoration(
+              hintText: state.portal.challanNumberHint,
+              prefixIcon: const Icon(Icons.confirmation_number_outlined),
             ),
             onChanged: (value) {
               controller.setChallanNumber(value);

@@ -1,7 +1,19 @@
 # E-Pass Challan Integration
 
-Mineral transport challans (e-Pass) issued by the Bihar Government mining portal
-are captured into LedgerPro as project material entries.
+Mineral transport challans (e-Pass) issued by state government mining portals are
+captured into LedgerPro as project material entries.
+
+**Supported portals** — the user picks one from a "State portal" dropdown in
+step 1, and the flow then talks only to that portal:
+
+| State | Host | `source_portal` |
+|-------|------|-----------------|
+| Bihar (Khanan Soft) | `khanansoft.bihar.gov.in` | `bihar_khanan_soft` |
+| Jharkhand (Minerals Portal) | `mineralsportal.jharkhand.gov.in` | `jharkhand_minerals_portal` |
+
+`source_portal` is the first component of the duplicate uniqueness key, so the
+same challan number can exist once per state without colliding. Adding a portal
+needs **no migration**: the column is free text.
 
 The module lives in `lib/features/challans/` and is self-contained: it reuses the
 app's existing theme, components, Riverpod conventions, permission model and
@@ -20,10 +32,11 @@ lib/features/challans/
 ├── data/
 │   ├── challan_repository.dart        Supabase reads (PostgREST) + writes (RPC)
 │   ├── challan_portal_adapter.dart    Adapter interface + platform/nav policy
-│   ├── bihar_epass_portal_adapter.dart Bihar implementation
+│   ├── epass_portal_adapter.dart      Portal-parameterised implementation
 │   └── challan_dom_parser.dart        3-layer resilient DOM extraction
 ├── domain/
 │   ├── challan_models.dart            Freezed models
+│   ├── challan_portal.dart            Supported portals + their differences
 │   ├── challan_status.dart            Verification status + method
 │   ├── material_type.dart             Materials + financial-year helpers
 │   └── challan_exceptions.dart        Error taxonomy
@@ -227,6 +240,44 @@ Otherwise the user gets an actionable error and **nothing is saved**:
 | Different challan returned | "The portal returned challan X, but you entered Y" |
 | Wrong financial year | "…does not belong to the selected financial year" |
 
+### Per-portal differences (verified against both live pages)
+
+Everything portal-specific is declared in `ChallanPortal`, so the flow, WebView
+screen and parser stay portal-agnostic.
+
+| | Bihar | Jharkhand |
+|---|---|---|
+| CAPTCHA on the page | none | **yes** (`imgCaptcha` / `txtCaptcha`) |
+| Financial-year selector | `ddlfinancialyear` | **none** (prefill skips it) |
+| Result layout | `<table>` label/value rows | **Bootstrap grid** (label and value in *sibling containers*) |
+| Challan input | `txtchallanno` | `txtPassNo` |
+| Identifier label | "Challan No." | "Pass No." |
+| Secondary id | `lblUIDNo` ("UID No.") | `lblPermitNo` ("Permit No.") |
+| Validity | `lblChallanValidity` | `lblPassValidity` |
+| Quantity unit | separate `lblunit` | none (unit is inside the quantity text) |
+| Vehicle type | `lblVehicleType` | absent |
+| Consignee | `lblconsigneename` | absent |
+
+Two consequences worth knowing:
+
+- **The element-id map must be per portal.** On Jharkhand the *Consigner Name*
+  value is rendered by a span called **`lblconsigneename`** — the same id that on
+  Bihar genuinely means the consignee. A shared map would silently file a
+  consignor as a consignee, so `ChallanDomParser` takes a `portal` and selects
+  the matching id map. Labels (layers 2 and 3) remain shared, since the label
+  *text* is unambiguous on both.
+- **Layer 2 gained an ancestor walk** to handle Jharkhand's grid, where the label
+  is not a sibling of its value. It only walks up while the ancestor contains
+  nothing but the label text, so a wrapper holding both is never treated as a
+  label.
+
+Jharkhand's "Permit No." is stored in `uid_number` (the portal's identifier
+column); the original label is preserved in `portal_payload.fields`.
+
+Since Jharkhand has no financial-year field, the financial year is purely
+LedgerPro's own bookkeeping there — it is still recorded and still forms part of
+the duplicate key.
+
 ### Live portal facts (verified against the real page)
 
 Captured from `ViewPassDetailsNew.aspx` and pinned by fixtures in
@@ -238,9 +289,9 @@ Captured from `ViewPassDetailsNew.aspx` and pinned by fixtures in
   **absent**, never as a value. Without this, an un-searched page looked like a
   partially-readable result and produced a misleading
   "missing: challan date, quantity" error.
-- **This page has no CAPTCHA.** The form is challan no + vehicle no + financial
-  year + Search. User-facing copy therefore leads with "press Search" and only
-  mentions verification conditionally.
+- **The Bihar page has no CAPTCHA.** Its form is challan no + vehicle no +
+  financial year + Search, so the copy leads with "press Search" and only
+  mentions CAPTCHA where the portal actually shows one (Jharkhand does).
 - Control ids are **flat** (`lblchallanno`, not `ctl00_…_lblchallanno`), so
   suffix matching covers both shapes.
 - `lblunit` holds the quantity **unit** in its own control, separate from
@@ -615,10 +666,9 @@ abstract interface class ChallanVerificationAdapter {
 
 To adopt an authorized government API:
 
-1. Implement `BiharEPassOfficialApiAdapter` returning
+1. Implement an official-API adapter for that state, returning
    `status: officialApiVerified`, `method: officialApi`.
-2. Point `challanVerificationAdapterProvider` at it (per-platform or
-   feature-flagged).
+2. Point `challanVerificationAdapterProvider(portal)` at it for that portal.
 3. Remove the `official_api` guard in `create_epass_challan`.
 
 Nothing else changes: the flow controller, repository, RPC contract, database

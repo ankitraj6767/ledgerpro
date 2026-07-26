@@ -6,6 +6,7 @@ import '../../../data/repositories/infra_repository.dart';
 import '../data/challan_portal_adapter.dart';
 import '../domain/challan_exceptions.dart';
 import '../domain/challan_models.dart';
+import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
 import '../domain/material_type.dart';
 import 'challan_flow_state.dart';
@@ -24,6 +25,24 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
   // ---------------------------------------------------------------------------
   // Step 1 — selection
   // ---------------------------------------------------------------------------
+
+  /// Switches the state government portal.
+  ///
+  /// Any capture already collected belongs to the previous portal, so it is
+  /// discarded rather than being saved against the wrong `source_portal`.
+  void selectPortal(ChallanPortal portal) {
+    if (state.portal == portal) return;
+    state = state.copyWith(
+      portal: portal,
+      captureResult: null,
+      duplicateOf: null,
+      savedChallan: null,
+      materialMismatchAcknowledged: false,
+      manualFallback: false,
+      errorMessage: null,
+      step: ChallanFlowStep.selection,
+    );
+  }
 
   void selectProject(String? projectId) {
     state = state.copyWith(projectId: projectId, errorMessage: null);
@@ -101,6 +120,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
             organizationId: org.id,
             financialYear: state.financialYear,
             challanNumber: state.challanNumber,
+            sourcePortal: state.portal.dbValue,
           );
       return existing;
     } catch (_) {
@@ -129,7 +149,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
       step: ChallanFlowStep.verification,
     );
 
-    final adapter = ref.read(challanVerificationAdapterProvider);
+    final adapter = ref.read(challanVerificationAdapterProvider(state.portal));
     final result = await adapter.capture(
       request: ChallanCaptureRequest(
         challanNumber: state.challanNumber,
@@ -231,7 +251,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
       return null;
     }
 
-    final adapter = ref.read(challanVerificationAdapterProvider);
+    final adapter = ref.read(challanVerificationAdapterProvider(state.portal));
     final draft = state.toDraft(portalUrl: adapter.portalUrl);
     if (draft == null) {
       state = state.copyWith(errorMessage: ChallanException.unknown.message);
@@ -293,6 +313,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
           organizationId: org.id,
           financialYear: draft.financialYear,
           challanNumber: draft.challanNumber,
+          sourcePortal: draft.sourcePortal,
         );
       } catch (_) {
         existing = null;
@@ -328,6 +349,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
   /// user can add several challans in a row without re-picking them.
   void startAnother() {
     state = ChallanFlowState(
+      portal: state.portal,
       projectId: state.projectId,
       materialType: state.materialType,
       financialYear: state.financialYear.isEmpty
@@ -340,6 +362,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
   /// Full reset.
   void reset() {
     state = ChallanFlowState(
+      portal: state.portal,
       financialYear: FinancialYear.current(),
       isOffline: state.isOffline,
     );

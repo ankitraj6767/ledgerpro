@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ledgerpro_mobile/features/challans/data/bihar_epass_portal_adapter.dart';
+import 'package:ledgerpro_mobile/features/challans/data/epass_portal_adapter.dart';
+import 'package:ledgerpro_mobile/features/challans/domain/challan_portal.dart';
 import 'package:ledgerpro_mobile/features/challans/data/challan_portal_adapter.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_exceptions.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_status.dart';
@@ -7,7 +8,7 @@ import 'package:ledgerpro_mobile/features/challans/domain/challan_status.dart';
 import 'fixtures/portal_result_fixtures.dart';
 
 void main() {
-  const adapter = BiharEPassWebViewAdapter();
+  final adapter = EPassWebViewAdapter(ChallanPortal.bihar);
 
   ChallanCaptureRequest request({
     String challan = 'BR2026001234',
@@ -177,10 +178,10 @@ void main() {
   });
 
   group('navigation policy', () {
-    const policy = BiharEPassWebViewAdapter.navigationPolicy;
+    final policy = adapter.navigationPolicy;
 
     test('allows only https on the government host', () {
-      expect(policy.allowsInApp(BiharEPassWebViewAdapter.url), isTrue);
+      expect(policy.allowsInApp(ChallanPortal.bihar.url), isTrue);
       expect(
         policy.allowsInApp('https://khanansoft.bihar.gov.in/portal/x.aspx'),
         isTrue,

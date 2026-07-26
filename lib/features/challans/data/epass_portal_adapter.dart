@@ -1,32 +1,42 @@
 import '../domain/challan_exceptions.dart';
 import '../domain/challan_models.dart';
+import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
 import 'challan_dom_parser.dart';
 import 'challan_portal_adapter.dart';
 
-/// Bihar "Khanan Soft" e-Pass portal, captured through a human-driven WebView.
+/// Captures challans from a state e-Pass portal through a human-driven WebView.
+///
+/// One implementation serves every supported portal ([ChallanPortal]); all
+/// portal-specific knowledge lives in the portal enum and the parser's per-portal
+/// id map. Currently: Bihar "Khanan Soft" and the Jharkhand Minerals Portal.
 ///
 /// CAPTCHA and login are completed by the person using the app. This adapter
-/// only ever *reads* what the portal already rendered after the user pressed
-/// the portal's own Search button — it never solves, submits or forwards any
+/// only ever *reads* what the portal already rendered after the user pressed the
+/// portal's own Search button — it never solves, submits or forwards any
 /// human-verification challenge.
-class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
-  const BiharEPassWebViewAdapter({this.parser = const ChallanDomParser()});
+class EPassWebViewAdapter implements ChallanVerificationAdapter {
+  const EPassWebViewAdapter(this.portal, {this.parserOverride});
+
+  final ChallanPortal portal;
 
   /// Injectable so tests can exercise the adapter with a stub parser.
-  final ChallanDomParser parser;
+  final ChallanDomParser? parserOverride;
 
-  static const host = 'khanansoft.bihar.gov.in';
-  static const url =
-      'https://khanansoft.bihar.gov.in/portal/ePass/ViewPassDetailsNew.aspx';
+  /// Parser bound to this portal's control-id map.
+  ChallanDomParser get parser =>
+      parserOverride ?? ChallanDomParser(portal: portal);
 
-  static const navigationPolicy = PortalNavigationPolicy(allowedHost: host);
+  PortalNavigationPolicy get navigationPolicy =>
+      PortalNavigationPolicy(allowedHost: portal.host);
+
+  String get host => portal.host;
 
   @override
-  String get sourcePortal => 'bihar_khanan_soft';
+  String get sourcePortal => portal.dbValue;
 
   @override
-  String get portalUrl => url;
+  String get portalUrl => portal.url;
 
   @override
   Future<ChallanCaptureResult> capture({
@@ -58,17 +68,20 @@ class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
     required String rawHtml,
     DateTime? capturedAt,
   }) {
-    if (parser.reportsNoRecord(rawHtml)) {
+    final domParser = parser;
+
+    if (domParser.reportsNoRecord(rawHtml)) {
       return _failure(ChallanException.challanNotFound);
     }
 
-    final payload = parser.parse(rawHtml, capturedAt: capturedAt);
+    final payload = domParser.parse(rawHtml, capturedAt: capturedAt);
 
-    // Nothing recognizable yet: the user most likely has not completed the
-    // CAPTCHA and pressed the portal's Search button.
+    // Nothing recognizable yet: on both portals every detail field reads "NA"
+    // until a search succeeds, so this means the user has not searched (or has
+    // not completed the portal's CAPTCHA, where one is shown).
     if (payload.isEmpty) {
       return _failure(
-        parser.hasResultSection(rawHtml)
+        domParser.hasResultSection(rawHtml)
             ? ChallanException.portalLayoutChanged
             : ChallanException.captchaNotCompleted,
       );
@@ -104,7 +117,7 @@ class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
       );
     }
 
-    // Financial year is only checked when the page actually shows one.
+    // Financial year is only checked when the page actually shows a date.
     if (!_financialYearConsistent(payload, request.financialYear)) {
       return _failure(
         const ChallanException(
@@ -120,7 +133,7 @@ class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
     return ChallanCaptureResult(
       success: true,
       payload: payload,
-      portalUrl: url,
+      portalUrl: portal.url,
       status: ChallanVerificationStatus.portalCaptured,
       method: ChallanVerificationMethod.webviewHumanVerification,
     );
@@ -129,7 +142,9 @@ class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
   /// Checks the challan date against the Indian financial year window.
   ///
   /// Returns true when the date is absent or the year string is unparseable —
-  /// a missing cross-check must not block an otherwise valid capture.
+  /// a missing cross-check must not block an otherwise valid capture. Note the
+  /// financial year is LedgerPro's own bookkeeping field: the Jharkhand portal
+  /// has no financial-year selector at all.
   bool _financialYearConsistent(
     CapturedPortalPayload payload,
     String financialYear,
@@ -162,7 +177,7 @@ class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
         error.message,
         if (error.recoveryHint != null) error.recoveryHint,
       ].join(' '),
-      portalUrl: url,
+      portalUrl: portal.url,
       status: ChallanVerificationStatus.manualUnverified,
       method: ChallanVerificationMethod.webviewHumanVerification,
     );
@@ -171,12 +186,14 @@ class BiharEPassWebViewAdapter implements ChallanVerificationAdapter {
 
 /// Placeholder for a future authorized government API integration.
 ///
-/// When Bihar publishes an authenticated e-Pass verification API, implement it
-/// here and switch [challanVerificationAdapterProvider] over. Only this adapter
-/// may ever produce [ChallanVerificationStatus.officialApiVerified]; the
-/// database additionally rejects `official_api` writes until that work lands.
+/// When a state publishes an authenticated e-Pass verification API, implement it
+/// as another [ChallanVerificationAdapter] returning
+/// [ChallanVerificationStatus.officialApiVerified] and point
+/// `challanVerificationAdapterProvider` at it for that portal. Only such an
+/// adapter may ever produce that status; the database additionally rejects
+/// `official_api` writes until that work lands.
 ///
 /// Nothing else in the feature needs to change: the flow controller, repository,
 /// RPC contract and UI all speak [ChallanCaptureResult].
 // ignore: unused_element
-const _futureOfficialApiAdapterNote = 'BiharEPassOfficialApiAdapter';
+const _futureOfficialApiAdapterNote = 'EPassOfficialApiAdapter';

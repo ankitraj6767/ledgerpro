@@ -5,8 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/theme/infra_theme.dart';
 import '../../../../shared/components/infra_components.dart';
 import '../../application/challan_providers.dart';
-import '../../data/bihar_epass_portal_adapter.dart';
 import '../../data/challan_portal_adapter.dart';
+import '../../domain/challan_portal.dart';
 import 'portal_security_notice.dart';
 
 /// Step 2 — hand off to the government portal.
@@ -38,10 +38,14 @@ class GovernmentPortalStep extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PortalSecurityNotice(host: BiharEPassWebViewAdapter.host),
+          PortalSecurityNotice(
+            host: state.portal.host,
+            stateName: state.portal.stateName,
+          ),
           const SizedBox(height: 14),
 
-          _summaryRow('Challan number', state.challanNumber),
+          _summaryRow('State portal', state.portal.stateName),
+          _summaryRow(state.portal.challanNumberLabel, state.challanNumber),
           _summaryRow('Financial year', state.financialYear),
           const SizedBox(height: 14),
 
@@ -50,12 +54,19 @@ class GovernmentPortalStep extends ConsumerWidget {
             style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
           ),
           const SizedBox(height: 8),
-          const _Steps(
+          _Steps(
             items: [
-              'The portal opens with your financial year and challan number '
-                  'filled in.',
-              'You press the portal\'s own Search button, and complete any '
-                  'CAPTCHA or login it asks for.',
+              state.portal.hasFinancialYearSelector
+                  ? 'The portal opens with your financial year and '
+                        '${state.portal.challanNumberLabel.toLowerCase()} '
+                        'filled in.'
+                  : 'The portal opens with your '
+                        '${state.portal.challanNumberLabel.toLowerCase()} '
+                        'filled in.',
+              if (state.portal.requiresCaptcha)
+                'You type the CAPTCHA shown on the portal — LedgerPro never '
+                    'reads or solves it.',
+              'You press the portal\'s own Search button.',
               'Wait until the e-Pass details actually appear — until then every '
                   'field on the portal reads "NA".',
               'Then press "Capture displayed details".',
@@ -87,7 +98,7 @@ class GovernmentPortalStep extends ConsumerWidget {
                 runSpacing: 8,
                 children: [
                   FilledButton.icon(
-                    onPressed: _openExternally,
+                    onPressed: () => _openExternally(state.portal.url),
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Open portal in browser'),
                   ),
@@ -105,7 +116,7 @@ class GovernmentPortalStep extends ConsumerWidget {
               child: FilledButton.icon(
                 onPressed: onOpenPortal,
                 icon: const Icon(Icons.open_in_browser),
-                label: const Text('Open Government Portal'),
+                label: Text('Open ${state.portal.stateName} Portal'),
               ),
             ),
 
@@ -149,9 +160,8 @@ class GovernmentPortalStep extends ConsumerWidget {
     );
   }
 
-  Future<void> _openExternally() async {
-    final uri = Uri.parse(BiharEPassWebViewAdapter.url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _openExternally(String url) async {
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 }
 

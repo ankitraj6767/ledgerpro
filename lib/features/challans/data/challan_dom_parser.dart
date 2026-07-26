@@ -5,8 +5,9 @@ import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
 import '../domain/challan_models.dart';
+import '../domain/challan_portal.dart';
 
-/// Canonical fields the parser knows how to recognize on the Bihar e-Pass
+/// Canonical fields the parser knows how to recognize on an e-Pass
 /// "View Pass Details" result page.
 enum ChallanField {
   challanNumber,
@@ -47,7 +48,14 @@ enum ChallanField {
 ///     labels (English + Hindi).
 ///   * Layer 3 — `Label : Value` pairs recovered from the page's visible text.
 class ChallanDomParser {
-  const ChallanDomParser();
+  const ChallanDomParser({this.portal = ChallanPortal.bihar});
+
+  /// Which portal's control-id map to use. Labels (layers 2 and 3) are shared
+  /// across portals; only the id map is portal-specific.
+  final ChallanPortal portal;
+
+  Map<ChallanField, List<String>> get _idSuffixes =>
+      _portalIdSuffixes[portal] ?? _biharIdSuffixes;
 
   /// Bilingual labels per field. All comparisons run through [_normalizeLabel],
   /// so punctuation, casing, `no.`/`no` and whitespace differences are ignored.
@@ -56,6 +64,9 @@ class ChallanDomParser {
       'challan no',
       'challan number',
       'challan',
+      // Jharkhand calls it "Pass No.".
+      'pass no',
+      'e pass no',
       'चालान नंबर',
       'चालान संख्या',
       'चालान क्रमांक',
@@ -64,6 +75,8 @@ class ChallanDomParser {
       'uid no',
       'uid number',
       'uid',
+      // Jharkhand's equivalent identifier is "Permit No.".
+      'permit no',
       'यूआईडी नंबर',
       'यूआईडी संख्या',
     ],
@@ -76,6 +89,8 @@ class ChallanDomParser {
     ],
     ChallanField.validUntil: [
       'challan validity',
+      // Jharkhand calls it "Pass Validity".
+      'pass validity',
       'validity',
       'valid upto',
       'valid up to',
@@ -188,8 +203,40 @@ class ChallanDomParser {
     '--select all--',
   };
 
+  /// Per-portal element-id map.
+  ///
+  /// These cannot be shared, because the two portals disagree on what the same
+  /// control id means: on Jharkhand the **Consigner** value is rendered by a
+  /// span called `lblconsigneename`, whereas on Bihar that id really is the
+  /// consignee. Using one merged map would silently file a consignor as a
+  /// consignee, so each portal declares its own.
+  static const _portalIdSuffixes =
+      <ChallanPortal, Map<ChallanField, List<String>>>{
+        ChallanPortal.bihar: _biharIdSuffixes,
+        ChallanPortal.jharkhand: _jharkhandIdSuffixes,
+      };
+
+  /// Jharkhand Minerals Portal control ids (verified against the live page).
+  ///
+  /// The page has no unit, vehicle-type, consignee or royalty control.
+  static const _jharkhandIdSuffixes = <ChallanField, List<String>>{
+    ChallanField.challanNumber: ['lblchallanno'],
+    ChallanField.uidNumber: ['lblpermitno'],
+    ChallanField.challanDate: ['lblchallandate'],
+    ChallanField.validUntil: ['lblpassvalidity'],
+    // Portal quirk: the "Consigner Name" value sits in lblconsigneename.
+    ChallanField.consignorName: ['lblconsigneename'],
+    ChallanField.generatedFrom: ['lbluser'],
+    ChallanField.sourceLocation: ['lbllocation'],
+    ChallanField.destination: ['lbldestination'],
+    ChallanField.vehicleNumber: ['lblvehicleno'],
+    ChallanField.mineralName: ['lblmineralname'],
+    ChallanField.quantity: ['lblquantity'],
+    ChallanField.portalMessage: ['lblresult', 'lblmsg', 'lblerror'],
+  };
+
   /// Known ASP.NET label-control id suffixes, checked case-insensitively.
-  static const _idSuffixes = <ChallanField, List<String>>{
+  static const _biharIdSuffixes = <ChallanField, List<String>>{
     ChallanField.challanNumber: [
       'lblchallanno',
       'lblchallannumber',
@@ -444,12 +491,42 @@ class ChallanDomParser {
       if (label.children.isNotEmpty) continue;
       final field = _fieldForLabel(_cellText(label));
       if (field == null || out.containsKey(field)) continue;
-      final sibling = label.nextElementSibling;
-      if (sibling == null) continue;
-      final value = _meaningful(_cellText(sibling));
-      if (value == null || _isExactLabel(value)) continue;
+
+      final value = _valueAfterLabel(label);
+      if (value == null) continue;
       out[field] = value;
     }
+  }
+
+  /// Finds the value that belongs to [label].
+  ///
+  /// Handles two shapes:
+  ///   * the value element is the label's next sibling, and
+  ///   * the label is wrapped in its own container and the value sits in the
+  ///     *next container* — the Bootstrap grid layout the Jharkhand portal
+  ///     uses (`<div><label>Quantity</label></div><div><span>10</span></div>`).
+  ///
+  /// Walking up is only allowed while the ancestor contains nothing but the
+  /// label text, so a wrapper holding both label and value is never mistaken
+  /// for a label element.
+  static String? _valueAfterLabel(dom.Element label) {
+    final labelText = _cellText(label);
+
+    dom.Element? node = label;
+    for (var depth = 0; depth < 4 && node != null; depth++) {
+      final sibling = node.nextElementSibling;
+      if (sibling != null) {
+        final value = _meaningful(_cellText(sibling));
+        // Skip pure separator cells such as the ":" column.
+        if (value != null && !_isExactLabel(value)) return value;
+        if (value != null) return null;
+      }
+      final parent = node.parent;
+      // Stop as soon as the ancestor holds more than just the label.
+      if (parent == null || _cellText(parent) != labelText) return null;
+      node = parent;
+    }
+    return null;
   }
 
   /// Layer 3: `Label : Value` pairs recovered from visible text.
@@ -712,7 +789,7 @@ class ChallanDomParser {
   // ---------------------------------------------------------------------------
 
   /// True only when the text *is* a known label, not merely contains one.
-  bool _isExactLabel(String rawText) {
+  static bool _isExactLabel(String rawText) {
     final normalized = _normalizeLabel(_stripSeparators(rawText));
     if (normalized.isEmpty) return false;
     for (final candidates in _labels.values) {
@@ -756,6 +833,8 @@ class ChallanDomParser {
     final cleaned = ChallanText.cleanOrNull(raw);
     if (cleaned == null) return null;
     if (_placeholderValues.contains(cleaned.toLowerCase())) return null;
+    // Separator-only cells (the ":" column, decorative dashes) are not values.
+    if (!RegExp(r'[0-9A-Za-z\u0900-\u097F]').hasMatch(cleaned)) return null;
     return cleaned;
   }
 

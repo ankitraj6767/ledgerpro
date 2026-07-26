@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ledgerpro_mobile/features/challans/data/bihar_epass_portal_adapter.dart';
+import 'package:ledgerpro_mobile/features/challans/data/epass_portal_adapter.dart';
+import 'package:ledgerpro_mobile/features/challans/domain/challan_portal.dart';
 import 'package:ledgerpro_mobile/features/challans/data/challan_dom_parser.dart';
 import 'package:ledgerpro_mobile/features/challans/data/challan_portal_adapter.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_exceptions.dart';
@@ -15,7 +16,7 @@ import 'fixtures/portal_result_fixtures.dart';
 /// "missing: challan date, quantity" error.
 void main() {
   const parser = ChallanDomParser();
-  const adapter = BiharEPassWebViewAdapter();
+  final adapter = EPassWebViewAdapter(ChallanPortal.bihar);
 
   const request = ChallanCaptureRequest(
     challanNumber: '2413812606031238531',

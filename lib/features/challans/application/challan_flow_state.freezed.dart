@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ChallanFlowState {
 
- ChallanFlowStep get step; String? get projectId; ChallanMaterialType? get materialType; String get financialYear;/// Exactly what the user typed, tidied but not stripped.
+ ChallanFlowStep get step;/// Which state government portal this entry is being captured from.
+ ChallanPortal get portal; String? get projectId; ChallanMaterialType? get materialType; String get financialYear;/// Exactly what the user typed, tidied but not stripped.
  String get challanNumber;/// Result of the most recent capture attempt.
  ChallanCaptureResult? get captureResult;/// Set when the same challan already exists in this organization.
  EPassChallan? get duplicateOf;/// The saved row once step 5 succeeds.
@@ -32,16 +33,16 @@ $ChallanFlowStateCopyWith<ChallanFlowState> get copyWith => _$ChallanFlowStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChallanFlowState&&(identical(other.step, step) || other.step == step)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.captureResult, captureResult) || other.captureResult == captureResult)&&(identical(other.duplicateOf, duplicateOf) || other.duplicateOf == duplicateOf)&&(identical(other.savedChallan, savedChallan) || other.savedChallan == savedChallan)&&(identical(other.isCapturing, isCapturing) || other.isCapturing == isCapturing)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.isCheckingDuplicate, isCheckingDuplicate) || other.isCheckingDuplicate == isCheckingDuplicate)&&(identical(other.materialMismatchAcknowledged, materialMismatchAcknowledged) || other.materialMismatchAcknowledged == materialMismatchAcknowledged)&&(identical(other.manualFallback, manualFallback) || other.manualFallback == manualFallback)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isOffline, isOffline) || other.isOffline == isOffline));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChallanFlowState&&(identical(other.step, step) || other.step == step)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.captureResult, captureResult) || other.captureResult == captureResult)&&(identical(other.duplicateOf, duplicateOf) || other.duplicateOf == duplicateOf)&&(identical(other.savedChallan, savedChallan) || other.savedChallan == savedChallan)&&(identical(other.isCapturing, isCapturing) || other.isCapturing == isCapturing)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.isCheckingDuplicate, isCheckingDuplicate) || other.isCheckingDuplicate == isCheckingDuplicate)&&(identical(other.materialMismatchAcknowledged, materialMismatchAcknowledged) || other.materialMismatchAcknowledged == materialMismatchAcknowledged)&&(identical(other.manualFallback, manualFallback) || other.manualFallback == manualFallback)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isOffline, isOffline) || other.isOffline == isOffline));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,step,projectId,materialType,financialYear,challanNumber,captureResult,duplicateOf,savedChallan,isCapturing,isSaving,isCheckingDuplicate,materialMismatchAcknowledged,manualFallback,errorMessage,isOffline);
+int get hashCode => Object.hash(runtimeType,step,portal,projectId,materialType,financialYear,challanNumber,captureResult,duplicateOf,savedChallan,isCapturing,isSaving,isCheckingDuplicate,materialMismatchAcknowledged,manualFallback,errorMessage,isOffline);
 
 @override
 String toString() {
-  return 'ChallanFlowState(step: $step, projectId: $projectId, materialType: $materialType, financialYear: $financialYear, challanNumber: $challanNumber, captureResult: $captureResult, duplicateOf: $duplicateOf, savedChallan: $savedChallan, isCapturing: $isCapturing, isSaving: $isSaving, isCheckingDuplicate: $isCheckingDuplicate, materialMismatchAcknowledged: $materialMismatchAcknowledged, manualFallback: $manualFallback, errorMessage: $errorMessage, isOffline: $isOffline)';
+  return 'ChallanFlowState(step: $step, portal: $portal, projectId: $projectId, materialType: $materialType, financialYear: $financialYear, challanNumber: $challanNumber, captureResult: $captureResult, duplicateOf: $duplicateOf, savedChallan: $savedChallan, isCapturing: $isCapturing, isSaving: $isSaving, isCheckingDuplicate: $isCheckingDuplicate, materialMismatchAcknowledged: $materialMismatchAcknowledged, manualFallback: $manualFallback, errorMessage: $errorMessage, isOffline: $isOffline)';
 }
 
 
@@ -52,7 +53,7 @@ abstract mixin class $ChallanFlowStateCopyWith<$Res>  {
   factory $ChallanFlowStateCopyWith(ChallanFlowState value, $Res Function(ChallanFlowState) _then) = _$ChallanFlowStateCopyWithImpl;
 @useResult
 $Res call({
- ChallanFlowStep step, String? projectId, ChallanMaterialType? materialType, String financialYear, String challanNumber, ChallanCaptureResult? captureResult, EPassChallan? duplicateOf, EPassChallan? savedChallan, bool isCapturing, bool isSaving, bool isCheckingDuplicate, bool materialMismatchAcknowledged, bool manualFallback, String? errorMessage, bool isOffline
+ ChallanFlowStep step, ChallanPortal portal, String? projectId, ChallanMaterialType? materialType, String financialYear, String challanNumber, ChallanCaptureResult? captureResult, EPassChallan? duplicateOf, EPassChallan? savedChallan, bool isCapturing, bool isSaving, bool isCheckingDuplicate, bool materialMismatchAcknowledged, bool manualFallback, String? errorMessage, bool isOffline
 });
 
 
@@ -69,10 +70,11 @@ class _$ChallanFlowStateCopyWithImpl<$Res>
 
 /// Create a copy of ChallanFlowState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? step = null,Object? projectId = freezed,Object? materialType = freezed,Object? financialYear = null,Object? challanNumber = null,Object? captureResult = freezed,Object? duplicateOf = freezed,Object? savedChallan = freezed,Object? isCapturing = null,Object? isSaving = null,Object? isCheckingDuplicate = null,Object? materialMismatchAcknowledged = null,Object? manualFallback = null,Object? errorMessage = freezed,Object? isOffline = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? step = null,Object? portal = null,Object? projectId = freezed,Object? materialType = freezed,Object? financialYear = null,Object? challanNumber = null,Object? captureResult = freezed,Object? duplicateOf = freezed,Object? savedChallan = freezed,Object? isCapturing = null,Object? isSaving = null,Object? isCheckingDuplicate = null,Object? materialMismatchAcknowledged = null,Object? manualFallback = null,Object? errorMessage = freezed,Object? isOffline = null,}) {
   return _then(_self.copyWith(
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
-as ChallanFlowStep,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as ChallanFlowStep,portal: null == portal ? _self.portal : portal // ignore: cast_nullable_to_non_nullable
+as ChallanPortal,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
 as ChallanMaterialType?,financialYear: null == financialYear ? _self.financialYear : financialYear // ignore: cast_nullable_to_non_nullable
 as String,challanNumber: null == challanNumber ? _self.challanNumber : challanNumber // ignore: cast_nullable_to_non_nullable
@@ -207,10 +209,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ChallanFlowStep step,  String? projectId,  ChallanMaterialType? materialType,  String financialYear,  String challanNumber,  ChallanCaptureResult? captureResult,  EPassChallan? duplicateOf,  EPassChallan? savedChallan,  bool isCapturing,  bool isSaving,  bool isCheckingDuplicate,  bool materialMismatchAcknowledged,  bool manualFallback,  String? errorMessage,  bool isOffline)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ChallanFlowStep step,  ChallanPortal portal,  String? projectId,  ChallanMaterialType? materialType,  String financialYear,  String challanNumber,  ChallanCaptureResult? captureResult,  EPassChallan? duplicateOf,  EPassChallan? savedChallan,  bool isCapturing,  bool isSaving,  bool isCheckingDuplicate,  bool materialMismatchAcknowledged,  bool manualFallback,  String? errorMessage,  bool isOffline)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ChallanFlowState() when $default != null:
-return $default(_that.step,_that.projectId,_that.materialType,_that.financialYear,_that.challanNumber,_that.captureResult,_that.duplicateOf,_that.savedChallan,_that.isCapturing,_that.isSaving,_that.isCheckingDuplicate,_that.materialMismatchAcknowledged,_that.manualFallback,_that.errorMessage,_that.isOffline);case _:
+return $default(_that.step,_that.portal,_that.projectId,_that.materialType,_that.financialYear,_that.challanNumber,_that.captureResult,_that.duplicateOf,_that.savedChallan,_that.isCapturing,_that.isSaving,_that.isCheckingDuplicate,_that.materialMismatchAcknowledged,_that.manualFallback,_that.errorMessage,_that.isOffline);case _:
   return orElse();
 
 }
@@ -228,10 +230,10 @@ return $default(_that.step,_that.projectId,_that.materialType,_that.financialYea
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ChallanFlowStep step,  String? projectId,  ChallanMaterialType? materialType,  String financialYear,  String challanNumber,  ChallanCaptureResult? captureResult,  EPassChallan? duplicateOf,  EPassChallan? savedChallan,  bool isCapturing,  bool isSaving,  bool isCheckingDuplicate,  bool materialMismatchAcknowledged,  bool manualFallback,  String? errorMessage,  bool isOffline)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ChallanFlowStep step,  ChallanPortal portal,  String? projectId,  ChallanMaterialType? materialType,  String financialYear,  String challanNumber,  ChallanCaptureResult? captureResult,  EPassChallan? duplicateOf,  EPassChallan? savedChallan,  bool isCapturing,  bool isSaving,  bool isCheckingDuplicate,  bool materialMismatchAcknowledged,  bool manualFallback,  String? errorMessage,  bool isOffline)  $default,) {final _that = this;
 switch (_that) {
 case _ChallanFlowState():
-return $default(_that.step,_that.projectId,_that.materialType,_that.financialYear,_that.challanNumber,_that.captureResult,_that.duplicateOf,_that.savedChallan,_that.isCapturing,_that.isSaving,_that.isCheckingDuplicate,_that.materialMismatchAcknowledged,_that.manualFallback,_that.errorMessage,_that.isOffline);case _:
+return $default(_that.step,_that.portal,_that.projectId,_that.materialType,_that.financialYear,_that.challanNumber,_that.captureResult,_that.duplicateOf,_that.savedChallan,_that.isCapturing,_that.isSaving,_that.isCheckingDuplicate,_that.materialMismatchAcknowledged,_that.manualFallback,_that.errorMessage,_that.isOffline);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -248,10 +250,10 @@ return $default(_that.step,_that.projectId,_that.materialType,_that.financialYea
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ChallanFlowStep step,  String? projectId,  ChallanMaterialType? materialType,  String financialYear,  String challanNumber,  ChallanCaptureResult? captureResult,  EPassChallan? duplicateOf,  EPassChallan? savedChallan,  bool isCapturing,  bool isSaving,  bool isCheckingDuplicate,  bool materialMismatchAcknowledged,  bool manualFallback,  String? errorMessage,  bool isOffline)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ChallanFlowStep step,  ChallanPortal portal,  String? projectId,  ChallanMaterialType? materialType,  String financialYear,  String challanNumber,  ChallanCaptureResult? captureResult,  EPassChallan? duplicateOf,  EPassChallan? savedChallan,  bool isCapturing,  bool isSaving,  bool isCheckingDuplicate,  bool materialMismatchAcknowledged,  bool manualFallback,  String? errorMessage,  bool isOffline)?  $default,) {final _that = this;
 switch (_that) {
 case _ChallanFlowState() when $default != null:
-return $default(_that.step,_that.projectId,_that.materialType,_that.financialYear,_that.challanNumber,_that.captureResult,_that.duplicateOf,_that.savedChallan,_that.isCapturing,_that.isSaving,_that.isCheckingDuplicate,_that.materialMismatchAcknowledged,_that.manualFallback,_that.errorMessage,_that.isOffline);case _:
+return $default(_that.step,_that.portal,_that.projectId,_that.materialType,_that.financialYear,_that.challanNumber,_that.captureResult,_that.duplicateOf,_that.savedChallan,_that.isCapturing,_that.isSaving,_that.isCheckingDuplicate,_that.materialMismatchAcknowledged,_that.manualFallback,_that.errorMessage,_that.isOffline);case _:
   return null;
 
 }
@@ -263,10 +265,12 @@ return $default(_that.step,_that.projectId,_that.materialType,_that.financialYea
 
 
 class _ChallanFlowState extends ChallanFlowState {
-  const _ChallanFlowState({this.step = ChallanFlowStep.selection, this.projectId, this.materialType, this.financialYear = '', this.challanNumber = '', this.captureResult, this.duplicateOf, this.savedChallan, this.isCapturing = false, this.isSaving = false, this.isCheckingDuplicate = false, this.materialMismatchAcknowledged = false, this.manualFallback = false, this.errorMessage, this.isOffline = false}): super._();
+  const _ChallanFlowState({this.step = ChallanFlowStep.selection, this.portal = ChallanPortal.bihar, this.projectId, this.materialType, this.financialYear = '', this.challanNumber = '', this.captureResult, this.duplicateOf, this.savedChallan, this.isCapturing = false, this.isSaving = false, this.isCheckingDuplicate = false, this.materialMismatchAcknowledged = false, this.manualFallback = false, this.errorMessage, this.isOffline = false}): super._();
   
 
 @override@JsonKey() final  ChallanFlowStep step;
+/// Which state government portal this entry is being captured from.
+@override@JsonKey() final  ChallanPortal portal;
 @override final  String? projectId;
 @override final  ChallanMaterialType? materialType;
 @override@JsonKey() final  String financialYear;
@@ -299,16 +303,16 @@ _$ChallanFlowStateCopyWith<_ChallanFlowState> get copyWith => __$ChallanFlowStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChallanFlowState&&(identical(other.step, step) || other.step == step)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.captureResult, captureResult) || other.captureResult == captureResult)&&(identical(other.duplicateOf, duplicateOf) || other.duplicateOf == duplicateOf)&&(identical(other.savedChallan, savedChallan) || other.savedChallan == savedChallan)&&(identical(other.isCapturing, isCapturing) || other.isCapturing == isCapturing)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.isCheckingDuplicate, isCheckingDuplicate) || other.isCheckingDuplicate == isCheckingDuplicate)&&(identical(other.materialMismatchAcknowledged, materialMismatchAcknowledged) || other.materialMismatchAcknowledged == materialMismatchAcknowledged)&&(identical(other.manualFallback, manualFallback) || other.manualFallback == manualFallback)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isOffline, isOffline) || other.isOffline == isOffline));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChallanFlowState&&(identical(other.step, step) || other.step == step)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.captureResult, captureResult) || other.captureResult == captureResult)&&(identical(other.duplicateOf, duplicateOf) || other.duplicateOf == duplicateOf)&&(identical(other.savedChallan, savedChallan) || other.savedChallan == savedChallan)&&(identical(other.isCapturing, isCapturing) || other.isCapturing == isCapturing)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.isCheckingDuplicate, isCheckingDuplicate) || other.isCheckingDuplicate == isCheckingDuplicate)&&(identical(other.materialMismatchAcknowledged, materialMismatchAcknowledged) || other.materialMismatchAcknowledged == materialMismatchAcknowledged)&&(identical(other.manualFallback, manualFallback) || other.manualFallback == manualFallback)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isOffline, isOffline) || other.isOffline == isOffline));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,step,projectId,materialType,financialYear,challanNumber,captureResult,duplicateOf,savedChallan,isCapturing,isSaving,isCheckingDuplicate,materialMismatchAcknowledged,manualFallback,errorMessage,isOffline);
+int get hashCode => Object.hash(runtimeType,step,portal,projectId,materialType,financialYear,challanNumber,captureResult,duplicateOf,savedChallan,isCapturing,isSaving,isCheckingDuplicate,materialMismatchAcknowledged,manualFallback,errorMessage,isOffline);
 
 @override
 String toString() {
-  return 'ChallanFlowState(step: $step, projectId: $projectId, materialType: $materialType, financialYear: $financialYear, challanNumber: $challanNumber, captureResult: $captureResult, duplicateOf: $duplicateOf, savedChallan: $savedChallan, isCapturing: $isCapturing, isSaving: $isSaving, isCheckingDuplicate: $isCheckingDuplicate, materialMismatchAcknowledged: $materialMismatchAcknowledged, manualFallback: $manualFallback, errorMessage: $errorMessage, isOffline: $isOffline)';
+  return 'ChallanFlowState(step: $step, portal: $portal, projectId: $projectId, materialType: $materialType, financialYear: $financialYear, challanNumber: $challanNumber, captureResult: $captureResult, duplicateOf: $duplicateOf, savedChallan: $savedChallan, isCapturing: $isCapturing, isSaving: $isSaving, isCheckingDuplicate: $isCheckingDuplicate, materialMismatchAcknowledged: $materialMismatchAcknowledged, manualFallback: $manualFallback, errorMessage: $errorMessage, isOffline: $isOffline)';
 }
 
 
@@ -319,7 +323,7 @@ abstract mixin class _$ChallanFlowStateCopyWith<$Res> implements $ChallanFlowSta
   factory _$ChallanFlowStateCopyWith(_ChallanFlowState value, $Res Function(_ChallanFlowState) _then) = __$ChallanFlowStateCopyWithImpl;
 @override @useResult
 $Res call({
- ChallanFlowStep step, String? projectId, ChallanMaterialType? materialType, String financialYear, String challanNumber, ChallanCaptureResult? captureResult, EPassChallan? duplicateOf, EPassChallan? savedChallan, bool isCapturing, bool isSaving, bool isCheckingDuplicate, bool materialMismatchAcknowledged, bool manualFallback, String? errorMessage, bool isOffline
+ ChallanFlowStep step, ChallanPortal portal, String? projectId, ChallanMaterialType? materialType, String financialYear, String challanNumber, ChallanCaptureResult? captureResult, EPassChallan? duplicateOf, EPassChallan? savedChallan, bool isCapturing, bool isSaving, bool isCheckingDuplicate, bool materialMismatchAcknowledged, bool manualFallback, String? errorMessage, bool isOffline
 });
 
 
@@ -336,10 +340,11 @@ class __$ChallanFlowStateCopyWithImpl<$Res>
 
 /// Create a copy of ChallanFlowState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? step = null,Object? projectId = freezed,Object? materialType = freezed,Object? financialYear = null,Object? challanNumber = null,Object? captureResult = freezed,Object? duplicateOf = freezed,Object? savedChallan = freezed,Object? isCapturing = null,Object? isSaving = null,Object? isCheckingDuplicate = null,Object? materialMismatchAcknowledged = null,Object? manualFallback = null,Object? errorMessage = freezed,Object? isOffline = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? step = null,Object? portal = null,Object? projectId = freezed,Object? materialType = freezed,Object? financialYear = null,Object? challanNumber = null,Object? captureResult = freezed,Object? duplicateOf = freezed,Object? savedChallan = freezed,Object? isCapturing = null,Object? isSaving = null,Object? isCheckingDuplicate = null,Object? materialMismatchAcknowledged = null,Object? manualFallback = null,Object? errorMessage = freezed,Object? isOffline = null,}) {
   return _then(_ChallanFlowState(
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
-as ChallanFlowStep,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as ChallanFlowStep,portal: null == portal ? _self.portal : portal // ignore: cast_nullable_to_non_nullable
+as ChallanPortal,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
 as ChallanMaterialType?,financialYear: null == financialYear ? _self.financialYear : financialYear // ignore: cast_nullable_to_non_nullable
 as String,challanNumber: null == challanNumber ? _self.challanNumber : challanNumber // ignore: cast_nullable_to_non_nullable

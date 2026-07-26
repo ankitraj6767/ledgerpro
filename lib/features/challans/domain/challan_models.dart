@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'challan_portal.dart';
 import 'challan_status.dart';
 import 'material_type.dart';
 
@@ -223,6 +224,10 @@ abstract class EPassChallan with _$EPassChallan {
 
   bool get isPortalCaptured =>
       verificationStatus == ChallanVerificationStatus.portalCaptured;
+
+  /// The state portal this challan came from, derived from `source_portal`.
+  /// Rows saved before multi-portal support resolve to Bihar.
+  ChallanPortal get portal => ChallanPortalMapping.fromDb(sourcePortal);
 
   /// Quantity rendered without trailing zeros, e.g. `12.5 MT`, `30 MT`.
   String get quantityLabel {

@@ -288,6 +288,7 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => ChallanPortalScreen(
+          portal: state.portal,
           challanNumber: state.challanNumber,
           financialYear: state.financialYear,
         ),

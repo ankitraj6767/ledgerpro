@@ -149,7 +149,7 @@ void main() {
 
       // Challan number alone is not enough — a project is mandatory.
       await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. BR2026001234'),
+        find.widgetWithText(TextField, 'e.g. 2413812606031238531'),
         'BR2026001234',
       );
       await tester.pumpAndSettle();
@@ -167,13 +167,13 @@ void main() {
       await pumpChallanScreen(tester);
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. BR2026001234'),
+        find.widgetWithText(TextField, 'e.g. 2413812606031238531'),
         'br-2026/1234',
       );
       await tester.pumpAndSettle();
 
       final field = tester.widget<TextField>(
-        find.widgetWithText(TextField, 'e.g. BR2026001234'),
+        find.widgetWithText(TextField, 'e.g. 2413812606031238531'),
       );
       // Original separators are preserved; only casing changes.
       expect(field.controller!.text, 'BR-2026/1234');
@@ -200,7 +200,7 @@ void main() {
       await tester.tap(find.text('Highway Package 3').last);
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. BR2026001234'),
+        find.widgetWithText(TextField, 'e.g. 2413812606031238531'),
         'BR2026001234',
       );
       await tester.pumpAndSettle();
@@ -239,7 +239,7 @@ void main() {
         find.textContaining('needs an internet connection'),
         findsOneWidget,
       );
-      expect(find.text('Open Government Portal'), findsNothing);
+      expect(find.text('Open Bihar Portal'), findsNothing);
       expect(find.text('Add as manual entry instead'), findsOneWidget);
     });
   });
