@@ -48,11 +48,16 @@ abstract interface class ChallanVerificationAdapter {
 
 /// Which platforms can host the in-app government portal WebView.
 ///
-/// `webview_flutter` is implemented by `webview_flutter_android` (Android) and
-/// `webview_flutter_wkwebview` (iOS + macOS). Windows and Linux have no
-/// implementation, so those builds fall back to the external browser and a
-/// clearly-labelled manual entry. The dependency itself is pure Dart on
-/// unsupported platforms, so desktop builds still compile.
+/// `webview_flutter` is implemented by `webview_flutter_android` (Android),
+/// `webview_flutter_wkwebview` (iOS + macOS) and `webview_win_floating`
+/// (Windows, backed by the Microsoft Edge WebView2 runtime). Because every one
+/// of those is a `webview_flutter` platform implementation, the portal screen,
+/// the JavaScript extraction and the capture pipeline are identical on all four
+/// — Windows captures a challan exactly the way Android does.
+///
+/// Linux still has no implementation here, so those builds fall back to the
+/// external browser plus a clearly-labelled manual entry. The dependency is pure
+/// Dart on unsupported platforms, so every build still compiles.
 class ChallanPortalSupport {
   const ChallanPortalSupport._();
 
@@ -60,8 +65,27 @@ class ChallanPortalSupport {
     return switch (platform ?? defaultTargetPlatform) {
       TargetPlatform.android ||
       TargetPlatform.iOS ||
-      TargetPlatform.macOS => true,
-      TargetPlatform.windows ||
+      TargetPlatform.macOS ||
+      TargetPlatform.windows => true,
+      TargetPlatform.linux || TargetPlatform.fuchsia => false,
+    };
+  }
+
+  /// True where the WebView is a *native floating window* layered on top of the
+  /// Flutter surface rather than a composited platform view.
+  ///
+  /// This is how WebView2 is hosted on Windows, and it has two consequences the
+  /// portal screen has to respect:
+  ///   * Flutter cannot paint anything above the WebView's rectangle, so
+  ///     progress bars and menus must live outside it.
+  ///   * A JavaScript result crosses a COM boundary as a JSON string, so large
+  ///     page markup is read in slices instead of one hop.
+  static bool usesFloatingWebView([TargetPlatform? platform]) {
+    return switch (platform ?? defaultTargetPlatform) {
+      TargetPlatform.windows => true,
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.macOS ||
       TargetPlatform.linux ||
       TargetPlatform.fuchsia => false,
     };
@@ -72,6 +96,16 @@ class ChallanPortalSupport {
       'In-app portal viewing is not available on this desktop platform. '
       'Open the portal in your browser to verify the challan, then add the '
       'details as a manual entry — it will be saved as "Manual (unverified)".';
+
+  /// Shown when the platform has a WebView implementation but the OS-level
+  /// engine could not start. On Windows that is almost always a missing
+  /// Microsoft Edge WebView2 runtime.
+  static const webViewEngineErrorNotice =
+      'The in-app browser engine could not start on this computer. On Windows '
+      'LedgerPro needs the Microsoft Edge WebView2 Runtime, which ships with '
+      'Windows 11 and can be installed free on Windows 10. Install it and '
+      'reopen the portal, or verify this challan in your browser and add it as '
+      'a manual entry.';
 }
 
 /// Host allow-list for the in-app WebView.

@@ -11,9 +11,10 @@ import 'portal_security_notice.dart';
 
 /// Step 2 — hand off to the government portal.
 ///
-/// On Android, iOS and macOS this opens the in-app WebView. On Windows and Linux
-/// there is no WebView implementation, so the portal opens in the OS browser and
-/// the user is told the resulting entry will be `manual_unverified`.
+/// On Android, iOS, macOS and Windows this opens the in-app WebView, so the
+/// capture step works identically everywhere. Linux has no WebView
+/// implementation, so the portal opens in the OS browser and the user is told
+/// the resulting entry will be `manual_unverified`.
 class GovernmentPortalStep extends ConsumerWidget {
   const GovernmentPortalStep({
     super.key,
