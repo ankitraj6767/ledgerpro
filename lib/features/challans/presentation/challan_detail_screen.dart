@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/theme/infra_theme.dart';
 import '../../../core/money/money.dart';
 import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
+import '../../infra/data/infra_report_service.dart';
 import '../application/challan_providers.dart';
 import '../domain/challan_exceptions.dart';
+import '../domain/challan_formatting.dart';
 import '../domain/challan_models.dart';
 import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
@@ -21,9 +22,6 @@ class ChallanDetailScreen extends ConsumerWidget {
 
   final String challanId;
 
-  static final _dateTimeFormat = DateFormat('dd MMM yyyy, hh:mm a');
-  static final _dayFormat = DateFormat('dd MMM yyyy');
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final challanAsync = ref.watch(challanByIdProvider(challanId));
@@ -34,28 +32,44 @@ class ChallanDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Challan Details'),
         actions: [
-          if (permissions.canDeleteChallan)
-            challanAsync.maybeWhen(
-              data: (challan) => challan == null
-                  ? const SizedBox.shrink()
-                  : PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'delete') {
-                          _confirmDelete(context, ref, challan);
-                        }
-                      },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(
-                            'Delete challan',
-                            style: TextStyle(color: InfraColors.red),
-                          ),
+          challanAsync.maybeWhen(
+            data: (challan) => challan == null
+                ? const SizedBox.shrink()
+                : Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Download PDF',
+                        icon: const Icon(Icons.picture_as_pdf_outlined),
+                        onPressed: () => _downloadPdf(context, ref, challan),
+                      ),
+                      if (permissions.canDeleteChallan)
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            switch (value) {
+                              case 'pdf':
+                                _downloadPdf(context, ref, challan);
+                              case 'delete':
+                                _confirmDelete(context, ref, challan);
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'pdf',
+                              child: Text('Download PDF'),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text(
+                                'Delete challan',
+                                style: TextStyle(color: InfraColors.red),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-              orElse: () => const SizedBox.shrink(),
-            ),
+                    ],
+                  ),
+            orElse: () => const SizedBox.shrink(),
+          ),
         ],
       ),
       body: challanAsync.when(
@@ -251,16 +265,44 @@ class ChallanDetailScreen extends ConsumerWidget {
   static String _portalLabel(String sourcePortal) =>
       ChallanPortalMapping.fromDb(sourcePortal).displayName;
 
-  static String _formatIst(DateTime? value) {
-    if (value == null) return '—';
-    final ist = value.toUtc().add(const Duration(hours: 5, minutes: 30));
-    final naive = DateTime(ist.year, ist.month, ist.day, ist.hour, ist.minute);
-    final hasTime = ist.hour != 0 || ist.minute != 0;
-    return '${hasTime ? _dateTimeFormat.format(naive) : _dayFormat.format(naive)} IST';
+  /// Generates the challan PDF and hands it to the OS.
+  ///
+  /// Mirrors the expense/investment detail exports: the same report service, the
+  /// same premium layout, the same share-or-reveal behaviour, so a challan PDF
+  /// is indistinguishable in style from the rest of the app's reports.
+  Future<void> _downloadPdf(
+    BuildContext context,
+    WidgetRef ref,
+    EPassChallan challan,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final org = await ref.read(infraWorkspaceProvider.future);
+      // Optional: the cover falls back to the joined project name when the
+      // project itself has not been loaded into the cache.
+      final project = ref.read(projectByIdProvider(challan.projectId));
+      const service = InfraReportService();
+      final file = await service.challanDetailPdf(
+        organizationName: org.name,
+        project: project,
+        challan: challan,
+      );
+      await service.share(file, isPdf: true);
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Challan PDF generated.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not generate PDF: $error')),
+      );
+    }
   }
 
-  static String _formatLocal(DateTime? value) =>
-      value == null ? '—' : _dateTimeFormat.format(value.toLocal());
+  static String _formatIst(DateTime? value) => ChallanDates.ist(value);
+
+  static String _formatLocal(DateTime? value) => ChallanDates.local(value);
 
   Widget _row(String label, String value) {
     return Padding(

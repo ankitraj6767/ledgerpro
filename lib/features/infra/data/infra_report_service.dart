@@ -10,6 +10,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/money/money.dart';
 import '../../../core/richtext/rich_text_document.dart';
 import '../../../shared/models/infra_models.dart';
+import '../../challans/domain/challan_formatting.dart';
+import '../../challans/domain/challan_models.dart';
+import '../../challans/domain/challan_portal.dart';
+import '../../challans/domain/challan_status.dart';
+import '../../challans/domain/material_type.dart';
 
 /// Generates project finance reports from real data.
 class InfraReportService {
@@ -812,9 +817,286 @@ class InfraReportService {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // E-Pass challans
+  // ---------------------------------------------------------------------------
+
+  /// One saved challan, laid out to mirror the detail screen section for section.
+  ///
+  /// Portal-captured values are printed exactly as the portal returned them; the
+  /// verification section states how the record was obtained, so the PDF can
+  /// never imply a manual entry was government-verified. A material mismatch is
+  /// carried into the PDF rather than quietly dropped.
+  Future<File> challanDetailPdf({
+    required String organizationName,
+    InfraProject? project,
+    required EPassChallan challan,
+  }) {
+    final projectName = project?.name ?? challan.projectName;
+
+    return _recordPdf(
+      organizationName: organizationName,
+      project: project,
+      subjectTitle: projectName ?? 'Challan ${challan.challanNumber}',
+      subjectSubtitle: challan.portal.displayName,
+      reportTitle: 'E-Pass Challan',
+      kind: 'challan_${challan.challanNumber}',
+      metrics: [
+        _PdfMetric('Challan Number', challan.challanNumber, _blue),
+        _PdfMetric('Quantity', challan.quantityLabel, _green),
+        _PdfMetric('Mineral (Portal)', challan.portalMineralName, _gold),
+        _PdfMetric(
+          'Verification',
+          challan.verificationStatus.shortLabel,
+          challan.isPortalCaptured ? _green : _orange,
+        ),
+      ],
+      sections: [
+        _PdfDetailSection(
+          title: 'Entry',
+          accent: _blue,
+          rows: [
+            ['Project', _present(projectName)],
+            ['Financial Year', challan.financialYear],
+            [
+              'Selected Material',
+              challan.selectedMaterialType?.label ?? 'Not specified',
+            ],
+            ['Source Portal', challan.portal.displayName],
+          ],
+        ),
+        _PdfDetailSection(
+          title: 'Challan',
+          accent: _green,
+          rows: [
+            [challan.portal.challanNumberLabel, challan.challanNumber],
+            ['UID Number', _present(challan.uidNumber)],
+            ['Challan Date', ChallanDates.ist(challan.challanDate, fallback: '-')],
+            ['Valid Until', ChallanDates.ist(challan.validUntil, fallback: '-')],
+            ['Mineral (Portal)', challan.portalMineralName],
+            ['Quantity', challan.quantityLabel],
+            ['Generated From', _present(challan.generatedFrom)],
+          ],
+        ),
+        _PdfDetailSection(
+          title: 'Transport',
+          accent: _orange,
+          rows: [
+            ['Vehicle Number', challan.vehicleNumber],
+            ['Vehicle Type', _present(challan.vehicleType)],
+            ['Consignor', _present(challan.consignorName)],
+            ['Consignee', _present(challan.consigneeName)],
+            ['Source', _present(challan.sourceLocation)],
+            ['Destination', _present(challan.destination)],
+          ],
+        ),
+        if (challan.royaltyAmountPaise != null)
+          _PdfDetailSection(
+            title: 'Royalty (as per portal)',
+            accent: _gold,
+            rows: [
+              ['Amount', _inr(challan.royaltyAmountPaise!)],
+              [
+                'Included in expenses',
+                'No — recorded on the challan only',
+              ],
+            ],
+          ),
+        _PdfDetailSection(
+          title: 'Verification',
+          accent: challan.isPortalCaptured ? _green : _orange,
+          rows: [
+            ['Status', challan.verificationStatus.labelFor(challan.portal)],
+            ['Method', challan.verificationMethod.label],
+            ['Portal URL', _present(challan.portalUrl)],
+            ['Captured At', ChallanDates.local(challan.capturedAt, fallback: '-')],
+            ['Saved At', ChallanDates.local(challan.createdAt, fallback: '-')],
+            ['Response Hash', _present(challan.portalResponseHash)],
+          ],
+        ),
+      ],
+      extraWidgets: [
+        if (challan.hasMaterialMismatch) ...[
+          _sectionTitle(
+            title: 'Material Mismatch',
+            subtitle: 'Both values are stored as recorded',
+            accent: _orange,
+          ),
+          _emptySection(
+            'Selected material "${challan.selectedMaterialType?.label}" differs '
+            'from the portal mineral "${challan.portalMineralName}". Neither '
+            'value was overwritten.',
+          ),
+          pw.SizedBox(height: 16),
+        ],
+        if (!challan.isPortalCaptured) ...[
+          _sectionTitle(
+            title: 'Unverified Entry',
+            subtitle: 'Not captured from a government portal',
+            accent: _orange,
+          ),
+          _emptySection(
+            'This challan was entered manually and has not been verified '
+            'against the ${challan.portal.stateName} government portal.',
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Challan ledger for a set of challans, in the order they were passed in.
+  ///
+  /// [project] is only supplied when every challan belongs to the same project,
+  /// so a cross-project export never shows one project's details on the cover.
+  Future<File> challansPdf({
+    required String organizationName,
+    InfraProject? project,
+    String? subjectTitle,
+    required List<EPassChallan> challans,
+  }) async {
+    final doc = pw.Document();
+    final generatedAt = DateTime.now();
+    final logo = await _loadLogo();
+
+    final captured = challans.where((c) => c.isPortalCaptured).length;
+    final totalQuantity = challans.fold<double>(
+      0,
+      (sum, challan) => sum + challan.quantity,
+    );
+    // Quantities only add up when every row shares a unit; mixed units are
+    // reported as such instead of being silently summed.
+    final units = challans.map((c) => c.quantityUnit).toSet();
+    final quantityLabel = units.length == 1
+        ? '${_trimQuantity(totalQuantity)} ${units.first}'
+        : 'Mixed units';
+    final royalty = challans.fold<int>(
+      0,
+      (sum, challan) => sum + (challan.royaltyAmountPaise ?? 0),
+    );
+
+    doc.addPage(
+      pw.MultiPage(
+        pageTheme: _pageTheme(),
+        footer: (context) => _footer(context, generatedAt),
+        build: (context) => [
+          _coverHeader(
+            organizationName: organizationName,
+            project: project,
+            subjectTitle: subjectTitle ?? 'All Projects',
+            subjectSubtitle: '${challans.length} challan(s)',
+            reportTitle: 'E-Pass Challan Report',
+            generatedAt: generatedAt,
+            logo: logo,
+          ),
+          pw.SizedBox(height: 16),
+          pw.Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _metricCard('Challans', '${challans.length}', _blue),
+              _metricCard('Total Quantity', quantityLabel, _green),
+              _metricCard(
+                'Portal Captured',
+                '$captured of ${challans.length}',
+                captured == challans.length ? _green : _orange,
+              ),
+              _metricCard(
+                'Royalty (as per portal)',
+                royalty == 0 ? '-' : _inr(royalty),
+                _gold,
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Portal Breakdown',
+            subtitle: 'Challans by source portal',
+            accent: _gold,
+          ),
+          if (challans.isEmpty)
+            _emptySection('No challans recorded.')
+          else
+            _premiumTable(
+              headers: const ['State Portal', 'Challans', 'Quantity', 'Share'],
+              rightAlignedColumns: const {1, 2, 3},
+              rows: _challanPortalRows(challans),
+            ),
+          pw.SizedBox(height: 18),
+          _sectionTitle(
+            title: 'Challan Ledger',
+            subtitle: '${challans.length} challan(s)',
+            accent: _blue,
+          ),
+          if (challans.isEmpty)
+            _emptySection('No challans available.')
+          else
+            _premiumTable(
+              headers: const [
+                'S.No',
+                'Date',
+                'Challan No.',
+                'Vehicle',
+                'Mineral',
+                'Status',
+                'Quantity',
+              ],
+              rightAlignedColumns: const {6},
+              rows: [
+                for (var i = 0; i < challans.length; i++)
+                  [
+                    '${i + 1}',
+                    ChallanDates.istDay(challans[i].challanDate),
+                    challans[i].challanNumber,
+                    challans[i].vehicleNumber,
+                    challans[i].portalMineralName,
+                    challans[i].verificationStatus.shortLabel,
+                    challans[i].quantityLabel,
+                  ],
+              ],
+            ),
+        ],
+      ),
+    );
+
+    return _write(
+      project?.name ?? subjectTitle ?? 'all_projects',
+      'challans',
+      'pdf',
+      await doc.save(),
+    );
+  }
+
+  List<List<String>> _challanPortalRows(List<EPassChallan> challans) {
+    final grouped = <ChallanPortal, List<EPassChallan>>{};
+    for (final challan in challans) {
+      grouped.putIfAbsent(challan.portal, () => []).add(challan);
+    }
+    final rows = <List<String>>[];
+    for (final entry in grouped.entries) {
+      final units = entry.value.map((c) => c.quantityUnit).toSet();
+      final quantity = entry.value.fold<double>(0, (sum, c) => sum + c.quantity);
+      rows.add([
+        entry.key.displayName,
+        '${entry.value.length}',
+        units.length == 1
+            ? '${_trimQuantity(quantity)} ${units.first}'
+            : 'Mixed units',
+        _percentOf(entry.value.length, challans.length),
+      ]);
+    }
+    rows.sort((a, b) => int.parse(b[1]).compareTo(int.parse(a[1])));
+    return rows;
+  }
+
+  /// Quantity without trailing zeros, matching `EPassChallan.quantityLabel`.
+  static String _trimQuantity(double value) =>
+      value.toStringAsFixed(3).replaceFirst(RegExp(r'\.?0+$'), '');
+
   Future<File> _recordPdf({
     required String organizationName,
-    required InfraProject project,
+    InfraProject? project,
+    String? subjectTitle,
+    String? subjectSubtitle,
     required String reportTitle,
     required String kind,
     required List<_PdfMetric> metrics,
@@ -833,6 +1115,8 @@ class InfraReportService {
           _coverHeader(
             organizationName: organizationName,
             project: project,
+            subjectTitle: subjectTitle,
+            subjectSubtitle: subjectSubtitle,
             reportTitle: reportTitle,
             generatedAt: generatedAt,
             logo: logo,
@@ -864,12 +1148,26 @@ class InfraReportService {
       ),
     );
 
-    return _write(project.name, kind, 'pdf', await doc.save());
+    return _write(
+      project?.name ?? subjectTitle ?? 'record',
+      kind,
+      'pdf',
+      await doc.save(),
+    );
   }
 
+  /// Report cover.
+  ///
+  /// [project] is optional so a report can cover something other than a single
+  /// project — a challan ledger spans every project the filters allow. When it
+  /// is null, [subjectTitle] and [subjectSubtitle] take its place and the
+  /// project-only chips (status, category, progress, code) are omitted rather
+  /// than invented.
   pw.Widget _coverHeader({
     required String organizationName,
-    required InfraProject project,
+    InfraProject? project,
+    String? subjectTitle,
+    String? subjectSubtitle,
     required String reportTitle,
     required DateTime generatedAt,
     required pw.MemoryImage? logo,
@@ -877,6 +1175,10 @@ class InfraReportService {
     final orgName = organizationName.trim().isEmpty
         ? 'NAVDREAM Infra Pvt. Ltd.'
         : organizationName.trim();
+    final headline = project?.name ?? (subjectTitle ?? '').trim();
+    final subline = project != null
+        ? _projectLocation(project)
+        : (subjectSubtitle ?? '').trim();
 
     return pw.Container(
       padding: const pw.EdgeInsets.all(18),
@@ -954,20 +1256,24 @@ class InfraReportService {
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    pw.SizedBox(height: 8),
-                    pw.Text(
-                      project.name,
-                      style: pw.TextStyle(
-                        color: _white,
-                        fontSize: 15,
-                        fontWeight: pw.FontWeight.bold,
+                    if (headline.isNotEmpty) ...[
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        headline,
+                        style: pw.TextStyle(
+                          color: _white,
+                          fontSize: 15,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      _projectLocation(project),
-                      style: const pw.TextStyle(color: _soft, fontSize: 10),
-                    ),
+                    ],
+                    if (subline.isNotEmpty) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        subline,
+                        style: const pw.TextStyle(color: _soft, fontSize: 10),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -994,7 +1300,8 @@ class InfraReportService {
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    if ((project.code ?? '').trim().isNotEmpty) ...[
+                    if (project != null &&
+                        (project.code ?? '').trim().isNotEmpty) ...[
                       pw.SizedBox(height: 10),
                       pw.Text(
                         'Project Code',
@@ -1015,23 +1322,25 @@ class InfraReportService {
               ),
             ],
           ),
-          pw.SizedBox(height: 18),
-          pw.Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _heroChip(
-                _projectStatusLabel(project.status),
-                _projectStatusColor(project.status),
-              ),
-              if ((project.category ?? '').trim().isNotEmpty)
-                _heroChip(project.category!, _blue),
-              _heroChip(
-                '${project.financialProgressPercent}% complete',
-                _gold,
-              ),
-            ],
-          ),
+          if (project != null) ...[
+            pw.SizedBox(height: 18),
+            pw.Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _heroChip(
+                  _projectStatusLabel(project.status),
+                  _projectStatusColor(project.status),
+                ),
+                if ((project.category ?? '').trim().isNotEmpty)
+                  _heroChip(project.category!, _blue),
+                _heroChip(
+                  '${project.financialProgressPercent}% complete',
+                  _gold,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
