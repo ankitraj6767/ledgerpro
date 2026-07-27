@@ -216,6 +216,36 @@ Consignee Name : Navdream Infra
   /// Note the portal quirk: the "Consigner Name" value is rendered by a span
   /// called `lblconsigneename`, so a shared id map would file the consignor as
   /// the consignee.
+  /// Real MP e-Khanij `Verify_eTP.aspx` form markup, captured from the live page
+  /// after the "eTP No" search mode was selected.
+  ///
+  /// Everything here is verified against the portal: the `rbsearchtype` radio
+  /// group (value 1 = eTP No, value 2 = Vehicle No), the numeric `txtetp` input
+  /// capped at 10 characters, the `txtCaptcha` box beside `captcha.aspx`, the
+  /// "Verify" submit button and the empty `pnlgridvehicle` result panel. On the
+  /// very first load neither radio is checked and `txtetp` does not exist at
+  /// all, which is why the prefill has to pick the mode first.
+  static const mpEtpFormMarkup = '''
+<html><body><div id="ctl00_ContentPlaceHolder1_Panel1"><div class="MultiPanel"><div class="row"><div class="col-lg-12 col-md-12"><div class="d-flex"><div class="col-lg-4 col-md-4"><span id="ctl00_ContentPlaceHolder1_lbletp" class="lbl">Search by:</span></div><div class="col-lg-8 col-md-8"><table id="ctl00_ContentPlaceHolder1_rbsearchtype" border="0"><tr><td><input id="ctl00_ContentPlaceHolder1_rbsearchtype_0" type="radio" name="ctl00\$ContentPlaceHolder1\$rbsearchtype" value="1" checked="checked" /><label for="ctl00_ContentPlaceHolder1_rbsearchtype_0">eTP No:</label></td><td><input id="ctl00_ContentPlaceHolder1_rbsearchtype_1" type="radio" name="ctl00\$ContentPlaceHolder1\$rbsearchtype" value="2" /><label for="ctl00_ContentPlaceHolder1_rbsearchtype_1">Vehicle No:</label></td></tr></table></div></div></div></div><div class="row"><div class="col-lg-12 col-md-12"><div class="d-flex"><div class="col-lg-4 col-md-4"><span id="ctl00_ContentPlaceHolder1_Label1" class="lbl">Enter eTP No:</span></div><div class="col-lg-4 col-md-4"><div class="form-group"><input name="ctl00\$ContentPlaceHolder1\$txtetp" type="text" maxlength="10" id="ctl00_ContentPlaceHolder1_txtetp" class="form-control" onkeypress="isNumber(this)" /></div></div><div id="ctl00_ContentPlaceHolder1_trcaptcha" class="col-lg-4 col-md-4"><div class="form-group"><input name="ctl00\$ContentPlaceHolder1\$txtCaptcha" type="text" id="ctl00_ContentPlaceHolder1_txtCaptcha" title="Enter Image Code!" class="form-control" placeholder="Enter Captcha" /><img alt="Catptcha Text" src="../AppPrevious/captcha.aspx" /></div></div></div></div></div><div class="row"><div class="col-lg-12"><div class="section-top-border"><input type="submit" name="ctl00\$ContentPlaceHolder1\$btn" value="Verify" id="ctl00_ContentPlaceHolder1_btn" class="btn-success" /><input type="submit" name="ctl00\$ContentPlaceHolder1\$btnreset" value="Reset" id="ctl00_ContentPlaceHolder1_btnreset" class="btn-danger" /><input type="hidden" name="ctl00\$ContentPlaceHolder1\$HiddenQtyInMT" id="ctl00_ContentPlaceHolder1_HiddenQtyInMT" /><input type="hidden" name="ctl00\$ContentPlaceHolder1\$HiddenCaptcha" id="ctl00_ContentPlaceHolder1_HiddenCaptcha" /></div></div></div><div id="ctl00_ContentPlaceHolder1_pnlgridvehicle" class="Panel"><div class="table-responsive-lg"><div></div></div></div></div></div></body></html>
+''';
+
+  /// A verified MP eTP rendered into the `pnlgridvehicle` GridView.
+  ///
+  /// The *shape* is what matters and what MP is known to use: a header row of
+  /// column names followed by the data row, which no label/value layer can read.
+  /// The column names and values here are representative, not captured — MP only
+  /// renders this grid behind a CAPTCHA, so the live text could not be observed.
+  /// The parser therefore treats them as one of three layers, and anything it
+  /// cannot recognize surfaces as "portal layout changed" rather than as data.
+  static const mpEtpGridFilled = '''
+<html><body><div id="ctl00_ContentPlaceHolder1_pnlgridvehicle" class="Panel"><div class="table-responsive-lg"><table class="table" id="ctl00_ContentPlaceHolder1_gvetp" rules="all" border="1"><tr class="GridHeader"><th scope="col">eTP No</th><th scope="col">eTP Date</th><th scope="col">Valid Up To</th><th scope="col">Lessee Name</th><th scope="col">Mineral</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Vehicle No</th><th scope="col">Source District</th><th scope="col">Destination District</th></tr><tr class="GridRow"><td>1234567890</td><td>22-Jul-2026 10:05 AM</td><td>24-Jul-2026 10:05 AM</td><td>NARMADA SAND MINES</td><td>Sand</td><td>18.500</td><td>MT</td><td>MP09GH4455</td><td>Hoshangabad</td><td>Bhopal</td></tr></table></div></div></body></html>
+''';
+
+  /// MP page after a search for an eTP the portal does not know.
+  static const mpEtpNoRecord = '''
+<html><body><div id="ctl00_ContentPlaceHolder1_Panel1"><span id="ctl00_ContentPlaceHolder1_lblMsg" style="color:Red;">Invalid eTP No. Details not found.</span></div><div id="ctl00_ContentPlaceHolder1_pnlgridvehicle" class="Panel"><div class="table-responsive-lg"><div></div></div></div></body></html>
+''';
+
   static const jharkhandFilled = '''
 <html><body><div class="addTable"><div class="row"><div class="col-xl-2 form-group"><label class="form-label">Pass No. </label></div><div class="col-xl-4 form-group"><span id="lblchallanno">JH/2026/0012345</span></div><div class="col-xl-2 form-group"><label class="form-label">Permit No. </label></div><div class="col-xl-4 form-group"><span id="lblPermitNo">PMT-JH-778</span></div><div class="col-xl-2 form-group"><label class="form-label">Challan Date </label></div><div class="col-xl-4 form-group"><span id="lblchallandate">20/07/2026 09:15:00 AM</span></div><div class="col-xl-2 form-group"><label class="form-label">Consigner Name </label></div><div class="col-xl-4 form-group"><span id="lblconsigneename">JHARKHAND STONE WORKS</span></div><div class="col-xl-2 form-group"><label class="form-label">Challan Generate from </label></div><div class="col-xl-4 form-group"><span id="lbluser">Lessee</span></div><div class="col-xl-2 form-group"><label class="form-label">Location </label></div><div class="col-xl-4 form-group"><span id="lbllocation">Ranchi Quarry 5</span></div><div class="col-xl-2 form-group"><label class="form-label">Destination </label></div><div class="col-xl-4 form-group"><span id="lbldestination">Bokaro Site</span></div><div class="col-xl-2 form-group"><label class="form-label">Vehicle No. </label></div><div class="col-xl-4 form-group"><span id="lblvehicleno">JH05BC7788</span></div><div class="col-xl-2 form-group"><label class="form-label">Mineral Name </label></div><div class="col-xl-4 form-group"><span id="lblmineralname">Stone Chips</span></div><div class="col-xl-2 form-group"><label class="form-label">Quantity </label></div><div class="col-xl-4 form-group"><span id="lblquantity">14.500 MT</span></div><div class="col-xl-2 form-group"><label class="form-label">Pass Validity </label></div><div class="col-xl-4 form-group"><span id="lblPassValidity">21/07/2026 09:15:00 AM</span></div></div></div></div></div> </body></html>
 ''';

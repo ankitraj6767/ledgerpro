@@ -259,8 +259,14 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   ///
   /// Dispatches the `input`/`change` events ASP.NET WebForms controls listen for
   /// so postback validation sees the values. It deliberately does not touch the
-  /// CAPTCHA field and never clicks Search — the user stays in control, and the
-  /// values remain editable.
+  /// CAPTCHA field and never clicks Search or Verify — the user stays in
+  /// control, and the values remain editable.
+  ///
+  /// Where the portal declares a [PortalSearchMode] (MP), the search-mode radio
+  /// is selected first, because the number field does not exist until it is. The
+  /// radio fires an ASP.NET postback, which reloads the page and re-runs this
+  /// method; the `checked` guard means the second pass selects nothing and fills
+  /// the number instead, so it converges rather than looping.
   Future<void> _prefillFormFields(WebViewController controller) async {
     if (_prefilled) return;
 
@@ -270,8 +276,13 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   try {
     var year = ${jsonEncode(widget.financialYear)};
     var challan = ${jsonEncode(widget.challanNumber)};
-    // Jharkhand's page has no financial-year selector at all.
+    // Only Bihar's page has a financial-year selector.
     var fillYear = ${widget.portal.hasFinancialYearSelector};
+    // Id/name tokens for this portal's challan / eTP input.
+    var numberTokens = ${jsonEncode(widget.portal.challanInputTokens)};
+    // Search-mode radio, or null when the portal needs none.
+    var modeToken = ${jsonEncode(widget.portal.searchMode?.idToken)};
+    var modeValue = ${jsonEncode(widget.portal.searchMode?.value)};
 
     function fire(el) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -284,6 +295,23 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
       return key.indexOf('captcha') >= 0 || key.indexOf('capcha') >= 0 ||
              key.indexOf('password') >= 0 || key.indexOf('pwd') >= 0 ||
              key.indexOf('otp') >= 0 || el.type === 'password';
+    }
+
+    // Search mode. Selecting it triggers the portal's own postback, after which
+    // this script runs again and takes the branch below instead.
+    if (modeToken) {
+      var radios = document.querySelectorAll('input[type=radio]');
+      for (var r = 0; r < radios.length; r++) {
+        var radio = radios[r];
+        var radioKey = ((radio.id || '') + ' ' + (radio.name || '')).toLowerCase();
+        if (radioKey.indexOf(modeToken) < 0) continue;
+        if (radio.value !== modeValue) continue;
+        if (!radio.checked) {
+          radio.click();
+          return 'mode';
+        }
+        break;
+      }
     }
 
     var selects = fillYear ? document.querySelectorAll('select') : [];
@@ -308,7 +336,11 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
       var input = inputs[k];
       if (isProtected(input)) continue;
       var id = ((input.id || '') + ' ' + (input.name || '')).toLowerCase();
-      if (id.indexOf('challan') >= 0 || id.indexOf('pass') >= 0) {
+      var matched = false;
+      for (var t = 0; t < numberTokens.length; t++) {
+        if (id.indexOf(numberTokens[t]) >= 0) { matched = true; break; }
+      }
+      if (matched) {
         input.value = challan;
         fire(input);
         break;

@@ -64,12 +64,20 @@ class GovernmentPortalStep extends ConsumerWidget {
                   : 'The portal opens with your '
                         '${state.portal.challanNumberLabel.toLowerCase()} '
                         'filled in.',
+              if (state.portal.searchMode != null)
+                'The portal reloads once while it switches to '
+                    '${state.portal.challanNumberLabel.toLowerCase()} search — '
+                    'that is the portal\'s own behaviour.',
               if (state.portal.requiresCaptcha)
                 'You type the CAPTCHA shown on the portal — LedgerPro never '
                     'reads or solves it.',
-              'You press the portal\'s own Search button.',
-              'Wait until the e-Pass details actually appear — until then every '
-                  'field on the portal reads "NA".',
+              'You press the portal\'s own '
+                  '${state.portal.searchButtonLabel} button.',
+              state.portal.showsPlaceholdersBeforeSearch
+                  ? 'Wait until the e-Pass details actually appear — until then '
+                        'every field on the portal reads "NA".'
+                  : 'Wait until the ${state.portal.challanNumberLabel
+                        .toLowerCase()} details actually appear on the portal.',
               'Then press "Capture displayed details".',
             ],
           ),
