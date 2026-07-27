@@ -10,6 +10,7 @@ step 1, and the flow then talks only to that portal:
 |-------|------|-----------------|
 | Bihar (Khanan Soft) | `khanansoft.bihar.gov.in` | `bihar_khanan_soft` |
 | Jharkhand (Minerals Portal) | `mineralsportal.jharkhand.gov.in` | `jharkhand_minerals_portal` |
+| Madhya Pradesh (e-Khanij eTP) | `ekhanij.mp.gov.in` | `mp_ekhanij_etp` |
 
 `source_portal` is the first component of the duplicate uniqueness key, so the
 same challan number can exist once per state without colliding. Adding a portal
@@ -240,25 +241,28 @@ Otherwise the user gets an actionable error and **nothing is saved**:
 | Different challan returned | "The portal returned challan X, but you entered Y" |
 | Wrong financial year | "…does not belong to the selected financial year" |
 
-### Per-portal differences (verified against both live pages)
+### Per-portal differences (verified against the live pages)
 
 Everything portal-specific is declared in `ChallanPortal`, so the flow, WebView
 screen and parser stay portal-agnostic.
 
-| | Bihar | Jharkhand |
-|---|---|---|
-| CAPTCHA on the page | none | **yes** (`imgCaptcha` / `txtCaptcha`) |
-| Financial-year selector | `ddlfinancialyear` | **none** (prefill skips it) |
-| Result layout | `<table>` label/value rows | **Bootstrap grid** (label and value in *sibling containers*) |
-| Challan input | `txtchallanno` | `txtPassNo` |
-| Identifier label | "Challan No." | "Pass No." |
-| Secondary id | `lblUIDNo` ("UID No.") | `lblPermitNo` ("Permit No.") |
-| Validity | `lblChallanValidity` | `lblPassValidity` |
-| Quantity unit | separate `lblunit` | none (unit is inside the quantity text) |
-| Vehicle type | `lblVehicleType` | absent |
-| Consignee | `lblconsigneename` | absent |
+| | Bihar | Jharkhand | Madhya Pradesh |
+|---|---|---|---|
+| CAPTCHA on the page | none | **yes** (`imgCaptcha` / `txtCaptcha`) | **yes** (`txtCaptcha` + `captcha.aspx`) |
+| Financial-year selector | `ddlfinancialyear` | **none** (prefill skips it) | **none** (prefill skips it) |
+| Result layout | `<table>` label/value rows | **Bootstrap grid** (label and value in *sibling containers*) | **GridView** (header row + data row) |
+| Challan input | `txtchallanno` | `txtPassNo` | `txtetp` (numeric, `maxlength=10`) |
+| Search mode | shown immediately | shown immediately | **`rbsearchtype` radio must be picked first** |
+| Submit button | "Search" | "Search" | "Verify" |
+| Identifier label | "Challan No." | "Pass No." | "eTP No." |
+| Secondary id | `lblUIDNo` ("UID No.") | `lblPermitNo` ("Permit No.") | permit no, when the grid shows one |
+| Validity | `lblChallanValidity` | `lblPassValidity` | "Valid Up To" column |
+| Quantity unit | separate `lblunit` | none (unit is inside the quantity text) | own grid column |
+| Vehicle type | `lblVehicleType` | absent | absent |
+| Consignee | `lblconsigneename` | absent | absent |
+| `NA` placeholders before search | yes | yes | **no** (nothing renders at all) |
 
-Two consequences worth knowing:
+Three consequences worth knowing:
 
 - **The element-id map must be per portal.** On Jharkhand the *Consigner Name*
   value is rendered by a span called **`lblconsigneename`** — the same id that on
@@ -270,13 +274,41 @@ Two consequences worth knowing:
   is not a sibling of its value. It only walks up while the ancestor contains
   nothing but the label text, so a wrapper holding both is never treated as a
   label.
+- **A grid layer (`_layerGridColumns`) reads column-oriented results** for MP,
+  which renders its verified eTP into a `GridView`: a header row of column names
+  followed by the data row. No label/value layer can read that shape, so this
+  layer pairs by column index. It is gated to require **three cells in the header
+  row that are exactly known field labels**, which a Bihar or Jharkhand row (one
+  label plus its value) can never reach, and it reads only the first data row.
 
 Jharkhand's "Permit No." is stored in `uid_number` (the portal's identifier
 column); the original label is preserved in `portal_payload.fields`.
 
-Since Jharkhand has no financial-year field, the financial year is purely
-LedgerPro's own bookkeeping there — it is still recorded and still forms part of
-the duplicate key.
+Neither Jharkhand nor MP has a financial-year field, so there the financial year
+is purely LedgerPro's own bookkeeping — it is still recorded and still forms part
+of the duplicate key.
+
+### Madhya Pradesh: what is verified and what is not
+
+The **form** side is captured from the live `Verify_eTP.aspx` page and pinned by
+`PortalFixtures.mpEtpFormMarkup`: the `rbsearchtype` radio group (value `1` =
+eTP No, `2` = Vehicle No), the numeric `txtetp` input, the `txtCaptcha` box, the
+"Verify" button and the empty `pnlgridvehicle` panel. On the first load **neither
+radio is checked and `txtetp` does not exist**, which is why prefill selects the
+mode first. Selecting a search *mode* is not human verification, so LedgerPro may
+set it; the CAPTCHA and Verify always stay with the user. The radio fires an
+ASP.NET postback, so the page reloads and prefill runs again — the `checked`
+guard makes the second pass fill the number instead of re-clicking, so it
+converges rather than looping. The portal step tells the user about that reload.
+
+The **result** side is not verified against a live successful search: MP renders
+the grid only behind a CAPTCHA, which LedgerPro does not solve. The MP entry in
+the id map is therefore a best-effort first layer, backed by the grid layer and
+the text layer. Two ids are deliberately excluded — `lbletp` is the form's own
+"Search by:" caption, and `txtetp` is the input LedgerPro prefills; reading
+either back would let a capture "succeed" on a page that returned nothing. If MP
+turns out to use different column headings, the capture fails closed as "portal
+layout changed" and one real capture is enough to correct the map.
 
 ### Live portal facts (verified against the real page)
 

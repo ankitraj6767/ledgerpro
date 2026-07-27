@@ -326,5 +326,46 @@ void main() {
       expect(find.textContaining('You type the CAPTCHA'), findsNothing);
       expect(find.text('Open Bihar Portal'), findsOneWidget);
     });
+
+    testWidgets('the Madhya Pradesh portal step matches the MP page', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await tester.tap(find.byType(DropdownButtonFormField<ChallanPortal>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Madhya Pradesh').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Opens ekhanij.mp.gov.in'), findsOneWidget);
+      // MP calls it an eTP number.
+      expect(find.text('eTP number'), findsOneWidget);
+      expect(find.text('Challan number'), findsNothing);
+
+      await tester.tap(find.text('Select a project'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Highway Package 3').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(
+          TextField,
+          ChallanPortal.madhyaPradesh.challanNumberHint,
+        ),
+        '1234567890',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ekhanij.mp.gov.in'), findsOneWidget);
+      expect(find.textContaining('You type the CAPTCHA'), findsOneWidget);
+      // MP's submit button says Verify, and its page reloads once while it
+      // switches into eTP-number search mode.
+      expect(find.textContaining('Verify button'), findsOneWidget);
+      expect(find.textContaining('The portal reloads once'), findsOneWidget);
+      // The "every field reads NA" warning is Bihar/Jharkhand only.
+      expect(find.textContaining('reads "NA"'), findsNothing);
+      expect(find.text('Open Madhya Pradesh Portal'), findsOneWidget);
+    });
   });
 }

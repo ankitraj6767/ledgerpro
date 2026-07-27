@@ -67,6 +67,12 @@ class ChallanDomParser {
       // Jharkhand calls it "Pass No.".
       'pass no',
       'e pass no',
+      // MP calls it "eTP No.".
+      'etp no',
+      'etp number',
+      'e tp no',
+      'transit pass no',
+      'ई टी पी नंबर',
       'चालान नंबर',
       'चालान संख्या',
       'चालान क्रमांक',
@@ -83,6 +89,10 @@ class ChallanDomParser {
     ChallanField.challanDate: [
       'challan date',
       'date of challan',
+      // MP prints the eTP's own issue date.
+      'etp date',
+      'issue date',
+      'date of issue',
       'चालान की तिथि',
       'चालान तिथि',
       'चालान दिनांक',
@@ -96,6 +106,8 @@ class ChallanDomParser {
       'valid up to',
       'valid till',
       'valid until',
+      // MP prints "eTP Validity" / "Valid Up To".
+      'etp validity',
       'चालान की वैधता',
       'वैधता',
     ],
@@ -105,6 +117,12 @@ class ChallanDomParser {
       // The live portal spells it "Consigner Name".
       'consigner name',
       'consigner',
+      // MP names the dispatching party as the lease holder.
+      'lessee name',
+      'lessee',
+      'lease holder',
+      'lease holder name',
+      'पट्टाधारी',
       'कंसाइनर का नाम',
       'प्रेषक का नाम',
       'प्रेषक',
@@ -121,6 +139,9 @@ class ChallanDomParser {
       'source location',
       'source',
       'from',
+      // MP works in districts.
+      'source district',
+      'from district',
       'स्थान',
       'स्रोत',
     ],
@@ -128,6 +149,8 @@ class ChallanDomParser {
       'destination',
       'destination location',
       'to',
+      'destination district',
+      'to district',
       'गंतव्य',
       'गंतव्य स्थान',
     ],
@@ -214,7 +237,39 @@ class ChallanDomParser {
       <ChallanPortal, Map<ChallanField, List<String>>>{
         ChallanPortal.bihar: _biharIdSuffixes,
         ChallanPortal.jharkhand: _jharkhandIdSuffixes,
+        ChallanPortal.madhyaPradesh: _madhyaPradeshIdSuffixes,
       };
+
+  /// MP e-Khanij (`Verify_eTP.aspx`) control ids.
+  ///
+  /// The form controls here are verified against the live page (`txtetp`,
+  /// `txtCaptcha`, `rbsearchtype`, `HiddenQtyInMT/CM/CF`, `pnlgridvehicle`). The
+  /// *result* controls are not: MP renders a verified eTP into the
+  /// `pnlgridvehicle` GridView behind a CAPTCHA, so the exact ids could not be
+  /// observed without solving one. They are therefore only the first of three
+  /// layers — [_layerGridColumns] reads the grid by column header and layer 3
+  /// reads `Label : Value` text — and a page this map does not recognize
+  /// degrades to "portal layout changed" rather than to wrong data.
+  /// Two ids are deliberately absent. `lbletp` is the form's own "Search by:"
+  /// caption, not a result label, and `txtetp` is the input LedgerPro prefills —
+  /// reading either back would let a capture "succeed" on a page that never
+  /// returned anything.
+  static const _madhyaPradeshIdSuffixes = <ChallanField, List<String>>{
+    ChallanField.challanNumber: ['lbletpno', 'lbletpnumber'],
+    ChallanField.uidNumber: ['lblpermitno', 'lbltpno'],
+    ChallanField.challanDate: ['lbletpdate', 'lblissuedate', 'lblchallandate'],
+    ChallanField.validUntil: ['lblvalidupto', 'lblvalidity', 'lblexpirydate'],
+    ChallanField.consignorName: ['lblleaseholder', 'lbllessee', 'lblleasename'],
+    ChallanField.sourceLocation: ['lblsource', 'lblfromdistrict', 'lbllocation'],
+    ChallanField.destination: ['lbldestination', 'lbltodistrict'],
+    ChallanField.vehicleType: ['lblvehicletype'],
+    ChallanField.vehicleNumber: ['lblvehicleno', 'lblvehiclenumber'],
+    ChallanField.mineralName: ['lblmineralname', 'lblmineral'],
+    ChallanField.quantity: ['lblquantity', 'lblqty'],
+    ChallanField.quantityUnit: ['lblunit', 'lbluom'],
+    ChallanField.royaltyAmount: ['lblroyalty', 'lblroyaltyamount'],
+    ChallanField.portalMessage: ['lblmsg', 'lblresult', 'lblerror'],
+  };
 
   /// Jharkhand Minerals Portal control ids (verified against the live page).
   ///
@@ -284,6 +339,10 @@ class ChallanDomParser {
     'e pass details',
     'pass details',
     'challan details',
+    // MP e-Khanij wording.
+    'etp details',
+    'etp detail',
+    'transit pass details',
     'ई-पास विवरण',
     'चालान विवरण',
   ];
@@ -295,6 +354,11 @@ class ChallanDomParser {
     'record not found',
     'no data found',
     'invalid challan',
+    // MP e-Khanij wording for an unknown eTP.
+    'invalid etp',
+    'etp not found',
+    'no etp found',
+    'details not found',
     'कोई रिकॉर्ड नहीं',
     'रिकॉर्ड नहीं मिला',
   ];
@@ -411,10 +475,61 @@ class ChallanDomParser {
   Map<ChallanField, String> _collect(dom.Document document) {
     final found = <ChallanField, String>{};
     _layer1ElementIds(document, found);
+    _layerGridColumns(document, found);
     _layer2LabelledContainers(document, found);
     _layer3VisibleTextPairs(document, found);
     return found;
   }
+
+  /// Layer 1b: horizontal grids, i.e. an ASP.NET `GridView`.
+  ///
+  /// Bihar and Jharkhand render one label/value pair per row, which layer 2
+  /// handles. MP's e-Khanij page renders a verified eTP into its
+  /// `pnlgridvehicle` grid instead: a header row of column names followed by the
+  /// data row, so the only way to read it is to pair by column index.
+  ///
+  /// Two guards keep this off the vertical layouts. The header row must contain
+  /// at least three cells that are *exactly* known field labels — a Bihar row
+  /// holds one label plus its value, so it can never qualify — and only the
+  /// first data row carrying values is read, because later rows would belong to
+  /// a different challan.
+  void _layerGridColumns(dom.Document document, Map<ChallanField, String> out) {
+    for (final table in document.querySelectorAll('table')) {
+      final rows = table.querySelectorAll('tr');
+      if (rows.length < 2) continue;
+
+      final header = _rowTexts(rows.first);
+      if (header.length < 3) continue;
+
+      final columns = <int, ChallanField>{};
+      for (var i = 0; i < header.length; i++) {
+        if (!_isExactLabel(header[i])) continue;
+        final field = _fieldForLabel(header[i]);
+        if (field != null) columns.putIfAbsent(i, () => field);
+      }
+      if (columns.length < 3) continue;
+
+      for (final row in rows.skip(1)) {
+        final cells = _rowTexts(row);
+        if (cells.length != header.length) continue;
+
+        var filled = 0;
+        for (final column in columns.entries) {
+          final value = _meaningful(cells[column.key]);
+          // A cell that is itself a label means this is another header row.
+          if (value == null || _isExactLabel(value)) continue;
+          out.putIfAbsent(column.value, () => value);
+          filled++;
+        }
+        if (filled > 0) break;
+      }
+    }
+  }
+
+  static List<String> _rowTexts(dom.Element row) => row.children
+      .where((cell) => cell.localName == 'td' || cell.localName == 'th')
+      .map(_cellText)
+      .toList();
 
   /// Layer 1: ids/names ending with a known ASP.NET label control name.
   void _layer1ElementIds(dom.Document document, Map<ChallanField, String> out) {
