@@ -3,19 +3,36 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+// Windows-only creation params. The package is a `webview_flutter` platform
+// implementation, so importing it costs nothing on mobile — nothing below is
+// reachable unless `usesFloatingWebView()` is true.
+import 'package:webview_win_floating/webview.dart' as win_webview;
 
 import '../../../app/theme/infra_theme.dart';
 import '../application/challan_providers.dart';
 import '../data/challan_portal_adapter.dart';
+import '../data/portal_markup_reader.dart';
 import '../domain/challan_portal.dart';
 import 'widgets/portal_security_notice.dart';
 
-/// Top-level in-app WebView for the Bihar Government e-Pass portal.
+/// Top-level in-app WebView for the state government e-Pass portals.
+///
+/// Runs on Android, iOS, macOS and Windows. Every platform goes through the same
+/// `webview_flutter` API, the same navigation policy and the same extraction
+/// script, so a capture on Windows produces byte-identical payloads to Android.
+/// Two Windows details are handled explicitly, because WebView2 is hosted as a
+/// native floating window rather than a composited platform view:
+///   * Flutter widgets cannot paint above the WebView, so the progress bar and
+///     the overflow actions are laid out beside it instead of over it.
+///   * A JavaScript string result is marshalled as JSON across a COM boundary,
+///     so the result markup is pulled in slices rather than one large hop.
 ///
 /// Security model:
-///   * Navigation is restricted to HTTPS on `khanansoft.bihar.gov.in` (and its
+///   * Navigation is restricted to HTTPS on the portal's own host (and its
 ///     subdomains). Anything else opens in the OS browser.
 ///   * Invalid TLS certificates are rejected — the error is surfaced, never
 ///     bypassed.
@@ -53,6 +70,10 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   late String _currentUrl = widget.portal.url;
   String? _blockedNotice;
   String? _tlsError;
+  String? _engineError;
+
+  /// True when the platform hosts the WebView as a native floating window.
+  bool get _floating => ChallanPortalSupport.usesFloatingWebView();
 
   @override
   void initState() {
@@ -67,61 +88,158 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   void _initController() {
     if (!ChallanPortalSupport.supportsInAppWebView()) return;
 
-    final controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.white)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onNavigationRequest: (request) {
-            if (_navigationPolicy.allowsInApp(request.url)) {
-              return NavigationDecision.navigate;
-            }
-            // Unrelated or non-HTTPS destinations leave the app entirely.
-            _openExternally(request.url);
-            return NavigationDecision.prevent;
-          },
-          onPageStarted: (url) {
-            if (!mounted) return;
-            setState(() {
-              _loading = true;
-              _currentUrl = url;
-              _prefilled = false;
-              _tlsError = null;
-            });
-          },
-          onPageFinished: (url) async {
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-              _currentUrl = url;
-            });
-            await _prefillFormFields();
-          },
-          onHttpError: (error) {
-            if (!mounted) return;
-            setState(() => _loading = false);
-          },
-          onWebResourceError: (error) {
-            if (!mounted) return;
-            setState(() => _loading = false);
-          },
-          // Invalid certificates are never accepted: an untrusted chain on a
-          // government portal is a hard stop, not a warning to click through.
-          onSslAuthError: (error) {
-            error.cancel();
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-              _tlsError =
-                  'The portal presented an invalid security certificate. '
-                  'The connection was blocked. Do not enter any credentials.';
-            });
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.portal.url));
+    // Windows has to resolve a writable WebView2 user-data folder first, so its
+    // controller is created asynchronously. Mobile and macOS keep the immediate
+    // path, which is what the first frame renders.
+    if (_floating) {
+      unawaited(_initFloatingController());
+      return;
+    }
 
+    final WebViewController controller;
+    try {
+      controller = WebViewController();
+    } catch (_) {
+      _engineError = ChallanPortalSupport.webViewEngineErrorNotice;
+      _loading = false;
+      return;
+    }
+    // Assigned before configuring so the very first frame already shows the
+    // WebView, exactly as it did before Windows support was added.
     _controller = controller;
+    unawaited(_configureController(controller));
+  }
+
+  /// Creates the Windows (WebView2) controller.
+  ///
+  /// WebView2 needs a writable user-data folder. Its default is the folder the
+  /// executable sits in, which fails outright for a portable copy extracted to
+  /// `C:\Program Files` or any other read-only location — so it is pointed at
+  /// the app's own support directory instead.
+  Future<void> _initFloatingController() async {
+    String? userDataFolder;
+    try {
+      final directory = await getApplicationSupportDirectory();
+      userDataFolder = p.join(directory.path, 'portal_webview');
+    } catch (_) {
+      // Fall back to the platform default rather than failing the whole screen.
+      userDataFolder = null;
+    }
+    if (!mounted) return;
+
+    final WebViewController controller;
+    try {
+      // The generated Dart plugin registrant already does this on Windows.
+      // Repeating it is idempotent and keeps the portal working regardless of
+      // how the host app was bootstrapped.
+      win_webview.WindowsWebViewPlatform.registerWith();
+      controller = WebViewController.fromPlatformCreationParams(
+        win_webview.WindowsWebViewControllerCreationParams(
+          userDataFolder: userDataFolder,
+        ),
+      );
+    } catch (_) {
+      _reportEngineFailure();
+      return;
+    }
+
+    // The WebView2 widget is only mounted once the engine has actually accepted
+    // the configuration. Mounting it first would attach a native window to a
+    // controller that may never come up. The timeout covers an engine that
+    // neither succeeds nor reports an error, so the user gets the browser
+    // fallback instead of an endless spinner.
+    final bool started;
+    try {
+      started = await _configureController(
+        controller,
+      ).timeout(const Duration(seconds: 30));
+    } on TimeoutException {
+      _reportEngineFailure();
+      return;
+    }
+    if (!started || !mounted) return;
+    setState(() => _controller = controller);
+  }
+
+  /// Applies the shared configuration. Identical on every platform.
+  ///
+  /// Returns false when the platform WebView rejected it, which means the
+  /// OS-level engine never came up.
+  Future<bool> _configureController(WebViewController controller) async {
+    try {
+      await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      await controller.setBackgroundColor(Colors.white);
+      await controller.setNavigationDelegate(_navigationDelegate(controller));
+      await controller.loadRequest(Uri.parse(widget.portal.url));
+      return true;
+    } catch (_) {
+      // On Windows this is almost always a missing Microsoft Edge WebView2
+      // runtime. Surface it instead of leaving a blank rectangle.
+      _reportEngineFailure();
+      return false;
+    }
+  }
+
+  void _reportEngineFailure() {
+    if (!mounted) return;
+    setState(() {
+      _controller = null;
+      _loading = false;
+      _engineError = ChallanPortalSupport.webViewEngineErrorNotice;
+    });
+  }
+
+  /// The delegate closes over [controller] rather than reading `_controller`, so
+  /// prefill still runs when the page finishes loading before the WebView widget
+  /// has been mounted — which is the normal ordering on Windows.
+  NavigationDelegate _navigationDelegate(WebViewController controller) {
+    return NavigationDelegate(
+      onNavigationRequest: (request) {
+        if (_navigationPolicy.allowsInApp(request.url)) {
+          return NavigationDecision.navigate;
+        }
+        // Unrelated or non-HTTPS destinations leave the app entirely.
+        _openExternally(request.url);
+        return NavigationDecision.prevent;
+      },
+      onPageStarted: (url) {
+        if (!mounted) return;
+        setState(() {
+          _loading = true;
+          _currentUrl = url;
+          _prefilled = false;
+          _tlsError = null;
+        });
+      },
+      onPageFinished: (url) async {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _currentUrl = url;
+        });
+        await _prefillFormFields(controller);
+      },
+      onHttpError: (error) {
+        if (!mounted) return;
+        setState(() => _loading = false);
+      },
+      onWebResourceError: (error) {
+        if (!mounted) return;
+        setState(() => _loading = false);
+      },
+      // Invalid certificates are never accepted: an untrusted chain on a
+      // government portal is a hard stop, not a warning to click through.
+      onSslAuthError: (error) {
+        error.cancel();
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _tlsError =
+              'The portal presented an invalid security certificate. '
+              'The connection was blocked. Do not enter any credentials.';
+        });
+      },
+    );
   }
 
   Future<void> _openExternally(String url) async {
@@ -143,9 +261,8 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   /// so postback validation sees the values. It deliberately does not touch the
   /// CAPTCHA field and never clicks Search — the user stays in control, and the
   /// values remain editable.
-  Future<void> _prefillFormFields() async {
-    final controller = _controller;
-    if (controller == null || _prefilled) return;
+  Future<void> _prefillFormFields(WebViewController controller) async {
+    if (_prefilled) return;
 
     final script =
         '''
@@ -213,57 +330,31 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Extraction
+  // ---------------------------------------------------------------------------
+
   /// The single extraction capability exposed to the page.
   ///
   /// Returns the rendered markup of the result region so the parser (in Dart,
   /// where it is unit-testable) can read it. Scripts, styles, inputs and any
   /// CAPTCHA image are stripped before the markup leaves the page, so no
   /// credential or challenge data is ever handed back.
+  ///
+  /// The transport is chosen by platform — one hop everywhere except Windows,
+  /// which stages the markup and reads it in slices. See [PortalMarkupReader].
   Future<String?> readResultHtml() async {
     final controller = _controller;
     if (controller == null) return null;
-
-    const script = '''
-(function() {
-  try {
-    var root = document.body;
-    if (!root) return '';
-    var clone = root.cloneNode(true);
-    var strip = clone.querySelectorAll(
-      'script, style, noscript, img, iframe, input[type=password], input[type=hidden]'
-    );
-    for (var i = 0; i < strip.length; i++) {
-      strip[i].parentNode && strip[i].parentNode.removeChild(strip[i]);
-    }
-    return clone.innerHTML;
-  } catch (e) {
-    return '';
-  }
-})();
-''';
-
-    try {
-      final result = await controller.runJavaScriptReturningResult(script);
-      final raw = result is String ? result : result.toString();
-      return _unwrapJsString(raw);
-    } catch (_) {
-      return null;
-    }
+    return PortalMarkupReader(
+      evaluate: controller.runJavaScriptReturningResult,
+      sliced: _floating,
+    ).read();
   }
 
-  /// Platform WebViews return JS strings either raw (Android) or JSON-quoted
-  /// (WKWebView), so normalize both shapes.
-  static String _unwrapJsString(String raw) {
-    if (raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"')) {
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is String) return decoded;
-      } catch (_) {
-        // Fall through to the raw value.
-      }
-    }
-    return raw;
-  }
+  // ---------------------------------------------------------------------------
+  // Actions
+  // ---------------------------------------------------------------------------
 
   Future<void> _capture() async {
     final controller = ref.read(challanFlowControllerProvider.notifier);
@@ -277,6 +368,8 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   Future<void> _clearSession() async {
     final controller = _controller;
     if (controller == null) return;
+    // Windows clears cookies through the profile-wide cache wipe below; the
+    // cookie manager itself is a no-op there.
     await WebViewCookieManager().clearCookies();
     await controller.clearCache();
     await controller.clearLocalStorage();
@@ -287,6 +380,10 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
       _blockedNotice = 'Portal session cleared.';
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -304,23 +401,41 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: controller == null ? null : () => controller.reload(),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'external':
-                  _openExternally(widget.portal.url);
-                case 'clear':
-                  _clearSession();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'external', child: Text('Open externally')),
-              PopupMenuItem(
-                value: 'clear',
-                child: Text('Clear portal session'),
-              ),
-            ],
-          ),
+          // A popup menu opens inside the WebView's rectangle, and Flutter
+          // cannot paint above a native floating WebView — so Windows gets
+          // plain buttons instead of an overflow menu.
+          if (_floating) ...[
+            IconButton(
+              tooltip: 'Open externally',
+              icon: const Icon(Icons.open_in_new),
+              onPressed: () => _openExternally(widget.portal.url),
+            ),
+            IconButton(
+              tooltip: 'Clear portal session',
+              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: controller == null ? null : _clearSession,
+            ),
+          ] else
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                switch (value) {
+                  case 'external':
+                    _openExternally(widget.portal.url);
+                  case 'clear':
+                    _clearSession();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'external',
+                  child: Text('Open externally'),
+                ),
+                PopupMenuItem(
+                  value: 'clear',
+                  child: Text('Clear portal session'),
+                ),
+              ],
+            ),
         ],
       ),
       body: Column(
@@ -347,24 +462,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
               icon: Icons.info_outline,
               onDismiss: () => setState(() => _blockedNotice = null),
             ),
-          Expanded(
-            child: controller == null
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text(
-                        ChallanPortalSupport.unsupportedPlatformNotice,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  )
-                : Stack(
-                    children: [
-                      WebViewWidget(controller: controller),
-                      if (_loading) const LinearProgressIndicator(minHeight: 3),
-                    ],
-                  ),
-          ),
+          Expanded(child: _portalArea(controller)),
           SafeArea(
             top: false,
             child: Container(
@@ -407,6 +505,79 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _portalArea(WebViewController? controller) {
+    if (_engineError != null) {
+      return _CentredNotice(
+        icon: Icons.desktop_access_disabled_outlined,
+        message: _engineError!,
+        action: OutlinedButton.icon(
+          onPressed: () => _openExternally(widget.portal.url),
+          icon: const Icon(Icons.open_in_new, size: 18),
+          label: const Text('Open portal in browser'),
+        ),
+      );
+    }
+
+    if (!ChallanPortalSupport.supportsInAppWebView()) {
+      return const _CentredNotice(
+        icon: Icons.devices_other_outlined,
+        message: ChallanPortalSupport.unsupportedPlatformNotice,
+      );
+    }
+
+    if (controller == null) {
+      // Only reachable while the Windows controller is being created.
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final webView = WebViewWidget(controller: controller);
+    if (_floating) {
+      // Nothing Flutter draws can appear above a native floating WebView, so
+      // the progress bar is stacked beside it rather than over it.
+      return Column(
+        children: [
+          SizedBox(
+            height: 3,
+            child: _loading ? const LinearProgressIndicator(minHeight: 3) : null,
+          ),
+          Expanded(child: webView),
+        ],
+      );
+    }
+    return Stack(
+      children: [
+        webView,
+        if (_loading) const LinearProgressIndicator(minHeight: 3),
+      ],
+    );
+  }
+}
+
+class _CentredNotice extends StatelessWidget {
+  const _CentredNotice({required this.icon, required this.message, this.action});
+
+  final IconData icon;
+  final String message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: InfraColors.textSecondary),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            if (action != null) ...[const SizedBox(height: 16), action!],
+          ],
+        ),
       ),
     );
   }
