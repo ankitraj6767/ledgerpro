@@ -6,6 +6,7 @@ import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/widgets/infra_shell.dart';
+import '../../infra/data/infra_report_service.dart';
 import '../application/challan_flow_state.dart';
 import '../application/challan_providers.dart';
 import '../data/challan_portal_adapter.dart';
@@ -76,6 +77,15 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
                 child: Icon(Icons.wifi_off_outlined, size: 20),
               ),
             ),
+          // Exports exactly the challans the current filters show, in the same
+          // order, so the PDF matches the list on screen.
+          IconButton(
+            tooltip: 'Download challan PDF',
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: (ref.watch(challansProvider).value ?? const []).isEmpty
+                ? null
+                : _downloadListPdf,
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -309,6 +319,48 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
     );
     if (payload == null || !mounted) return;
     ref.read(challanFlowControllerProvider.notifier).setManualPayload(payload);
+  }
+
+  /// Exports the currently visible challan list as a PDF.
+  ///
+  /// A project is passed to the report only when every exported challan belongs
+  /// to the same one, so a cross-project export never prints one project's
+  /// details on the cover.
+  Future<void> _downloadListPdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final challans = ref.read(challansProvider).value ?? const [];
+    if (challans.isEmpty) return;
+
+    try {
+      final org = await ref.read(infraWorkspaceProvider.future);
+      final projectIds = challans.map((c) => c.projectId).toSet();
+      final project = projectIds.length == 1
+          ? ref.read(projectByIdProvider(projectIds.first))
+          : null;
+
+      const service = InfraReportService();
+      final file = await service.challansPdf(
+        organizationName: org.name,
+        project: project,
+        subjectTitle: project?.name ??
+            (projectIds.length == 1
+                ? challans.first.projectName ?? 'Challans'
+                : 'All Projects'),
+        challans: challans,
+      );
+      await service.share(file, isPdf: true);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Challan PDF generated (${challans.length} challan(s)).'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not generate PDF: $error')),
+      );
+    }
   }
 
   Future<void> _save() async {

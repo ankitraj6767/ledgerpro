@@ -373,6 +373,28 @@ void main() {
       expect(find.text('12.5 MT'), findsWidgets);
     });
 
+    testWidgets('the PDF export is offered once there is something to export', (
+      tester,
+    ) async {
+      await pumpChallanScreen(tester, challans: [challan()]);
+
+      final button = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.picture_as_pdf_outlined),
+      );
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('the PDF export is disabled when the list is empty', (
+      tester,
+    ) async {
+      await pumpChallanScreen(tester);
+
+      final button = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.picture_as_pdf_outlined),
+      );
+      expect(button.onPressed, isNull);
+    });
+
     testWidgets('search and filter controls are available', (tester) async {
       await pumpChallanScreen(tester, challans: [challan()]);
 
