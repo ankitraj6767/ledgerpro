@@ -229,16 +229,24 @@ Consignee Name : Navdream Infra
 <html><body><div id="ctl00_ContentPlaceHolder1_Panel1"><div class="MultiPanel"><div class="row"><div class="col-lg-12 col-md-12"><div class="d-flex"><div class="col-lg-4 col-md-4"><span id="ctl00_ContentPlaceHolder1_lbletp" class="lbl">Search by:</span></div><div class="col-lg-8 col-md-8"><table id="ctl00_ContentPlaceHolder1_rbsearchtype" border="0"><tr><td><input id="ctl00_ContentPlaceHolder1_rbsearchtype_0" type="radio" name="ctl00\$ContentPlaceHolder1\$rbsearchtype" value="1" checked="checked" /><label for="ctl00_ContentPlaceHolder1_rbsearchtype_0">eTP No:</label></td><td><input id="ctl00_ContentPlaceHolder1_rbsearchtype_1" type="radio" name="ctl00\$ContentPlaceHolder1\$rbsearchtype" value="2" /><label for="ctl00_ContentPlaceHolder1_rbsearchtype_1">Vehicle No:</label></td></tr></table></div></div></div></div><div class="row"><div class="col-lg-12 col-md-12"><div class="d-flex"><div class="col-lg-4 col-md-4"><span id="ctl00_ContentPlaceHolder1_Label1" class="lbl">Enter eTP No:</span></div><div class="col-lg-4 col-md-4"><div class="form-group"><input name="ctl00\$ContentPlaceHolder1\$txtetp" type="text" maxlength="10" id="ctl00_ContentPlaceHolder1_txtetp" class="form-control" onkeypress="isNumber(this)" /></div></div><div id="ctl00_ContentPlaceHolder1_trcaptcha" class="col-lg-4 col-md-4"><div class="form-group"><input name="ctl00\$ContentPlaceHolder1\$txtCaptcha" type="text" id="ctl00_ContentPlaceHolder1_txtCaptcha" title="Enter Image Code!" class="form-control" placeholder="Enter Captcha" /><img alt="Catptcha Text" src="../AppPrevious/captcha.aspx" /></div></div></div></div></div><div class="row"><div class="col-lg-12"><div class="section-top-border"><input type="submit" name="ctl00\$ContentPlaceHolder1\$btn" value="Verify" id="ctl00_ContentPlaceHolder1_btn" class="btn-success" /><input type="submit" name="ctl00\$ContentPlaceHolder1\$btnreset" value="Reset" id="ctl00_ContentPlaceHolder1_btnreset" class="btn-danger" /><input type="hidden" name="ctl00\$ContentPlaceHolder1\$HiddenQtyInMT" id="ctl00_ContentPlaceHolder1_HiddenQtyInMT" /><input type="hidden" name="ctl00\$ContentPlaceHolder1\$HiddenCaptcha" id="ctl00_ContentPlaceHolder1_HiddenCaptcha" /></div></div></div><div id="ctl00_ContentPlaceHolder1_pnlgridvehicle" class="Panel"><div class="table-responsive-lg"><div></div></div></div></div></div></body></html>
 ''';
 
-  /// A verified MP eTP rendered into the `pnlgridvehicle` GridView.
+  /// A verified MP eTP rendered into the `pnlgridvehicle` GridView, matching the
+  /// live result page column for column.
   ///
-  /// The *shape* is what matters and what MP is known to use: a header row of
-  /// column names followed by the data row, which no label/value layer can read.
-  /// The column names and values here are representative, not captured — MP only
-  /// renders this grid behind a CAPTCHA, so the live text could not be observed.
-  /// The parser therefore treats them as one of three layers, and anything it
-  /// cannot recognize surfaces as "portal layout changed" rather than as data.
+  /// The ten columns and their values are transcribed from a real successful
+  /// search on `Verify_eTP.aspx`:
+  ///
+  ///   `S No | Lease Type | Lease No. | eTP NO. | Vehicle No. |`
+  ///   `Date & Time of Transportation | Source Station | Destination Station |`
+  ///   `Mineral Name | Mineral Qty`
+  ///
+  /// Three of these matter for how the parser has to work. The headers are
+  /// *phrases*, not bare labels, so a column has to be matched by resolving it to
+  /// a field rather than by exact-label equality. "Mineral Qty" contains the
+  /// longer needle "mineral", so it needs an explicit label or the quantity is
+  /// read as the mineral name. And there is no unit column at all, so the unit
+  /// falls back to the stored default.
   static const mpEtpGridFilled = '''
-<html><body><div id="ctl00_ContentPlaceHolder1_pnlgridvehicle" class="Panel"><div class="table-responsive-lg"><table class="table" id="ctl00_ContentPlaceHolder1_gvetp" rules="all" border="1"><tr class="GridHeader"><th scope="col">eTP No</th><th scope="col">eTP Date</th><th scope="col">Valid Up To</th><th scope="col">Lessee Name</th><th scope="col">Mineral</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Vehicle No</th><th scope="col">Source District</th><th scope="col">Destination District</th></tr><tr class="GridRow"><td>1234567890</td><td>22-Jul-2026 10:05 AM</td><td>24-Jul-2026 10:05 AM</td><td>NARMADA SAND MINES</td><td>Sand</td><td>18.500</td><td>MT</td><td>MP09GH4455</td><td>Hoshangabad</td><td>Bhopal</td></tr></table></div></div></body></html>
+<html><body><div id="ctl00_ContentPlaceHolder1_pnlgridvehicle" class="Panel"><div class="table-responsive-lg"><table class="table" id="ctl00_ContentPlaceHolder1_gvetp" rules="all" border="1"><tr class="GridHeader"><th scope="col">S No</th><th scope="col">Lease Type</th><th scope="col">Lease No.</th><th scope="col">eTP NO.</th><th scope="col">Vehicle No.</th><th scope="col">Date &amp; Time Of Transportation</th><th scope="col">Source Station</th><th scope="col">Destination Station</th><th scope="col">Mineral Name</th><th scope="col">Mineral Qty</th></tr><tr class="GridRow"><td>1</td><td>ST</td><td>4164</td><td><a href="#">2610622675</a></td><td>JH13GB194</td><td>25/07/2026 11:30AM</td><td>VILL- KHAMHARIYA, TEH- HULUR, DIST- REWA (M.P)KHASRA NO. 94/3/1/1/9001, 94/3/1/1/0002, AREA-3.402 HECT.</td><td>ROYAL CONSTRUCTION DIST 100VPP+9212/12L ADD CONSTRUCTION OF BUS STAND MADHUBANI PIN CODE - 847211</td><td>GBS</td><td>39.750</td></tr></table></div></div></body></html>
 ''';
 
   /// MP page after a search for an eTP the portal does not know.

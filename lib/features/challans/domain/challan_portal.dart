@@ -160,6 +160,17 @@ extension ChallanPortalMapping on ChallanPortal {
     ChallanPortal.madhyaPradesh => false,
   };
 
+  /// Whether the portal must be rendered at desktop width inside the app.
+  ///
+  /// MP's e-Khanij page is responsive: at phone width it collapses to a mobile
+  /// theme where the eTP form is squeezed into a box barely wide enough to tap,
+  /// and the result grid — ten columns — is unusable. Bihar and Jharkhand render
+  /// the same layout at any width, so they are left exactly as they are.
+  bool get prefersDesktopViewport => switch (this) {
+    ChallanPortal.bihar || ChallanPortal.jharkhand => false,
+    ChallanPortal.madhyaPradesh => true,
+  };
+
   /// The search-mode radio that has to be selected before the number field
   /// exists, or null when the portal shows the field straight away.
   PortalSearchMode? get searchMode => switch (this) {

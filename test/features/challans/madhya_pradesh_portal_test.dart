@@ -17,8 +17,9 @@ void main() {
   final mp = EPassWebViewAdapter(ChallanPortal.madhyaPradesh);
   const parser = ChallanDomParser(portal: ChallanPortal.madhyaPradesh);
 
+  /// The eTP actually searched for in the captured result page.
   const request = ChallanCaptureRequest(
-    challanNumber: '1234567890',
+    challanNumber: '2610622675',
     financialYear: '2026-2027',
   );
 
@@ -156,38 +157,66 @@ void main() {
   });
 
   group('grid result', () {
-    test('reads the eTP out of a header-row / data-row grid', () {
+    test('reads every mandatory field out of the live column layout', () {
       final payload = parser.parse(PortalFixtures.mpEtpGridFilled);
 
-      expect(payload.challanNumber, '1234567890');
-      expect(payload.vehicleNumber, 'MP09GH4455');
-      expect(payload.mineralName, 'Sand');
-      expect(payload.quantity, 18.5);
-      expect(payload.quantityText, '18.500');
-      expect(payload.quantityUnit, 'MT');
-      expect(payload.consignorName, 'NARMADA SAND MINES');
-      expect(payload.sourceLocation, 'Hoshangabad');
-      expect(payload.destination, 'Bhopal');
+      // The five mandatory fields. Before the column headers were matched by
+      // field resolution rather than exact labels, the date and quantity were
+      // dropped and the capture failed with "missing: challan date, quantity".
+      expect(payload.missingMandatoryFields, isEmpty);
+      expect(payload.challanNumber, '2610622675');
+      expect(payload.vehicleNumber, 'JH13GB194');
+      expect(payload.mineralName, 'GBS');
+      expect(payload.quantity, 39.75);
+      expect(payload.quantityText, '39.750');
       expect(payload.challanDate, isNotNull);
-      expect(payload.validUntil, isNotNull);
     });
 
-    test('the eTP date is read as IST wall clock', () {
+    test('"Mineral Qty" is the quantity, not a second mineral name', () {
+      final payload = parser.parse(PortalFixtures.mpEtpGridFilled);
+
+      // "Mineral Qty" contains the longer needle "mineral", so a containing
+      // match alone would file it as the mineral name.
+      expect(payload.mineralName, 'GBS');
+      expect(payload.quantity, 39.75);
+    });
+
+    test('the remaining columns land in the right fields', () {
+      final payload = parser.parse(PortalFixtures.mpEtpGridFilled);
+
+      expect(payload.uidNumber, '4164');
+      expect(payload.sourceLocation, contains('KHAMHARIYA'));
+      expect(payload.destination, contains('ROYAL CONSTRUCTION'));
+      // Neither the row number nor the lease type is invented as a field.
+      expect(payload.rawFields.values, isNot(contains('ST')));
+    });
+
+    test('there is no unit column, so the unit is left to the default', () {
+      final payload = parser.parse(PortalFixtures.mpEtpGridFilled);
+
+      expect(payload.quantityUnit, isNull);
+    });
+
+    test('the transportation date is read as IST wall clock', () {
       final payload = parser.parse(PortalFixtures.mpEtpGridFilled);
       final ist = payload.challanDate!.toUtc().add(
         const Duration(hours: 5, minutes: 30),
       );
 
+      // "25/07/2026 11:30AM" — no space before the meridiem.
       expect(ist.year, 2026);
       expect(ist.month, 7);
-      expect(ist.day, 22);
-      expect(ist.hour, 10);
-      expect(ist.minute, 5);
+      expect(ist.day, 25);
+      expect(ist.hour, 11);
+      expect(ist.minute, 30);
     });
 
     test('captures successfully end to end', () async {
       final result = await mp.capture(
-        request: request,
+        request: const ChallanCaptureRequest(
+          challanNumber: '2610622675',
+          financialYear: '2026-2027',
+        ),
         readHtml: () async => PortalFixtures.mpEtpGridFilled,
       );
 
