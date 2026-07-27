@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +6,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+// Android-only settings. `webview_flutter_android` defaults `useWideViewPort` to
+// false, so a portal that needs desktop width has to switch it on explicitly.
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 // Windows-only creation params. The package is a `webview_flutter` platform
 // implementation, so importing it costs nothing on mobile — nothing below is
 // reachable unless `usesFloatingWebView()` is true.
@@ -16,6 +18,7 @@ import '../../../app/theme/infra_theme.dart';
 import '../application/challan_providers.dart';
 import '../data/challan_portal_adapter.dart';
 import '../data/portal_markup_reader.dart';
+import '../data/portal_prefill.dart';
 import '../domain/challan_portal.dart';
 import 'widgets/portal_security_notice.dart';
 
@@ -72,8 +75,19 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   String? _tlsError;
   String? _engineError;
 
+  /// Bounded prefill retries for the current page load. ASP.NET pages render
+  /// their inputs after a postback, so the field is not always there the instant
+  /// the page reports finished.
+  int _prefillAttempts = 0;
+  static const _maxPrefillAttempts = 6;
+
   /// True when the platform hosts the WebView as a native floating window.
   bool get _floating => ChallanPortalSupport.usesFloatingWebView();
+
+  /// True when this portal has to be forced to desktop width on this platform.
+  bool get _emulatesDesktop =>
+      widget.portal.prefersDesktopViewport &&
+      ChallanPortalSupport.needsDesktopViewportEmulation();
 
   @override
   void initState() {
@@ -170,6 +184,10 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
       await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
       await controller.setBackgroundColor(Colors.white);
       await controller.setNavigationDelegate(_navigationDelegate(controller));
+      // Desktop emulation has to be in place before the first request, so the
+      // portal serves its desktop layout from the start rather than swapping
+      // themes after load.
+      if (_emulatesDesktop) await _applyDesktopSettings(controller);
       await controller.loadRequest(Uri.parse(widget.portal.url));
       return true;
     } catch (_) {
@@ -177,6 +195,67 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
       // runtime. Surface it instead of leaving a blank rectangle.
       _reportEngineFailure();
       return false;
+    }
+  }
+
+  /// Makes a phone-sized WebView behave like a desktop browser.
+  ///
+  /// Three things are needed together, and each is load-bearing:
+  ///   * a desktop user agent, so the portal's responsive CSS picks its desktop
+  ///     layout instead of the collapsed mobile theme;
+  ///   * Android's wide-viewport mode, because `webview_flutter_android`
+  ///     deliberately defaults `useWideViewPort` to false, which makes the
+  ///     WebView ignore the page's viewport width entirely; and
+  ///   * zoom, so the user can pinch into a wide result grid.
+  ///
+  /// The matching `width=1280` viewport is injected per page load in
+  /// [_applyDesktopViewport]; `setLoadWithOverviewMode` (already on by default)
+  /// then scales that width down to fit the screen.
+  Future<void> _applyDesktopSettings(WebViewController controller) async {
+    try {
+      await controller.setUserAgent(ChallanPortalSupport.desktopUserAgent);
+      await controller.enableZoom(true);
+      final platform = controller.platform;
+      if (platform is AndroidWebViewController) {
+        await platform.setUseWideViewPort(true);
+      }
+    } catch (_) {
+      // Desktop emulation is a readability improvement, not a requirement: the
+      // portal still loads at mobile width if any of this is unsupported.
+    }
+  }
+
+  /// Lays the page out at a fixed desktop width and scales it to fit.
+  Future<void> _applyDesktopViewport(WebViewController controller) async {
+    if (!_emulatesDesktop) return;
+    const width = ChallanPortalSupport.desktopViewportWidth;
+    try {
+      await controller.runJavaScript('''
+(function() {
+  try {
+    // Measured before the meta is replaced, so the scale is relative to the
+    // real screen rather than to the width we are about to ask for.
+    var available = window.innerWidth || document.documentElement.clientWidth || $width;
+    var meta = document.querySelector('meta[name=viewport]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'viewport');
+      (document.head || document.documentElement).appendChild(meta);
+    }
+    var scale = Math.min(1, available / $width);
+    meta.setAttribute(
+      'content',
+      'width=$width, initial-scale=' + scale +
+      ', minimum-scale=0.2, maximum-scale=4.0, user-scalable=yes'
+    );
+    return 'desktop';
+  } catch (e) {
+    return 'skip';
+  }
+})();
+''');
+    } catch (_) {
+      // Best effort, exactly as above.
     }
   }
 
@@ -195,12 +274,23 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   NavigationDelegate _navigationDelegate(WebViewController controller) {
     return NavigationDelegate(
       onNavigationRequest: (request) {
-        if (_navigationPolicy.allowsInApp(request.url)) {
-          return NavigationDecision.navigate;
+        final action = _navigationPolicy.decide(
+          url: request.url,
+          isMainFrame: request.isMainFrame,
+        );
+        switch (action) {
+          case PortalNavigationAction.allow:
+            return NavigationDecision.navigate;
+          case PortalNavigationAction.openExternally:
+            // Unrelated or non-HTTPS destinations leave the app entirely.
+            _openExternally(request.url);
+            return NavigationDecision.prevent;
+          case PortalNavigationAction.block:
+            // A sub-frame the portal loaded itself. Refused quietly — opening
+            // the browser for it produced the "that link points outside the
+            // government portal" banner on every single MP page load.
+            return NavigationDecision.prevent;
         }
-        // Unrelated or non-HTTPS destinations leave the app entirely.
-        _openExternally(request.url);
-        return NavigationDecision.prevent;
       },
       onPageStarted: (url) {
         if (!mounted) return;
@@ -208,6 +298,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
           _loading = true;
           _currentUrl = url;
           _prefilled = false;
+          _prefillAttempts = 0;
           _tlsError = null;
         });
       },
@@ -217,6 +308,7 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
           _loading = false;
           _currentUrl = url;
         });
+        await _applyDesktopViewport(controller);
         await _prefillFormFields(controller);
       },
       onHttpError: (error) {
@@ -267,99 +359,61 @@ class _ChallanPortalScreenState extends ConsumerState<ChallanPortalScreen> {
   /// radio fires an ASP.NET postback, which reloads the page and re-runs this
   /// method; the `checked` guard means the second pass selects nothing and fills
   /// the number instead, so it converges rather than looping.
+  ///
+  /// The script reports what it actually did, and only a confirmed fill marks the
+  /// page as prefilled. That distinction matters: marking the page prefilled
+  /// after merely selecting the search mode raced the postback's own
+  /// `onPageStarted`, so the flag could be set back to true *after* the reload
+  /// reset it — and the reloaded page, which finally had the input, was then
+  /// skipped. That is why the MP eTP box arrived empty. When the field is not
+  /// there yet, the attempt is retried a bounded number of times instead of
+  /// giving up on the first miss.
   Future<void> _prefillFormFields(WebViewController controller) async {
     if (_prefilled) return;
+    if (_prefillAttempts >= _maxPrefillAttempts) return;
+    _prefillAttempts++;
 
-    final script =
-        '''
-(function() {
-  try {
-    var year = ${jsonEncode(widget.financialYear)};
-    var challan = ${jsonEncode(widget.challanNumber)};
-    // Only Bihar's page has a financial-year selector.
-    var fillYear = ${widget.portal.hasFinancialYearSelector};
-    // Id/name tokens for this portal's challan / eTP input.
-    var numberTokens = ${jsonEncode(widget.portal.challanInputTokens)};
-    // Search-mode radio, or null when the portal needs none.
-    var modeToken = ${jsonEncode(widget.portal.searchMode?.idToken)};
-    var modeValue = ${jsonEncode(widget.portal.searchMode?.value)};
+    final script = PortalPrefillScript(
+      portal: widget.portal,
+      challanNumber: widget.challanNumber,
+      financialYear: widget.financialYear,
+    ).build();
 
-    function fire(el) {
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    // Never touch anything that looks like a CAPTCHA or a credential field.
-    function isProtected(el) {
-      var key = ((el.id || '') + ' ' + (el.name || '')).toLowerCase();
-      return key.indexOf('captcha') >= 0 || key.indexOf('capcha') >= 0 ||
-             key.indexOf('password') >= 0 || key.indexOf('pwd') >= 0 ||
-             key.indexOf('otp') >= 0 || el.type === 'password';
-    }
-
-    // Search mode. Selecting it triggers the portal's own postback, after which
-    // this script runs again and takes the branch below instead.
-    if (modeToken) {
-      var radios = document.querySelectorAll('input[type=radio]');
-      for (var r = 0; r < radios.length; r++) {
-        var radio = radios[r];
-        var radioKey = ((radio.id || '') + ' ' + (radio.name || '')).toLowerCase();
-        if (radioKey.indexOf(modeToken) < 0) continue;
-        if (radio.value !== modeValue) continue;
-        if (!radio.checked) {
-          radio.click();
-          return 'mode';
-        }
-        break;
-      }
-    }
-
-    var selects = fillYear ? document.querySelectorAll('select') : [];
-    for (var i = 0; i < selects.length; i++) {
-      var sel = selects[i];
-      if (isProtected(sel)) continue;
-      for (var j = 0; j < sel.options.length; j++) {
-        var text = (sel.options[j].text || '').replace(/\\s/g, '');
-        var val = (sel.options[j].value || '').replace(/\\s/g, '');
-        var want = year.replace(/\\s/g, '');
-        var wantShort = want.replace(/-\\d{2}(\\d{2})\$/, '-\$1');
-        if (text === want || val === want || text === wantShort || val === wantShort) {
-          sel.selectedIndex = j;
-          fire(sel);
-          break;
-        }
-      }
-    }
-
-    var inputs = document.querySelectorAll('input[type=text], input:not([type])');
-    for (var k = 0; k < inputs.length; k++) {
-      var input = inputs[k];
-      if (isProtected(input)) continue;
-      var id = ((input.id || '') + ' ' + (input.name || '')).toLowerCase();
-      var matched = false;
-      for (var t = 0; t < numberTokens.length; t++) {
-        if (id.indexOf(numberTokens[t]) >= 0) { matched = true; break; }
-      }
-      if (matched) {
-        input.value = challan;
-        fire(input);
-        break;
-      }
-    }
-    return 'ok';
-  } catch (e) {
-    return 'skip';
-  }
-})();
-''';
-
+    final PortalPrefillOutcome outcome;
     try {
-      await controller.runJavaScript(script);
-      if (mounted) setState(() => _prefilled = true);
+      outcome = PortalPrefillOutcome.from(
+        PortalMarkupReader.decode(
+          await controller.runJavaScriptReturningResult(script),
+        ),
+      );
     } catch (_) {
       // Prefill is a convenience only. If the portal's markup changed, the user
       // simply types the values themselves.
+      return;
     }
+
+    if (!mounted) return;
+
+    if (outcome == PortalPrefillOutcome.filled) {
+      setState(() => _prefilled = true);
+      return;
+    }
+
+    // 'mode'   — the portal is posting back to render its number field.
+    // anything else — the input is not in the DOM yet, which happens while an
+    //                 ASP.NET page is still settling.
+    //
+    // Either way the postback normally triggers a fresh page load, which resets
+    // the attempt counter and runs this again. The delayed retry covers the case
+    // where no navigation follows, so a portal that renders its field in place
+    // still gets filled instead of silently staying empty.
+    await Future<void>.delayed(
+      outcome == PortalPrefillOutcome.searchModeSelected
+          ? const Duration(milliseconds: 900)
+          : const Duration(milliseconds: 450),
+    );
+    if (!mounted || _prefilled) return;
+    await _prefillFormFields(controller);
   }
 
   // ---------------------------------------------------------------------------

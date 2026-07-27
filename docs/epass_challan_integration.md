@@ -250,17 +250,18 @@ screen and parser stay portal-agnostic.
 |---|---|---|---|
 | CAPTCHA on the page | none | **yes** (`imgCaptcha` / `txtCaptcha`) | **yes** (`txtCaptcha` + `captcha.aspx`) |
 | Financial-year selector | `ddlfinancialyear` | **none** (prefill skips it) | **none** (prefill skips it) |
-| Result layout | `<table>` label/value rows | **Bootstrap grid** (label and value in *sibling containers*) | **GridView** (header row + data row) |
+| Result layout | `<table>` label/value rows | **Bootstrap grid** (label and value in *sibling containers*) | **GridView** (header row + data row, no ids on any cell) |
 | Challan input | `txtchallanno` | `txtPassNo` | `txtetp` (numeric, `maxlength=10`) |
 | Search mode | shown immediately | shown immediately | **`rbsearchtype` radio must be picked first** |
 | Submit button | "Search" | "Search" | "Verify" |
-| Identifier label | "Challan No." | "Pass No." | "eTP No." |
-| Secondary id | `lblUIDNo` ("UID No.") | `lblPermitNo` ("Permit No.") | permit no, when the grid shows one |
-| Validity | `lblChallanValidity` | `lblPassValidity` | "Valid Up To" column |
-| Quantity unit | separate `lblunit` | none (unit is inside the quantity text) | own grid column |
+| Identifier label | "Challan No." | "Pass No." | "eTP NO." |
+| Secondary id | `lblUIDNo` ("UID No.") | `lblPermitNo` ("Permit No.") | "Lease No." column |
+| Validity | `lblChallanValidity` | `lblPassValidity` | not shown on the grid |
+| Quantity unit | separate `lblunit` | none (unit is inside the quantity text) | **no unit column** (falls back to the stored default) |
 | Vehicle type | `lblVehicleType` | absent | absent |
 | Consignee | `lblconsigneename` | absent | absent |
 | `NA` placeholders before search | yes | yes | **no** (nothing renders at all) |
+| Renders usably at phone width | yes | yes | **no** — collapses to a mobile theme |
 
 Three consequences worth knowing:
 
@@ -277,9 +278,15 @@ Three consequences worth knowing:
 - **A grid layer (`_layerGridColumns`) reads column-oriented results** for MP,
   which renders its verified eTP into a `GridView`: a header row of column names
   followed by the data row. No label/value layer can read that shape, so this
-  layer pairs by column index. It is gated to require **three cells in the header
-  row that are exactly known field labels**, which a Bihar or Jharkhand row (one
-  label plus its value) can never reach, and it reads only the first data row.
+  layer pairs by column index. A column counts when its header **resolves to a
+  field**, not only when it is an exact label — MP's real headers are phrases
+  ("Date & Time of Transportation", "Destination Station", "Mineral Qty") and an
+  exact-label gate matched only three of its ten columns. Three guards keep it off
+  the vertical layouts: the header row must resolve **three distinct fields**
+  (a Bihar or Jharkhand row holds one label plus its value, so it cannot
+  qualify), no resolving header cell may contain a digit, and only the first data
+  row carrying values is read. Tables the grid layer consumes are excluded from
+  layer 2, so a grid is never also mis-read as label/value rows.
 
 Jharkhand's "Permit No." is stored in `uid_number` (the portal's identifier
 column); the original label is preserved in `portal_payload.fields`.
@@ -288,27 +295,87 @@ Neither Jharkhand nor MP has a financial-year field, so there the financial year
 is purely LedgerPro's own bookkeeping — it is still recorded and still forms part
 of the duplicate key.
 
-### Madhya Pradesh: what is verified and what is not
+### Madhya Pradesh
 
-The **form** side is captured from the live `Verify_eTP.aspx` page and pinned by
-`PortalFixtures.mpEtpFormMarkup`: the `rbsearchtype` radio group (value `1` =
-eTP No, `2` = Vehicle No), the numeric `txtetp` input, the `txtCaptcha` box, the
-"Verify" button and the empty `pnlgridvehicle` panel. On the first load **neither
-radio is checked and `txtetp` does not exist**, which is why prefill selects the
-mode first. Selecting a search *mode* is not human verification, so LedgerPro may
-set it; the CAPTCHA and Verify always stay with the user. The radio fires an
-ASP.NET postback, so the page reloads and prefill runs again — the `checked`
-guard makes the second pass fill the number instead of re-clicking, so it
-converges rather than looping. The portal step tells the user about that reload.
+Both sides are now verified against the live `Verify_eTP.aspx` page.
 
-The **result** side is not verified against a live successful search: MP renders
-the grid only behind a CAPTCHA, which LedgerPro does not solve. The MP entry in
-the id map is therefore a best-effort first layer, backed by the grid layer and
-the text layer. Two ids are deliberately excluded — `lbletp` is the form's own
-"Search by:" caption, and `txtetp` is the input LedgerPro prefills; reading
-either back would let a capture "succeed" on a page that returned nothing. If MP
-turns out to use different column headings, the capture fails closed as "portal
-layout changed" and one real capture is enough to correct the map.
+**Form.** Pinned by `PortalFixtures.mpEtpFormMarkup`: the `rbsearchtype` radio
+group (value `1` = eTP No, `2` = Vehicle No), the numeric `txtetp` input, the
+`txtCaptcha` box, the "Verify" button and the empty `pnlgridvehicle` panel. On
+the first load **neither radio is checked and `txtetp` does not exist**, which is
+why prefill selects the mode first. Selecting a search *mode* is not human
+verification, so LedgerPro may set it; the CAPTCHA and Verify always stay with
+the user. The radio fires an ASP.NET postback, so the page reloads and prefill
+runs again — the `checked` guard makes the second pass fill the number instead of
+re-clicking, so it converges rather than looping. The portal step tells the user
+about that reload.
+
+**Result.** Pinned by `PortalFixtures.mpEtpGridFilled`, transcribed from a real
+successful search:
+
+```
+S No | Lease Type | Lease No. | eTP NO. | Vehicle No. |
+Date & Time of Transportation | Source Station | Destination Station |
+Mineral Name | Mineral Qty
+```
+
+Three things about that layout drive the parser:
+
+- The headers are **phrases**, so columns are matched by resolving them to a
+  field. An exact-label gate matched only `eTP NO.`, `Vehicle No.` and
+  `Mineral Name` — three of ten — which dropped the date and the quantity and
+  failed every real capture with *"the portal result is missing: challan date,
+  quantity"*.
+- **`Mineral Qty` needs an explicit label.** It *contains* the longer needle
+  `mineral`, so the longest-containing match would file the quantity as a second
+  mineral name and leave the quantity empty.
+- There is **no unit column**, so `quantity_unit` falls back to the stored
+  default (`MT`). MP does carry `HiddenQtyInMT/CM/CF` hidden inputs, but hidden
+  inputs are stripped before markup leaves the page, by design.
+
+Two form ids are deliberately excluded from the id map: `lbletp` is the page's own
+"Search by:" caption, and `txtetp` is the input LedgerPro prefills. Reading either
+back would let a capture "succeed" on a page that returned nothing.
+
+### Rendering MP at desktop width
+
+MP's page is responsive, and at phone width it collapses to a mobile theme where
+the eTP form is squeezed into a box barely wide enough to tap and the ten-column
+result grid is unreadable. `ChallanPortal.prefersDesktopViewport` marks MP (only)
+as needing desktop width, and on phones the portal screen applies three things
+together — each is load-bearing:
+
+1. a **desktop user agent**, so the portal's own CSS serves its desktop layout;
+2. **Android's wide-viewport mode**, because `webview_flutter_android` defaults
+   `useWideViewPort` to `false`, which makes the WebView ignore the page's
+   viewport width entirely; and
+3. an injected **`width=1280` viewport** with `initial-scale` computed from the
+   real screen width, which `setLoadWithOverviewMode` (already on) then scales to
+   fit. Zoom is enabled so the user can pinch into the grid.
+
+macOS and Windows already host the WebView in a desktop-sized window, so
+`needsDesktopViewportEmulation()` skips all of it there.
+
+### Prefill is confirmed, not assumed
+
+`PortalPrefillScript` builds the injected script and `PortalPrefillOutcome`
+decodes what it achieved: `filled` (the number is confirmed present in the DOM),
+`searchModeSelected`, or `notReady`. Only `filled` marks a page as prefilled, and
+anything unproven is retried a bounded number of times.
+
+That distinction is not cosmetic. Marking the page prefilled after merely
+selecting MP's search mode raced the postback's own `onPageStarted`: the flag
+could be set back to `true` *after* the reload had reset it, so the reloaded page
+— the one that finally had the input — was skipped and the eTP box arrived empty.
+
+### Navigation hand-off
+
+`PortalNavigationPolicy.decide` distinguishes who asked. An off-host or
+plain-HTTP **main-frame** navigation is the user following a link, so it opens in
+the OS browser. The same URL in a **sub-frame** is the portal loading something
+into its own page, and is refused quietly: launching the browser for it put a
+"that link points outside the government portal" banner on every MP page load and
+threatened to pull the user out mid-task through no action of their own.
 
 ### Live portal facts (verified against the real page)
 

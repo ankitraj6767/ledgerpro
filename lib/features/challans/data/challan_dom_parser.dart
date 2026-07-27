@@ -83,13 +83,20 @@ class ChallanDomParser {
       'uid',
       // Jharkhand's equivalent identifier is "Permit No.".
       'permit no',
+      // MP's grid carries the mine's "Lease No." as its secondary identifier.
+      'lease no',
       'यूआईडी नंबर',
       'यूआईडी संख्या',
     ],
     ChallanField.challanDate: [
       'challan date',
       'date of challan',
-      // MP prints the eTP's own issue date.
+      // MP's grid column is "Date & Time of Transportation"; the other spellings
+      // cover the variants seen on its print/detail views.
+      'date & time of transportation',
+      'date time of transportation',
+      'date of transportation',
+      'transportation date',
       'etp date',
       'issue date',
       'date of issue',
@@ -139,7 +146,8 @@ class ChallanDomParser {
       'source location',
       'source',
       'from',
-      // MP works in districts.
+      // MP's grid column is "Source Station"; it also works in districts.
+      'source station',
       'source district',
       'from district',
       'स्थान',
@@ -149,6 +157,7 @@ class ChallanDomParser {
       'destination',
       'destination location',
       'to',
+      'destination station',
       'destination district',
       'to district',
       'गंतव्य',
@@ -183,6 +192,11 @@ class ChallanDomParser {
       'net quantity',
       'total quantity',
       'quantity in mt',
+      // MP's grid column. This must be an exact label: "Mineral Qty" *contains*
+      // the longer needle "mineral", so without it the column would be read as
+      // the mineral name and the quantity would go missing.
+      'mineral qty',
+      'mineral quantity',
       'मात्रा',
       'परिमाण',
     ],
@@ -243,13 +257,14 @@ class ChallanDomParser {
   /// MP e-Khanij (`Verify_eTP.aspx`) control ids.
   ///
   /// The form controls here are verified against the live page (`txtetp`,
-  /// `txtCaptcha`, `rbsearchtype`, `HiddenQtyInMT/CM/CF`, `pnlgridvehicle`). The
-  /// *result* controls are not: MP renders a verified eTP into the
-  /// `pnlgridvehicle` GridView behind a CAPTCHA, so the exact ids could not be
-  /// observed without solving one. They are therefore only the first of three
-  /// layers — [_layerGridColumns] reads the grid by column header and layer 3
-  /// reads `Label : Value` text — and a page this map does not recognize
-  /// degrades to "portal layout changed" rather than to wrong data.
+  /// `txtCaptcha`, `rbsearchtype`, `HiddenQtyInMT/CM/CF`, `pnlgridvehicle`).
+  ///
+  /// The result ids are **not** the load-bearing path for MP. A real capture
+  /// showed the portal renders its result as a plain `GridView` whose cells carry
+  /// no ids at all, so [_layerGridColumns] — which matches by column header — is
+  /// what actually reads an MP eTP. These ids only cover MP's other views, and a
+  /// layout none of the three layers recognizes degrades to "portal layout
+  /// changed" rather than to wrong data.
   /// Two ids are deliberately absent. `lbletp` is the form's own "Search by:"
   /// caption, not a result label, and `txtetp` is the input LedgerPro prefills —
   /// reading either back would let a capture "succeed" on a page that never
@@ -475,8 +490,10 @@ class ChallanDomParser {
   Map<ChallanField, String> _collect(dom.Document document) {
     final found = <ChallanField, String>{};
     _layer1ElementIds(document, found);
-    _layerGridColumns(document, found);
-    _layer2LabelledContainers(document, found);
+    // Tables already read column-wise are excluded from layer 2, so a grid is
+    // never also mis-read as vertical label/value rows.
+    final grids = _layerGridColumns(document, found);
+    _layer2LabelledContainers(document, found, skipTables: grids);
     _layer3VisibleTextPairs(document, found);
     return found;
   }
@@ -485,15 +502,32 @@ class ChallanDomParser {
   ///
   /// Bihar and Jharkhand render one label/value pair per row, which layer 2
   /// handles. MP's e-Khanij page renders a verified eTP into its
-  /// `pnlgridvehicle` grid instead: a header row of column names followed by the
-  /// data row, so the only way to read it is to pair by column index.
+  /// `pnlgridvehicle` grid instead — a header row of column names followed by
+  /// the data row — so the only way to read it is to pair by column index.
   ///
-  /// Two guards keep this off the vertical layouts. The header row must contain
-  /// at least three cells that are *exactly* known field labels — a Bihar row
-  /// holds one label plus its value, so it can never qualify — and only the
-  /// first data row carrying values is read, because later rows would belong to
-  /// a different challan.
-  void _layerGridColumns(dom.Document document, Map<ChallanField, String> out) {
+  /// Real MP headers are phrases, not bare labels: "Date & Time of
+  /// Transportation", "Source Station", "Destination Station", "Mineral Qty".
+  /// A column therefore counts when it *resolves to a field*, not only when it
+  /// is an exact label — requiring exact labels matched just three of MP's ten
+  /// columns and dropped the date and quantity, which is what made a real MP
+  /// capture fail with "the portal result is missing: challan date, quantity".
+  ///
+  /// Three guards keep this off the vertical layouts:
+  ///   * the first row must resolve **at least three distinct fields** — a
+  ///     Bihar/Jharkhand row holds one label plus its value, so it cannot
+  ///     qualify;
+  ///   * no resolving header cell may contain a digit, because a header carries
+  ///     a column name and never a value; and
+  ///   * only the first data row carrying values is read, since later rows would
+  ///     belong to a different challan.
+  ///
+  /// Returns the tables it consumed so layer 2 can leave them alone.
+  Set<dom.Element> _layerGridColumns(
+    dom.Document document,
+    Map<ChallanField, String> out,
+  ) {
+    final consumed = <dom.Element>{};
+
     for (final table in document.querySelectorAll('table')) {
       final rows = table.querySelectorAll('tr');
       if (rows.length < 2) continue;
@@ -502,12 +536,19 @@ class ChallanDomParser {
       if (header.length < 3) continue;
 
       final columns = <int, ChallanField>{};
+      var rejected = false;
       for (var i = 0; i < header.length; i++) {
-        if (!_isExactLabel(header[i])) continue;
         final field = _fieldForLabel(header[i]);
-        if (field != null) columns.putIfAbsent(i, () => field);
+        if (field == null) continue;
+        // A "header" holding a digit is really a data row.
+        if (RegExp(r'[0-9]').hasMatch(header[i])) {
+          rejected = true;
+          break;
+        }
+        columns.putIfAbsent(i, () => field);
       }
-      if (columns.length < 3) continue;
+      if (rejected) continue;
+      if (columns.values.toSet().length < 3) continue;
 
       for (final row in rows.skip(1)) {
         final cells = _rowTexts(row);
@@ -521,9 +562,24 @@ class ChallanDomParser {
           out.putIfAbsent(column.value, () => value);
           filled++;
         }
-        if (filled > 0) break;
+        if (filled > 0) {
+          consumed.add(table);
+          break;
+        }
       }
     }
+
+    return consumed;
+  }
+
+  /// True when [element] sits inside any of [ancestors].
+  static bool _isInside(dom.Element element, Set<dom.Element> ancestors) {
+    dom.Element? node = element;
+    while (node != null) {
+      if (ancestors.contains(node)) return true;
+      node = node.parent;
+    }
+    return false;
   }
 
   static List<String> _rowTexts(dom.Element row) => row.children
@@ -552,11 +608,15 @@ class ChallanDomParser {
   /// Layer 2: table rows, definition lists and label/value element pairs.
   void _layer2LabelledContainers(
     dom.Document document,
-    Map<ChallanField, String> out,
-  ) {
+    Map<ChallanField, String> out, {
+    Set<dom.Element> skipTables = const {},
+  }) {
     // Table rows: pair adjacent cells, tolerating a ":" separator cell and
     // rows that pack several label/value pairs side by side.
     for (final row in document.querySelectorAll('tr')) {
+      // Rows of a grid already read column-wise must not be paired horizontally:
+      // that would read a neighbouring column's value into the wrong field.
+      if (skipTables.isNotEmpty && _isInside(row, skipTables)) continue;
       final cells = row.children
           .where((c) => c.localName == 'td' || c.localName == 'th')
           .toList();

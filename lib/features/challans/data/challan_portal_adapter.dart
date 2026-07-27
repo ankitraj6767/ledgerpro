@@ -97,6 +97,31 @@ class ChallanPortalSupport {
       'Open the portal in your browser to verify the challan, then add the '
       'details as a manual entry — it will be saved as "Manual (unverified)".';
 
+  /// True where a portal that wants desktop width has to be *emulated* into it.
+  ///
+  /// Phones and tablets lay a page out at device width, so a responsive portal
+  /// collapses to its mobile theme. macOS and Windows already host the WebView in
+  /// a desktop-sized window, so forcing a fixed width there would only shrink the
+  /// page for no reason.
+  static bool needsDesktopViewportEmulation([TargetPlatform? platform]) {
+    return switch (platform ?? defaultTargetPlatform) {
+      TargetPlatform.android || TargetPlatform.iOS => true,
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux ||
+      TargetPlatform.fuchsia => false,
+    };
+  }
+
+  /// User agent used when a portal is rendered at desktop width, so the portal's
+  /// own responsive CSS serves its desktop layout rather than its mobile theme.
+  static const desktopUserAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+      '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+  /// CSS width a desktop-emulated portal is laid out at.
+  static const desktopViewportWidth = 1280;
+
   /// Shown when the platform has a WebView implementation but the OS-level
   /// engine could not start. On Windows that is almost always a missing
   /// Microsoft Edge WebView2 runtime.
@@ -108,11 +133,40 @@ class ChallanPortalSupport {
       'a manual entry.';
 }
 
+/// What the WebView should do with a navigation.
+enum PortalNavigationAction {
+  /// Load it in the portal WebView.
+  allow,
+
+  /// Hand it to the OS browser, because the user chose to go somewhere else.
+  openExternally,
+
+  /// Refuse it silently.
+  block,
+}
+
 /// Host allow-list for the in-app WebView.
 class PortalNavigationPolicy {
   const PortalNavigationPolicy({required this.allowedHost});
 
   final String allowedHost;
+
+  /// Decides what to do with one navigation.
+  ///
+  /// Off-host or plain-HTTP destinations are never loaded. Whether they are
+  /// handed to the browser depends on who asked: a main-frame navigation is the
+  /// user clicking a link, so the browser is the right place for it. A sub-frame
+  /// is the portal loading something into its own page — an embedded widget, a
+  /// tracker, an `http` asset — and launching the OS browser for that would yank
+  /// the user out of the portal mid-task through no action of their own.
+  PortalNavigationAction decide({
+    required String url,
+    required bool isMainFrame,
+  }) {
+    if (allowsInApp(url)) return PortalNavigationAction.allow;
+    if (!isMainFrame) return PortalNavigationAction.block;
+    return PortalNavigationAction.openExternally;
+  }
 
   /// True when [url] may load inside the WebView.
   ///
