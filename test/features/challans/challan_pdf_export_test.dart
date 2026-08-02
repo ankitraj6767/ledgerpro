@@ -124,6 +124,20 @@ void main() {
       expect(file.path, contains('challan_'));
     });
 
+    test('recreates a missing temporary directory before writing', () async {
+      // Android can clear the cache directory while the app process remains
+      // alive. The exporter must recover when the provider returns that path.
+      root.deleteSync(recursive: true);
+
+      final file = await service.challanDetailPdf(
+        organizationName: 'Org',
+        challan: challan(),
+      );
+
+      expect(file.existsSync(), isTrue);
+      expect(file.parent.existsSync(), isTrue);
+    });
+
     test('works without a loaded project, falling back to the joined name',
         () async {
       final file = await service.challanDetailPdf(

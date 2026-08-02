@@ -2048,7 +2048,14 @@ class InfraReportService {
   }
 
   Future<Directory> _reportsDirectory() async {
-    if (!_isDesktop) return getTemporaryDirectory();
+    if (!_isDesktop) {
+      // Android may clear the cache directory while the app is still running.
+      // Recreate it before writing so PDF export does not fail with
+      // PathNotFoundException when the returned path no longer exists.
+      final dir = await getTemporaryDirectory();
+      await dir.create(recursive: true);
+      return dir;
+    }
     final base =
         await getDownloadsDirectory() ??
         await getApplicationDocumentsDirectory();
