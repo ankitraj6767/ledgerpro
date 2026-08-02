@@ -22,6 +22,19 @@ class ChallanRepository {
   /// `infra_projects` for display.
   static const _columns = '*, infra_projects!inner(name)';
 
+  /// List screens never read the raw portal response. Keeping that JSON out of
+  /// the 200-row list request makes the common query much smaller while the
+  /// full projection above remains available for detail and duplicate reads.
+  static const _listColumns =
+      'id, organization_id, project_id, source_portal, financial_year, '
+      'challan_number, normalized_challan_number, uid_number, challan_date, '
+      'valid_until, selected_material_type, portal_mineral_name, quantity, '
+      'quantity_unit, vehicle_type, vehicle_number, normalized_vehicle_number, '
+      'consignor_name, consignee_name, source_location, destination, '
+      'generated_from, royalty_amount_paise, verification_status, '
+      'verification_method, captured_at, created_at, updated_at, '
+      'infra_projects!inner(name)';
+
   // ---------------------------------------------------------------------------
   // Reads
   // ---------------------------------------------------------------------------
@@ -34,7 +47,7 @@ class ChallanRepository {
     return _guard(() async {
       var query = _client
           .from(table)
-          .select(_columns)
+          .select(_listColumns)
           .eq('organization_id', organizationId)
           .isFilter('deleted_at', null);
 

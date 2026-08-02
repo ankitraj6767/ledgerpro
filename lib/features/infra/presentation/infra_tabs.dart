@@ -12,6 +12,7 @@ import '../../../core/update/update_service.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/components/navdream_logo.dart';
+import '../../../shared/models/infra_models.dart';
 
 /// Global expenses tab: pick a project to view/add expenses.
 class GlobalExpensesScreen extends ConsumerWidget {
@@ -20,71 +21,82 @@ class GlobalExpensesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(projectsProvider);
+    final cachedProjects = ref.watch(cachedDashboardProvider)?.projects;
     return Scaffold(
       appBar: AppBar(title: const Text('Expenses')),
       body: projectsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorStateView(
-          message: 'Could not load projects: $e',
-          onRetry: () => ref.invalidate(projectsProvider),
+        loading: () => cachedProjects == null
+            ? const Center(child: CircularProgressIndicator())
+            : _projectExpenseList(context, ref, cachedProjects),
+        error: (e, _) => cachedProjects == null
+            ? ErrorStateView(
+                message: 'Could not load projects: $e',
+                onRetry: () => ref.invalidate(projectsProvider),
+              )
+            : _projectExpenseList(context, ref, cachedProjects),
+        data: (projects) => _projectExpenseList(context, ref, projects),
+      ),
+    );
+  }
+
+  Widget _projectExpenseList(
+    BuildContext context,
+    WidgetRef ref,
+    List<InfraProject> projects,
+  ) {
+    if (projects.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () => ref.refreshWorkspace(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            EmptyState(
+              icon: Icons.receipt_long_outlined,
+              title: 'No projects yet',
+              message: 'Create a project to start tracking expenses.',
+            ),
+          ],
         ),
-        data: (projects) {
-          if (projects.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: () => ref.refreshWorkspace(),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 120),
-                  EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'No projects yet',
-                    message: 'Create a project to start tracking expenses.',
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => ref.refreshWorkspace(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Select a project to view or add expenses',
+            style: TextStyle(color: InfraColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          ...projects.map(
+            (p) => Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.business_outlined,
+                  color: InfraColors.royalBlue,
+                ),
+                title: Text(
+                  p.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  'Total expenses: ₹${(p.totalExpensePaise / 100).toStringAsFixed(2)}',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(
+                  AppRoutes.projectDetail(
+                    p.id,
+                    tab: AppRoutes.projectDetailExpensesTab,
                   ),
-                ],
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () => ref.refreshWorkspace(),
-            child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            children: [
-              const Text(
-                'Select a project to view or add expenses',
-                style: TextStyle(color: InfraColors.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              ...projects.map(
-                (p) => Card(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.business_outlined,
-                      color: InfraColors.royalBlue,
-                    ),
-                    title: Text(
-                      p.name,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    subtitle: Text(
-                      'Total expenses: ₹${(p.totalExpensePaise / 100).toStringAsFixed(2)}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push(
-                      AppRoutes.projectDetail(
-                        p.id,
-                        tab: AppRoutes.projectDetailExpensesTab,
-                      ),
-                      extra: p,
-                    ),
-                  ),
+                  extra: p,
                 ),
               ),
-            ],
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

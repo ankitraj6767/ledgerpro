@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/cache/challan_cache.dart';
 import '../../../core/network/network_monitor.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../data/challan_portal_adapter.dart';
@@ -96,10 +99,47 @@ const Object _unset = Object();
 final challansProvider = FutureProvider<List<EPassChallan>>((ref) async {
   final org = await ref.watch(infraWorkspaceProvider.future);
   final filter = ref.watch(challanFiltersProvider);
-  return ref
+  final challans = await ref
       .watch(challanRepositoryProvider)
       .fetchChallans(organizationId: org.id, filter: filter);
+  final userId = _currentUserId();
+  if (!filter.isActive && userId != null) {
+    final cache = ref.read(challanCacheProvider);
+    final save = cache.save(
+      userId: userId,
+      organizationId: org.id,
+      challans: challans,
+    );
+    // `save` updates the in-memory snapshot before its first await. Rebuild
+    // cache consumers immediately, without making the network result wait for
+    // disk I/O.
+    ref.invalidate(cachedChallansProvider);
+    unawaited(save);
+  }
+  return challans;
 });
+
+/// Last-known unfiltered challans, scoped to the live user and organization.
+/// The list UI uses this only while the server refresh is in flight.
+final cachedChallansProvider = Provider<List<EPassChallan>?>((ref) {
+  final snapshot = ref.watch(challanCacheProvider).value;
+  final userId = _currentUserId();
+  final workspace = ref.watch(infraWorkspaceProvider).value;
+  if (snapshot == null || userId == null || workspace == null) return null;
+  if (snapshot.userId != userId || snapshot.organizationId != workspace.id) {
+    return null;
+  }
+  return snapshot.challans;
+});
+
+String? _currentUserId() {
+  try {
+    return Supabase.instance.client.auth.currentUser?.id;
+  } catch (_) {
+    // Tests and the first frame can run before Supabase initialization.
+    return null;
+  }
+}
 
 final challanByIdProvider = FutureProvider.family<EPassChallan?, String>((
   ref,

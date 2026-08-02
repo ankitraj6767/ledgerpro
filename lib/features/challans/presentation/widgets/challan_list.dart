@@ -61,53 +61,22 @@ class _ChallanListState extends ConsumerState<ChallanList> {
   Widget build(BuildContext context) {
     final challansAsync = ref.watch(challansProvider);
     final filter = ref.watch(challanFiltersProvider);
+    final cachedChallans = _cachedChallansForFilter(
+      ref.watch(cachedChallansProvider),
+      filter,
+    );
 
     final content = challansAsync.when(
-      loading: () => const _ChallanListSkeleton(),
-      error: (error, _) => ErrorStateView(
-        message: _errorMessage(error),
-        onRetry: () => ref.invalidate(challansProvider),
-      ),
-      data: (challans) {
-        if (challans.isEmpty) {
-          return filter.isActive
-              ? _noMatches()
-              : EmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'No challans saved yet',
-                  message:
-                      'Verify an e-Pass challan from the Bihar Government '
-                      'portal to add a material entry.',
-                  action: widget.onAddChallan == null
-                      ? null
-                      : FilledButton.icon(
-                          onPressed: widget.onAddChallan,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Challan'),
-                        ),
-                );
-        }
-        return ListView.builder(
-          shrinkWrap: widget.shrinkWrap,
-          physics: widget.shrinkWrap
-              ? const NeverScrollableScrollPhysics()
-              : const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          itemCount: challans.length,
-          itemBuilder: (context, index) {
-            final challan = challans[index];
-            return ChallanCard(
-              key: ValueKey(challan.id),
-              challan: challan,
-              selected: widget.selectedChallanIds.contains(challan.id),
-              onSelectionChanged: widget.onToggleSelection == null
-                  ? null
-                  : (_) => widget.onToggleSelection!(challan.id),
-              onTap: () => context.push(AppRoutes.challanDetail(challan.id)),
-            );
-          },
-        );
-      },
+      loading: () => cachedChallans == null
+          ? const _ChallanListSkeleton()
+          : _challanContent(cachedChallans, filter),
+      error: (error, _) => cachedChallans == null
+          ? ErrorStateView(
+              message: _errorMessage(error),
+              onRetry: () => ref.invalidate(challansProvider),
+            )
+          : _challanContent(cachedChallans, filter),
+      data: (challans) => _challanContent(challans, filter),
     );
 
     return Column(
@@ -123,6 +92,99 @@ class _ChallanListState extends ConsumerState<ChallanList> {
         if (widget.shrinkWrap) content else Expanded(child: content),
       ],
     );
+  }
+
+  Widget _challanContent(
+    List<EPassChallan> challans,
+    ChallanFilter filter,
+  ) {
+    if (challans.isEmpty) {
+      return filter.isActive
+          ? _noMatches()
+          : EmptyState(
+              icon: Icons.receipt_long_outlined,
+              title: 'No challans saved yet',
+              message:
+                  'Verify an e-Pass challan from the Bihar Government '
+                  'portal to add a material entry.',
+              action: widget.onAddChallan == null
+                  ? null
+                  : FilledButton.icon(
+                      onPressed: widget.onAddChallan,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Challan'),
+                    ),
+            );
+    }
+    return ListView.builder(
+      shrinkWrap: widget.shrinkWrap,
+      physics: widget.shrinkWrap
+          ? const NeverScrollableScrollPhysics()
+          : const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: challans.length,
+      itemBuilder: (context, index) {
+        final challan = challans[index];
+        return ChallanCard(
+          key: ValueKey(challan.id),
+          challan: challan,
+          selected: widget.selectedChallanIds.contains(challan.id),
+          onSelectionChanged: widget.onToggleSelection == null
+              ? null
+              : (_) => widget.onToggleSelection!(challan.id),
+          onTap: () => context.push(AppRoutes.challanDetail(challan.id)),
+        );
+      },
+    );
+  }
+
+  List<EPassChallan>? _cachedChallansForFilter(
+    List<EPassChallan>? challans,
+    ChallanFilter filter,
+  ) {
+    if (challans == null) return null;
+    final query = ChallanText.normalizeToken(filter.query);
+    final endOfDay = filter.toDate == null
+        ? null
+        : DateTime(
+            filter.toDate!.year,
+            filter.toDate!.month,
+            filter.toDate!.day,
+            23,
+            59,
+            59,
+          );
+    return challans
+        .where((challan) {
+          if (filter.projectId != null &&
+              challan.projectId != filter.projectId) {
+            return false;
+          }
+          if (filter.materialType != null &&
+              challan.selectedMaterialType != filter.materialType) {
+            return false;
+          }
+          if (filter.status != null &&
+              challan.verificationStatus != filter.status) {
+            return false;
+          }
+          final date = challan.challanDate;
+          if (filter.fromDate != null &&
+              (date == null || date.isBefore(filter.fromDate!))) {
+            return false;
+          }
+          if (endOfDay != null &&
+              (date == null || date.isAfter(endOfDay))) {
+            return false;
+          }
+          if (query.isNotEmpty &&
+              !challan.normalizedChallanNumber.contains(query) &&
+              !challan.normalizedVehicleNumber.contains(query)) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   Widget _selectionBar() {

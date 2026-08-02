@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -404,6 +406,43 @@ void main() {
       await tester.tap(checkboxFor(1));
       await tester.pumpAndSettle();
       expect(find.text('2 challan(s) selected'), findsOneWidget);
+    });
+
+    testWidgets('shows cached challans while the live list refreshes', (
+      tester,
+    ) async {
+      final pendingChallans = Completer<List<EPassChallan>>();
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(430, 1400);
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentOrgPermissionsProvider.overrideWithValue(
+              const OrgPermissions(OrgMemberRole.owner),
+            ),
+            infraWorkspaceProvider.overrideWith(
+              (ref) async => const InfraWorkspaceSession(
+                organization: Organization(id: 'org', name: 'Test Org'),
+                role: OrgMemberRole.owner,
+              ),
+            ),
+            projectsProvider.overrideWith((ref) async => projects),
+            challanRepositoryProvider.overrideWithValue(repository),
+            challansProvider.overrideWith(
+              (ref) => pendingChallans.future,
+            ),
+            cachedChallansProvider.overrideWithValue([challan()]),
+            networkOnlineProvider.overrideWithValue(true),
+          ],
+          child: const MaterialApp(home: ChallanScreen()),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(ChallanCard), findsOneWidget);
+      expect(find.text('BR2026001234'), findsOneWidget);
     });
 
     testWidgets('the PDF export is offered once there is something to export', (

@@ -12,6 +12,7 @@ import 'app/app.dart';
 import 'app/constants/app_constants.dart';
 import 'app/constants/supabase_config.dart';
 import 'app/router/app_router.dart';
+import 'core/cache/challan_cache.dart';
 import 'core/cache/dashboard_cache.dart';
 import 'core/cache/project_detail_cache.dart';
 import 'core/security/app_session_controller.dart';
@@ -97,6 +98,7 @@ Future<void> main() async {
       // no network) so the home screen can render the last-known real data
       // immediately instead of empty placeholders.
       final sessionController = AppSessionController();
+      final challanCache = ChallanCache();
       final dashboardCache = DashboardCache();
       final projectDetailCache = ProjectDetailCache();
       try {
@@ -108,6 +110,7 @@ Future<void> main() async {
         // has loaded; the router guard falls back to splash/login safely.
         await Future.wait([
           sessionController.initialize(),
+          challanCache.load(),
           dashboardCache.load(),
           projectDetailCache.load(),
         ]).timeout(const Duration(seconds: 8));
@@ -123,6 +126,7 @@ Future<void> main() async {
         ProviderScope(
           overrides: [
             appSessionControllerProvider.overrideWithValue(sessionController),
+            challanCacheProvider.overrideWithValue(challanCache),
             dashboardCacheProvider.overrideWithValue(dashboardCache),
             projectDetailCacheProvider.overrideWithValue(projectDetailCache),
           ],
