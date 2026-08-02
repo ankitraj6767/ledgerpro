@@ -1537,7 +1537,7 @@ as DateTime?,
 /// @nodoc
 mixin _$ProjectExpense {
 
- String get id; String get projectId; String get category; String? get vendorName; int get amountPaise; DateTime? get expenseDate; String get paymentMode; String? get billNumber; String? get billImagePath; String? get notes; String? get createdBy; DateTime? get createdAt; DateTime? get updatedAt; DateTime? get deletedAt;
+ String get id; String get projectId; String get category; String? get subcategory; String? get vendorName; int get amountPaise; DateTime? get expenseDate; String get paymentMode; String? get billNumber; String? get billImagePath; String? get notes; String? get createdBy; DateTime? get createdAt; DateTime? get updatedAt; DateTime? get deletedAt;
 /// Create a copy of ProjectExpense
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1550,16 +1550,16 @@ $ProjectExpenseCopyWith<ProjectExpense> get copyWith => _$ProjectExpenseCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectExpense&&(identical(other.id, id) || other.id == id)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.category, category) || other.category == category)&&(identical(other.vendorName, vendorName) || other.vendorName == vendorName)&&(identical(other.amountPaise, amountPaise) || other.amountPaise == amountPaise)&&(identical(other.expenseDate, expenseDate) || other.expenseDate == expenseDate)&&(identical(other.paymentMode, paymentMode) || other.paymentMode == paymentMode)&&(identical(other.billNumber, billNumber) || other.billNumber == billNumber)&&(identical(other.billImagePath, billImagePath) || other.billImagePath == billImagePath)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectExpense&&(identical(other.id, id) || other.id == id)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.category, category) || other.category == category)&&(identical(other.subcategory, subcategory) || other.subcategory == subcategory)&&(identical(other.vendorName, vendorName) || other.vendorName == vendorName)&&(identical(other.amountPaise, amountPaise) || other.amountPaise == amountPaise)&&(identical(other.expenseDate, expenseDate) || other.expenseDate == expenseDate)&&(identical(other.paymentMode, paymentMode) || other.paymentMode == paymentMode)&&(identical(other.billNumber, billNumber) || other.billNumber == billNumber)&&(identical(other.billImagePath, billImagePath) || other.billImagePath == billImagePath)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,projectId,category,vendorName,amountPaise,expenseDate,paymentMode,billNumber,billImagePath,notes,createdBy,createdAt,updatedAt,deletedAt);
+int get hashCode => Object.hash(runtimeType,id,projectId,category,subcategory,vendorName,amountPaise,expenseDate,paymentMode,billNumber,billImagePath,notes,createdBy,createdAt,updatedAt,deletedAt);
 
 @override
 String toString() {
-  return 'ProjectExpense(id: $id, projectId: $projectId, category: $category, vendorName: $vendorName, amountPaise: $amountPaise, expenseDate: $expenseDate, paymentMode: $paymentMode, billNumber: $billNumber, billImagePath: $billImagePath, notes: $notes, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+  return 'ProjectExpense(id: $id, projectId: $projectId, category: $category, subcategory: $subcategory, vendorName: $vendorName, amountPaise: $amountPaise, expenseDate: $expenseDate, paymentMode: $paymentMode, billNumber: $billNumber, billImagePath: $billImagePath, notes: $notes, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
 }
 
 
@@ -1570,7 +1570,7 @@ abstract mixin class $ProjectExpenseCopyWith<$Res>  {
   factory $ProjectExpenseCopyWith(ProjectExpense value, $Res Function(ProjectExpense) _then) = _$ProjectExpenseCopyWithImpl;
 @useResult
 $Res call({
- String id, String projectId, String category, String? vendorName, int amountPaise, DateTime? expenseDate, String paymentMode, String? billNumber, String? billImagePath, String? notes, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt
+ String id, String projectId, String category, String? subcategory, String? vendorName, int amountPaise, DateTime? expenseDate, String paymentMode, String? billNumber, String? billImagePath, String? notes, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt
 });
 
 
@@ -1587,12 +1587,13 @@ class _$ProjectExpenseCopyWithImpl<$Res>
 
 /// Create a copy of ProjectExpense
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? projectId = null,Object? category = null,Object? vendorName = freezed,Object? amountPaise = null,Object? expenseDate = freezed,Object? paymentMode = null,Object? billNumber = freezed,Object? billImagePath = freezed,Object? notes = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? projectId = null,Object? category = null,Object? subcategory = freezed,Object? vendorName = freezed,Object? amountPaise = null,Object? expenseDate = freezed,Object? paymentMode = null,Object? billNumber = freezed,Object? billImagePath = freezed,Object? notes = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as String,vendorName: freezed == vendorName ? _self.vendorName : vendorName // ignore: cast_nullable_to_non_nullable
+as String,subcategory: freezed == subcategory ? _self.subcategory : subcategory // ignore: cast_nullable_to_non_nullable
+as String?,vendorName: freezed == vendorName ? _self.vendorName : vendorName // ignore: cast_nullable_to_non_nullable
 as String?,amountPaise: null == amountPaise ? _self.amountPaise : amountPaise // ignore: cast_nullable_to_non_nullable
 as int,expenseDate: freezed == expenseDate ? _self.expenseDate : expenseDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentMode: null == paymentMode ? _self.paymentMode : paymentMode // ignore: cast_nullable_to_non_nullable
@@ -1688,10 +1689,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String projectId,  String category,  String? vendorName,  int amountPaise,  DateTime? expenseDate,  String paymentMode,  String? billNumber,  String? billImagePath,  String? notes,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String projectId,  String category,  String? subcategory,  String? vendorName,  int amountPaise,  DateTime? expenseDate,  String paymentMode,  String? billNumber,  String? billImagePath,  String? notes,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectExpense() when $default != null:
-return $default(_that.id,_that.projectId,_that.category,_that.vendorName,_that.amountPaise,_that.expenseDate,_that.paymentMode,_that.billNumber,_that.billImagePath,_that.notes,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt);case _:
+return $default(_that.id,_that.projectId,_that.category,_that.subcategory,_that.vendorName,_that.amountPaise,_that.expenseDate,_that.paymentMode,_that.billNumber,_that.billImagePath,_that.notes,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt);case _:
   return orElse();
 
 }
@@ -1709,10 +1710,10 @@ return $default(_that.id,_that.projectId,_that.category,_that.vendorName,_that.a
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String projectId,  String category,  String? vendorName,  int amountPaise,  DateTime? expenseDate,  String paymentMode,  String? billNumber,  String? billImagePath,  String? notes,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String projectId,  String category,  String? subcategory,  String? vendorName,  int amountPaise,  DateTime? expenseDate,  String paymentMode,  String? billNumber,  String? billImagePath,  String? notes,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectExpense():
-return $default(_that.id,_that.projectId,_that.category,_that.vendorName,_that.amountPaise,_that.expenseDate,_that.paymentMode,_that.billNumber,_that.billImagePath,_that.notes,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt);case _:
+return $default(_that.id,_that.projectId,_that.category,_that.subcategory,_that.vendorName,_that.amountPaise,_that.expenseDate,_that.paymentMode,_that.billNumber,_that.billImagePath,_that.notes,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1729,10 +1730,10 @@ return $default(_that.id,_that.projectId,_that.category,_that.vendorName,_that.a
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String projectId,  String category,  String? vendorName,  int amountPaise,  DateTime? expenseDate,  String paymentMode,  String? billNumber,  String? billImagePath,  String? notes,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String projectId,  String category,  String? subcategory,  String? vendorName,  int amountPaise,  DateTime? expenseDate,  String paymentMode,  String? billNumber,  String? billImagePath,  String? notes,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectExpense() when $default != null:
-return $default(_that.id,_that.projectId,_that.category,_that.vendorName,_that.amountPaise,_that.expenseDate,_that.paymentMode,_that.billNumber,_that.billImagePath,_that.notes,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt);case _:
+return $default(_that.id,_that.projectId,_that.category,_that.subcategory,_that.vendorName,_that.amountPaise,_that.expenseDate,_that.paymentMode,_that.billNumber,_that.billImagePath,_that.notes,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt);case _:
   return null;
 
 }
@@ -1744,12 +1745,13 @@ return $default(_that.id,_that.projectId,_that.category,_that.vendorName,_that.a
 @JsonSerializable()
 
 class _ProjectExpense implements ProjectExpense {
-  const _ProjectExpense({required this.id, required this.projectId, this.category = 'Miscellaneous', this.vendorName, this.amountPaise = 0, this.expenseDate, this.paymentMode = 'cash', this.billNumber, this.billImagePath, this.notes, this.createdBy, this.createdAt, this.updatedAt, this.deletedAt});
+  const _ProjectExpense({required this.id, required this.projectId, this.category = 'Miscellaneous', this.subcategory, this.vendorName, this.amountPaise = 0, this.expenseDate, this.paymentMode = 'cash', this.billNumber, this.billImagePath, this.notes, this.createdBy, this.createdAt, this.updatedAt, this.deletedAt});
   factory _ProjectExpense.fromJson(Map<String, dynamic> json) => _$ProjectExpenseFromJson(json);
 
 @override final  String id;
 @override final  String projectId;
 @override@JsonKey() final  String category;
+@override final  String? subcategory;
 @override final  String? vendorName;
 @override@JsonKey() final  int amountPaise;
 @override final  DateTime? expenseDate;
@@ -1775,16 +1777,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectExpense&&(identical(other.id, id) || other.id == id)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.category, category) || other.category == category)&&(identical(other.vendorName, vendorName) || other.vendorName == vendorName)&&(identical(other.amountPaise, amountPaise) || other.amountPaise == amountPaise)&&(identical(other.expenseDate, expenseDate) || other.expenseDate == expenseDate)&&(identical(other.paymentMode, paymentMode) || other.paymentMode == paymentMode)&&(identical(other.billNumber, billNumber) || other.billNumber == billNumber)&&(identical(other.billImagePath, billImagePath) || other.billImagePath == billImagePath)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectExpense&&(identical(other.id, id) || other.id == id)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.category, category) || other.category == category)&&(identical(other.subcategory, subcategory) || other.subcategory == subcategory)&&(identical(other.vendorName, vendorName) || other.vendorName == vendorName)&&(identical(other.amountPaise, amountPaise) || other.amountPaise == amountPaise)&&(identical(other.expenseDate, expenseDate) || other.expenseDate == expenseDate)&&(identical(other.paymentMode, paymentMode) || other.paymentMode == paymentMode)&&(identical(other.billNumber, billNumber) || other.billNumber == billNumber)&&(identical(other.billImagePath, billImagePath) || other.billImagePath == billImagePath)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,projectId,category,vendorName,amountPaise,expenseDate,paymentMode,billNumber,billImagePath,notes,createdBy,createdAt,updatedAt,deletedAt);
+int get hashCode => Object.hash(runtimeType,id,projectId,category,subcategory,vendorName,amountPaise,expenseDate,paymentMode,billNumber,billImagePath,notes,createdBy,createdAt,updatedAt,deletedAt);
 
 @override
 String toString() {
-  return 'ProjectExpense(id: $id, projectId: $projectId, category: $category, vendorName: $vendorName, amountPaise: $amountPaise, expenseDate: $expenseDate, paymentMode: $paymentMode, billNumber: $billNumber, billImagePath: $billImagePath, notes: $notes, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+  return 'ProjectExpense(id: $id, projectId: $projectId, category: $category, subcategory: $subcategory, vendorName: $vendorName, amountPaise: $amountPaise, expenseDate: $expenseDate, paymentMode: $paymentMode, billNumber: $billNumber, billImagePath: $billImagePath, notes: $notes, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
 }
 
 
@@ -1795,7 +1797,7 @@ abstract mixin class _$ProjectExpenseCopyWith<$Res> implements $ProjectExpenseCo
   factory _$ProjectExpenseCopyWith(_ProjectExpense value, $Res Function(_ProjectExpense) _then) = __$ProjectExpenseCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String projectId, String category, String? vendorName, int amountPaise, DateTime? expenseDate, String paymentMode, String? billNumber, String? billImagePath, String? notes, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt
+ String id, String projectId, String category, String? subcategory, String? vendorName, int amountPaise, DateTime? expenseDate, String paymentMode, String? billNumber, String? billImagePath, String? notes, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt
 });
 
 
@@ -1812,12 +1814,13 @@ class __$ProjectExpenseCopyWithImpl<$Res>
 
 /// Create a copy of ProjectExpense
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? projectId = null,Object? category = null,Object? vendorName = freezed,Object? amountPaise = null,Object? expenseDate = freezed,Object? paymentMode = null,Object? billNumber = freezed,Object? billImagePath = freezed,Object? notes = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? projectId = null,Object? category = null,Object? subcategory = freezed,Object? vendorName = freezed,Object? amountPaise = null,Object? expenseDate = freezed,Object? paymentMode = null,Object? billNumber = freezed,Object? billImagePath = freezed,Object? notes = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,}) {
   return _then(_ProjectExpense(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as String,vendorName: freezed == vendorName ? _self.vendorName : vendorName // ignore: cast_nullable_to_non_nullable
+as String,subcategory: freezed == subcategory ? _self.subcategory : subcategory // ignore: cast_nullable_to_non_nullable
+as String?,vendorName: freezed == vendorName ? _self.vendorName : vendorName // ignore: cast_nullable_to_non_nullable
 as String?,amountPaise: null == amountPaise ? _self.amountPaise : amountPaise // ignore: cast_nullable_to_non_nullable
 as int,expenseDate: freezed == expenseDate ? _self.expenseDate : expenseDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentMode: null == paymentMode ? _self.paymentMode : paymentMode // ignore: cast_nullable_to_non_nullable

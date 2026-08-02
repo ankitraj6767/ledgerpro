@@ -110,9 +110,124 @@ class OrgPermissions {
   bool get canExportChallans => canManageProjects;
 }
 
+/// A category and its optional nested subcategories as shown by the expense
+/// picker.
+class ExpenseCategory {
+  const ExpenseCategory({
+    required this.name,
+    this.subcategories = const <String>[],
+  });
+
+  final String name;
+  final List<String> subcategories;
+
+  bool get hasSubcategories => subcategories.isNotEmpty;
+}
+
+/// A concrete value selected from the expense category tree.
+class ExpenseCategorySelection {
+  const ExpenseCategorySelection({required this.category, this.subcategory});
+
+  final String category;
+  final String? subcategory;
+
+  String get displayLabel {
+    final child = subcategory?.trim();
+    return child == null || child.isEmpty ? category : '$category / $child';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ExpenseCategorySelection &&
+        other.category == category &&
+        other.subcategory == subcategory;
+  }
+
+  @override
+  int get hashCode => Object.hash(category, subcategory);
+}
+
 /// Canonical expense categories for infrastructure projects.
 class ExpenseCategories {
   const ExpenseCategories._();
+
+  /// The default hierarchy used by the category picker. Existing custom
+  /// categories are added as leaf nodes by [catalog].
+  static const hierarchy = <ExpenseCategory>[
+    ExpenseCategory(
+      name: 'Material',
+      subcategories: <String>[
+        'Cement',
+        'Steel',
+        'Sand',
+        'Bricks',
+        'Aggregate',
+        'Other Material',
+      ],
+    ),
+    ExpenseCategory(
+      name: 'Labor',
+      subcategories: <String>[
+        'Skilled Labor',
+        'Unskilled Labor',
+        'Contractor Labor',
+      ],
+    ),
+    ExpenseCategory(
+      name: 'Machine Rent',
+      subcategories: <String>[
+        'Excavator / JCB',
+        'Crane',
+        'Tractor',
+        'Other Machine',
+      ],
+    ),
+    ExpenseCategory(
+      name: 'Transport',
+      subcategories: <String>[
+        'Material Delivery',
+        'Freight',
+        'Local Transport',
+        'Other Transport',
+      ],
+    ),
+    ExpenseCategory(
+      name: 'Government Fees',
+      subcategories: <String>[
+        'Permit Fees',
+        'Inspection Fees',
+        'Taxes',
+        'Other Government Fees',
+      ],
+    ),
+    ExpenseCategory(
+      name: 'Contractor',
+      subcategories: <String>[
+        'Subcontractor Advance',
+        'Retention',
+        'Other Contractor',
+      ],
+    ),
+    ExpenseCategory(
+      name: 'Site Office',
+      subcategories: <String>[
+        'Office Rent',
+        'Utilities',
+        'Stationery',
+        'Communication',
+      ],
+    ),
+    ExpenseCategory(
+      name: 'Fuel',
+      subcategories: <String>['Diesel', 'Petrol', 'Lubricants', 'Other Fuel'],
+    ),
+    ExpenseCategory(
+      name: 'Miscellaneous',
+      subcategories: <String>['Travel', 'Meals', 'Repairs', 'Bank Charges'],
+    ),
+    ExpenseCategory(name: 'Other'),
+  ];
+
   static const values = <String>[
     'Material',
     'Labor',
@@ -125,6 +240,44 @@ class ExpenseCategories {
     'Miscellaneous',
     'Other',
   ];
+
+  /// Returns the canonical hierarchy plus any existing custom categories.
+  ///
+  /// Existing values are placed first, matching the old autocomplete ordering.
+  /// A case-insensitive match with a canonical category keeps the existing
+  /// spelling while gaining that category's subcategories.
+  static List<ExpenseCategory> catalog(Iterable<String> existing) {
+    final categories = <String, ExpenseCategory>{};
+    for (final value in existing) {
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty) {
+        categories.putIfAbsent(
+          trimmed.toLowerCase(),
+          () => ExpenseCategory(name: trimmed),
+        );
+      }
+    }
+
+    for (final canonical in hierarchy) {
+      final key = canonical.name.toLowerCase();
+      final existingCategory = categories[key];
+      categories[key] = ExpenseCategory(
+        name: existingCategory?.name ?? canonical.name,
+        subcategories: canonical.subcategories,
+      );
+    }
+
+    return categories.values.toList(growable: false);
+  }
+
+  static bool matches(ExpenseCategory category, String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return true;
+    return category.name.toLowerCase().contains(normalized) ||
+        category.subcategories.any(
+          (subcategory) => subcategory.toLowerCase().contains(normalized),
+        );
+  }
 
   /// Existing project categories first, followed by the canonical defaults.
   /// Matching is case-insensitive so values such as "fuel" and "Fuel" are
@@ -297,6 +450,7 @@ abstract class ProjectExpense with _$ProjectExpense {
     required String id,
     required String projectId,
     @Default('Miscellaneous') String category,
+    String? subcategory,
     String? vendorName,
     @Default(0) int amountPaise,
     DateTime? expenseDate,
@@ -312,6 +466,19 @@ abstract class ProjectExpense with _$ProjectExpense {
 
   factory ProjectExpense.fromJson(Map<String, dynamic> json) =>
       _$ProjectExpenseFromJson(json);
+}
+
+extension ProjectExpenseCategoryDisplay on ProjectExpense {
+  /// Human-readable category value while keeping parent and child separately
+  /// persisted for filtering and reporting.
+  String get categoryLabel {
+    final parent = category.trim();
+    final child = subcategory?.trim();
+    if (parent.isEmpty) {
+      return child == null || child.isEmpty ? 'General Expense' : child;
+    }
+    return child == null || child.isEmpty ? parent : '$parent / $child';
+  }
 }
 
 @freezed

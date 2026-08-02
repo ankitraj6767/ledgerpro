@@ -2233,8 +2233,8 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
           final byDate = da.compareTo(db);
           return byDate != 0 ? byDate : stableTie(a, b);
         case _ExpenseSortKey.name:
-          final byName = a.category.toLowerCase().compareTo(
-            b.category.toLowerCase(),
+          final byName = a.categoryLabel.toLowerCase().compareTo(
+            b.categoryLabel.toLowerCase(),
           );
           return byName != 0 ? byName : stableTie(a, b);
       }
@@ -2326,7 +2326,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
           },
         ),
         title: Text(
-          e.category.trim().isEmpty ? 'General Expense' : e.category,
+          e.categoryLabel,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
@@ -2376,7 +2376,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                       ref,
                       title: 'Delete expense?',
                       message:
-                          'Remove ${e.category} '
+                          'Remove ${e.categoryLabel} '
                           '(${Money.fromPaise(e.amountPaise).formatInr()})?',
                       onConfirm: () async {
                         await ref
@@ -2708,6 +2708,8 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     return _matchesFinanceSearch([
       expense.vendorName,
       expense.category,
+      expense.subcategory,
+      expense.categoryLabel,
       expense.paymentMode,
       expense.billNumber,
       richTextToPlain(expense.notes),
@@ -3371,7 +3373,7 @@ void _showExpenseDetails(
     context,
     icon: Icons.receipt_long_outlined,
     accentColor: InfraColors.red,
-    title: expense.category,
+    title: expense.categoryLabel,
     subtitle: 'Project expense',
     amountLabel: 'Expense amount',
     amountPaise: expense.amountPaise,
@@ -3381,6 +3383,8 @@ void _showExpenseDetails(
         title: 'Expense Details',
         rows: [
           _FinanceDetailRowData('Category', expense.category),
+          if (expense.subcategory?.trim().isNotEmpty ?? false)
+            _FinanceDetailRowData('Subcategory', expense.subcategory!.trim()),
           _FinanceDetailRowData(
             'Expense date',
             _dateLabel(expense.expenseDate),

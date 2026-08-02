@@ -6,6 +6,7 @@ import '../../../core/richtext/rich_text_editor.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/models/infra_models.dart';
 import '../../../shared/widgets/access_denied_screen.dart';
+import 'widgets/expense_category_picker.dart';
 
 // ---------------------------------------------------------------------------
 // Add / edit project
@@ -273,6 +274,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   String _paymentMode = 'cash';
   DateTime _date = DateTime.now();
   bool _saving = false;
+  ExpenseCategorySelection? _categorySelection;
 
   bool get _isEditing => widget.expense != null;
 
@@ -285,7 +287,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       _vendor.text = e.vendorName ?? '';
       _billNumber.text = e.billNumber ?? '';
       _notes.text = e.notes ?? '';
-      _category.text = e.category;
+      _categorySelection = ExpenseCategorySelection(
+        category: e.category,
+        subcategory: e.subcategory,
+      );
+      _category.text = _categorySelection!.displayLabel;
       _paymentMode = e.paymentMode;
       _date = e.expenseDate ?? DateTime.now();
     }
@@ -319,7 +325,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       return const AccessDeniedScreen();
     }
 
-    final categorySuggestions = ExpenseCategories.suggestions(
+    final categoryCatalog = ExpenseCategories.catalog(
       existingExpenses.value?.map((expense) => expense.category) ??
           const <String>[],
     );
@@ -329,7 +335,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _categoryAutocomplete(categorySuggestions),
+          _categoryAutocomplete(categoryCatalog),
           const SizedBox(height: 12),
           _amountField(_amount, 'Amount (₹)'),
           const SizedBox(height: 12),
@@ -361,22 +367,19 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  Widget _categoryAutocomplete(List<String> suggestions) {
-    return RawAutocomplete<String>(
+  Widget _categoryAutocomplete(List<ExpenseCategory> catalog) {
+    return RawAutocomplete<ExpenseCategorySelection>(
       textEditingController: _category,
       focusNode: _categoryFocus,
-      optionsBuilder: (value) =>
-          ExpenseCategories.matching(suggestions, value.text),
-      onSelected: (category) {
-        _category.value = TextEditingValue(
-          text: category,
-          selection: TextSelection.collapsed(offset: category.length),
-        );
-      },
+      optionsBuilder: (value) => catalog
+          .where((category) => ExpenseCategories.matches(category, value.text))
+          .map((category) => ExpenseCategorySelection(category: category.name)),
+      onSelected: _selectCategory,
       fieldViewBuilder: (context, controller, focusNode, onSubmitted) =>
           TextField(
             controller: controller,
             focusNode: focusNode,
+            onChanged: _handleCategoryChanged,
             onSubmitted: (_) => onSubmitted(),
             decoration: const InputDecoration(
               labelText: 'Category / use case',
@@ -395,19 +398,19 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             child: SizedBox(
               width: width,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  itemBuilder: (context, index) {
-                    final category = options.elementAt(index);
-                    return ListTile(
-                      leading: const Icon(Icons.history),
-                      title: Text(category),
-                      onTap: () => onSelected(category),
-                    );
-                  },
+                constraints: const BoxConstraints(maxHeight: 360),
+                child: ExpenseCategoryOptionsView(
+                  categories: options
+                      .map(
+                        (selection) => catalog.firstWhere(
+                          (category) =>
+                              category.name.toLowerCase() ==
+                              selection.category.toLowerCase(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  query: _category.text,
+                  onSelected: onSelected,
                 ),
               ),
             ),
@@ -415,6 +418,22 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         );
       },
     );
+  }
+
+  void _handleCategoryChanged(String value) {
+    final selection = _categorySelection;
+    if (selection != null && value != selection.displayLabel) {
+      setState(() => _categorySelection = null);
+    }
+  }
+
+  void _selectCategory(ExpenseCategorySelection selection) {
+    setState(() => _categorySelection = selection);
+    _category.value = TextEditingValue(
+      text: selection.displayLabel,
+      selection: TextSelection.collapsed(offset: selection.displayLabel.length),
+    );
+    _categoryFocus.unfocus();
   }
 
   Future<void> _save() async {
@@ -429,7 +448,18 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       );
       return;
     }
-    final category = _category.text.trim();
+    final typedCategory = _category.text.trim();
+    final selectedCategory = _categorySelection;
+    final category =
+        selectedCategory != null &&
+            typedCategory == selectedCategory.displayLabel
+        ? selectedCategory.category.trim()
+        : typedCategory;
+    final subcategory =
+        selectedCategory != null &&
+            typedCategory == selectedCategory.displayLabel
+        ? selectedCategory.subcategory?.trim()
+        : null;
     if (category.isEmpty) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Enter a category or use case.')),
@@ -448,6 +478,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         await repo.updateExpense(
           expenseId: widget.expense!.id,
           category: category,
+          subcategory: subcategory,
           amountPaise: amount,
           vendorName: vendor,
           date: _date,
@@ -459,6 +490,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         await repo.addExpense(
           projectId: widget.project.id,
           category: category,
+          subcategory: subcategory,
           amountPaise: amount,
           vendorName: vendor,
           date: _date,

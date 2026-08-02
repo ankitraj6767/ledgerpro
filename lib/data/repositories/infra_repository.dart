@@ -1015,6 +1015,7 @@ class InfraRepository {
   Future<void> addExpense({
     required String projectId,
     required String category,
+    String? subcategory,
     required int amountPaise,
     String? vendorName,
     DateTime? date,
@@ -1023,10 +1024,11 @@ class InfraRepository {
     String? notes,
   }) async {
     await _client.rpc(
-      'add_project_expense',
+      'add_project_expense_with_subcategory',
       params: {
         'p_project_id': projectId,
         'p_category': category,
+        'p_subcategory': subcategory,
         'p_amount_paise': amountPaise,
         'p_vendor_name': vendorName,
         'p_expense_date': (date ?? DateTime.now())
@@ -1044,6 +1046,7 @@ class InfraRepository {
   Future<void> updateExpense({
     required String expenseId,
     required String category,
+    String? subcategory,
     required int amountPaise,
     String? vendorName,
     DateTime? date,
@@ -1052,10 +1055,11 @@ class InfraRepository {
     String? notes,
   }) async {
     await _client.rpc(
-      'update_project_expense',
+      'update_project_expense_with_subcategory',
       params: {
         'p_expense_id': expenseId,
         'p_category': category,
+        'p_subcategory': subcategory,
         'p_amount_paise': amountPaise,
         'p_vendor_name': vendorName,
         'p_expense_date': (date ?? DateTime.now())
@@ -1229,6 +1233,7 @@ class InfraRepository {
       id: r['id'] as String,
       projectId: r['project_id'] as String,
       category: r['category']?.toString() ?? 'Miscellaneous',
+      subcategory: r['subcategory']?.toString(),
       vendorName: r['vendor_name']?.toString(),
       amountPaise: (r['amount_paise'] as num?)?.toInt() ?? 0,
       expenseDate: DateTime.tryParse(r['expense_date']?.toString() ?? ''),

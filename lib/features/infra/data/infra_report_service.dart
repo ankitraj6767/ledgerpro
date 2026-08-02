@@ -150,7 +150,7 @@ class InfraReportService {
                   [
                     '${i + 1}',
                     _formatDate(expenses[i].expenseDate),
-                    expenses[i].category,
+                    expenses[i].categoryLabel,
                     _plainNotes(expenses[i].notes),
                     _inr(expenses[i].amountPaise),
                   ],
@@ -465,7 +465,7 @@ class InfraReportService {
                     // Running 1..N index over the printed (sorted) rows.
                     '${i + 1}',
                     _formatDate(sorted[i].expenseDate),
-                    sorted[i].category,
+                    sorted[i].categoryLabel,
                     _plainNotes(sorted[i].notes),
                     _inr(sorted[i].amountPaise),
                   ],
@@ -700,7 +700,7 @@ class InfraReportService {
       kind: 'expense_${expense.id}',
       metrics: [
         _PdfMetric('Expense Amount', _inr(expense.amountPaise), _red),
-        _PdfMetric('Category', expense.category, _blue),
+        _PdfMetric('Category', expense.categoryLabel, _blue),
         _PdfMetric('Payment Mode', _label(expense.paymentMode), _gold),
         _PdfMetric('Expense Date', _formatDate(expense.expenseDate), _orange),
       ],
@@ -709,7 +709,7 @@ class InfraReportService {
           title: 'Expense Details',
           accent: _red,
           rows: [
-            ['Category', expense.category],
+            ['Category', expense.categoryLabel],
             ['Expense Date', _formatDate(expense.expenseDate)],
             ['Payment Mode', _label(expense.paymentMode)],
             ['Created By', _present(expense.createdBy)],

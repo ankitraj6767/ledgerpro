@@ -269,6 +269,7 @@ _ProjectExpense _$ProjectExpenseFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       projectId: json['projectId'] as String,
       category: json['category'] as String? ?? 'Miscellaneous',
+      subcategory: json['subcategory'] as String?,
       vendorName: json['vendorName'] as String?,
       amountPaise: (json['amountPaise'] as num?)?.toInt() ?? 0,
       expenseDate: json['expenseDate'] == null
@@ -295,6 +296,7 @@ Map<String, dynamic> _$ProjectExpenseToJson(_ProjectExpense instance) =>
       'id': instance.id,
       'projectId': instance.projectId,
       'category': instance.category,
+      'subcategory': instance.subcategory,
       'vendorName': instance.vendorName,
       'amountPaise': instance.amountPaise,
       'expenseDate': instance.expenseDate?.toIso8601String(),

@@ -168,4 +168,55 @@ void main() {
       expect(matches, isNot(contains('sand')));
     });
   });
+
+  group('ExpenseCategories hierarchy', () {
+    test(
+      'adds children to canonical categories without losing custom values',
+      () {
+        final catalog = ExpenseCategories.catalog(['fuel', 'Site-specific']);
+        final fuel = catalog.firstWhere((category) => category.name == 'fuel');
+
+        expect(fuel.subcategories, contains('Diesel'));
+        expect(
+          catalog.map((category) => category.name),
+          containsAllInOrder(['fuel', 'Site-specific']),
+        );
+      },
+    );
+
+    test('matches a parent when a child matches the search query', () {
+      final material = ExpenseCategories.hierarchy.firstWhere(
+        (category) => category.name == 'Material',
+      );
+
+      expect(ExpenseCategories.matches(material, 'cement'), isTrue);
+      expect(ExpenseCategories.matches(material, 'unrelated'), isFalse);
+    });
+
+    test('formats a selected child while retaining separate values', () {
+      const selection = ExpenseCategorySelection(
+        category: 'Material',
+        subcategory: 'Cement',
+      );
+
+      expect(selection.displayLabel, 'Material / Cement');
+      expect(
+        const ProjectExpense(
+          id: 'e1',
+          projectId: 'p1',
+          category: 'Material',
+        ).categoryLabel,
+        'Material',
+      );
+      expect(
+        const ProjectExpense(
+          id: 'e2',
+          projectId: 'p1',
+          category: 'Material',
+          subcategory: 'Cement',
+        ).categoryLabel,
+        'Material / Cement',
+      );
+    });
+  });
 }
