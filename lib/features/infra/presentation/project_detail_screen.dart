@@ -15,6 +15,7 @@ import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
 import '../data/infra_report_service.dart';
 import 'infra_forms.dart';
+import 'widgets/project_expense_category_group.dart';
 
 class ProjectDetailScreen extends ConsumerWidget {
   const ProjectDetailScreen({
@@ -2305,10 +2306,18 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     );
   }
 
-  Widget _expenseTile(ProjectExpense e, OrgPermissions permissions) {
+  Widget _expenseTile(
+    ProjectExpense e,
+    OrgPermissions permissions, {
+    bool nested = false,
+  }) {
     final isSelected = _selectedExpenseIds.contains(e.id);
+    final child = e.subcategory?.trim();
+    final title = nested && child != null && child.isNotEmpty
+        ? child
+        : e.categoryLabel;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(left: nested ? 16 : 0, bottom: 10),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(6, 2, 6, 2),
@@ -2326,7 +2335,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
           },
         ),
         title: Text(
-          e.categoryLabel,
+          title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
@@ -2398,6 +2407,38 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildExpenseRows(
+    List<ProjectExpense> sortedExpenses,
+    OrgPermissions permissions,
+  ) {
+    final groups = ProjectExpenseCategoryGroup.fromExpenses(sortedExpenses);
+
+    return [
+      for (final group in groups)
+        if (group.hasSubcategories)
+          ProjectExpenseCategoryGroupSection(
+            key: ValueKey('expense-category-section-${group.categoryKey}'),
+            group: group,
+            isExpenseSelected: _selectedExpenseIds.contains,
+            onGroupSelectionChanged: (expenses, selected) {
+              setState(() {
+                final ids = expenses.map((expense) => expense.id);
+                if (selected) {
+                  _selectedExpenseIds.addAll(ids);
+                } else {
+                  _selectedExpenseIds.removeAll(ids);
+                }
+              });
+            },
+            childBuilder: (context, expense) =>
+                _expenseTile(expense, permissions, nested: true),
+          )
+        else
+          for (final expense in group.expenses)
+            _expenseTile(expense, permissions),
+    ];
   }
 
   @override
@@ -2688,9 +2729,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              ...sortedList.map(
-                                (e) => _expenseTile(e, permissions),
-                              ),
+                              ..._buildExpenseRows(sortedList, permissions),
                             ],
                           ),
                     ),

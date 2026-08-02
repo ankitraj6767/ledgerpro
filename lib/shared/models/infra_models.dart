@@ -408,6 +408,75 @@ extension ProjectExpenseCategoryDisplay on ProjectExpense {
   }
 }
 
+/// A presentation group for the Expenses tab.
+///
+/// This groups the existing expense transactions by their free-text parent
+/// category. It deliberately keeps every transaction in [expenses] so that
+/// expanding a category does not lose duplicate subcategories or any of the
+/// existing edit, delete, selection, and PDF actions.
+class ProjectExpenseCategoryGroup {
+  const ProjectExpenseCategoryGroup({
+    required this.category,
+    required this.categoryKey,
+    required this.expenses,
+  });
+
+  final String category;
+  final String categoryKey;
+  final List<ProjectExpense> expenses;
+
+  bool get hasSubcategories => expenses.any(
+    (expense) => expense.subcategory?.trim().isNotEmpty ?? false,
+  );
+
+  int get totalAmountPaise =>
+      expenses.fold<int>(0, (total, expense) => total + expense.amountPaise);
+
+  /// Groups by category without imposing an enum or changing the order of
+  /// the incoming list. The first spelling is retained for display and
+  /// duplicate category values are merged case-insensitively.
+  static List<ProjectExpenseCategoryGroup> fromExpenses(
+    Iterable<ProjectExpense> expenses,
+  ) {
+    final grouped = <String, _ProjectExpenseCategoryGroupAccumulator>{};
+
+    for (final expense in expenses) {
+      final category = expense.category.trim();
+      final displayCategory = category.isEmpty ? 'General Expense' : category;
+      final categoryKey = displayCategory.toLowerCase();
+      final group = grouped.putIfAbsent(
+        categoryKey,
+        () => _ProjectExpenseCategoryGroupAccumulator(
+          category: displayCategory,
+          categoryKey: categoryKey,
+        ),
+      );
+      group.expenses.add(expense);
+    }
+
+    return grouped.values
+        .map(
+          (group) => ProjectExpenseCategoryGroup(
+            category: group.category,
+            categoryKey: group.categoryKey,
+            expenses: List<ProjectExpense>.unmodifiable(group.expenses),
+          ),
+        )
+        .toList(growable: false);
+  }
+}
+
+class _ProjectExpenseCategoryGroupAccumulator {
+  _ProjectExpenseCategoryGroupAccumulator({
+    required this.category,
+    required this.categoryKey,
+  });
+
+  final String category;
+  final String categoryKey;
+  final List<ProjectExpense> expenses = <ProjectExpense>[];
+}
+
 @freezed
 abstract class ProjectDocument with _$ProjectDocument {
   const factory ProjectDocument({

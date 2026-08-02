@@ -54,6 +54,64 @@ void main() {
     });
   });
 
+  group('Project expense category grouping', () {
+    test('groups free-text parent categories and preserves transactions', () {
+      final groups = ProjectExpenseCategoryGroup.fromExpenses([
+        const ProjectExpense(
+          id: 'biscuit-1',
+          projectId: 'p1',
+          category: 'Biscuit',
+          subcategory: 'vhhh',
+          amountPaise: 555500,
+        ),
+        const ProjectExpense(
+          id: 'labor-1',
+          projectId: 'p1',
+          category: 'Labour',
+          subcategory: 'Skilled',
+          amountPaise: 100000,
+        ),
+        const ProjectExpense(
+          id: 'biscuit-2',
+          projectId: 'p1',
+          category: 'biscuit',
+          subcategory: 'Skilled',
+          amountPaise: 500000,
+        ),
+        const ProjectExpense(
+          id: 'labor-2',
+          projectId: 'p1',
+          category: 'Labour',
+          subcategory: 'unskilled',
+          amountPaise: 500000,
+        ),
+      ]);
+
+      expect(groups.map((group) => group.category), ['Biscuit', 'Labour']);
+      expect(groups.first.expenses.map((expense) => expense.id), [
+        'biscuit-1',
+        'biscuit-2',
+      ]);
+      expect(groups.first.hasSubcategories, isTrue);
+      expect(groups.first.totalAmountPaise, 1055500);
+      expect(groups.last.expenses, hasLength(2));
+    });
+
+    test('keeps parent-only expenses as a non-expandable group', () {
+      final groups = ProjectExpenseCategoryGroup.fromExpenses([
+        const ProjectExpense(
+          id: 'e1',
+          projectId: 'p1',
+          category: 'Miscellaneous',
+          amountPaise: 2500,
+        ),
+      ]);
+
+      expect(groups.single.hasSubcategories, isFalse);
+      expect(groups.single.totalAmountPaise, 2500);
+    });
+  });
+
   group('InfraProject.financialProgressPercent', () {
     InfraProject project({
       required int estimatedCost,
