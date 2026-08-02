@@ -373,6 +373,39 @@ void main() {
       expect(find.text('12.5 MT'), findsWidgets);
     });
 
+    testWidgets('allows selecting multiple challans for the PDF export', (
+      tester,
+    ) async {
+      await pumpChallanScreen(
+        tester,
+        challans: [
+          challan(),
+          challan(id: 'challan-2', number: 'BR2026005555'),
+        ],
+      );
+
+      Finder checkboxFor(int index) => find.descendant(
+        of: find.byType(ChallanCard).at(index),
+        matching: find.byType(Checkbox),
+      );
+
+      await tester.tap(checkboxFor(0));
+      await tester.pumpAndSettle();
+      expect(find.text('1 challan(s) selected'), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.picture_as_pdf_outlined),
+            )
+            .tooltip,
+        'Download selected challans',
+      );
+
+      await tester.tap(checkboxFor(1));
+      await tester.pumpAndSettle();
+      expect(find.text('2 challan(s) selected'), findsOneWidget);
+    });
+
     testWidgets('the PDF export is offered once there is something to export', (
       tester,
     ) async {

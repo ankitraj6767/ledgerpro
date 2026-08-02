@@ -33,10 +33,17 @@ class ChallanScreen extends ConsumerStatefulWidget {
 }
 
 class _ChallanScreenState extends ConsumerState<ChallanScreen> {
+  final Set<String> _selectedChallanIds = <String>{};
+
   @override
   Widget build(BuildContext context) {
     final permissions = ref.watch(currentOrgPermissionsProvider);
     final width = MediaQuery.sizeOf(context).width;
+    final visibleChallans =
+        ref.watch(challansProvider).value ?? const <EPassChallan>[];
+    final hasSelectedVisibleChallans = visibleChallans.any(
+      (challan) => _selectedChallanIds.contains(challan.id),
+    );
 
     // Keep the controller's offline flag in step with connectivity so the portal
     // button and its messaging stay correct.
@@ -77,14 +84,18 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
                 child: Icon(Icons.wifi_off_outlined, size: 20),
               ),
             ),
-          // Exports exactly the challans the current filters show, in the same
-          // order, so the PDF matches the list on screen.
+          if (_selectedChallanIds.isNotEmpty)
+            IconButton(
+              tooltip: 'Clear selected challans',
+              icon: const Icon(Icons.clear_all_outlined),
+              onPressed: _clearChallanSelection,
+            ),
           IconButton(
-            tooltip: 'Download challan PDF',
+            tooltip: hasSelectedVisibleChallans
+                ? 'Download selected challans'
+                : 'Download challan PDF',
             icon: const Icon(Icons.picture_as_pdf_outlined),
-            onPressed: (ref.watch(challansProvider).value ?? const []).isEmpty
-                ? null
-                : _downloadListPdf,
+            onPressed: visibleChallans.isEmpty ? null : _downloadListPdf,
           ),
         ],
       ),
@@ -151,7 +162,13 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
           ),
         const _ListHeader(),
         const SizedBox(height: 12),
-        ChallanList(shrinkWrap: true, onAddChallan: canAdd ? _restart : null),
+        ChallanList(
+          shrinkWrap: true,
+          onAddChallan: canAdd ? _restart : null,
+          selectedChallanIds: _selectedChallanIds,
+          onToggleSelection: _toggleChallanSelection,
+          onClearSelection: _clearChallanSelection,
+        ),
       ],
     );
   }
@@ -175,7 +192,13 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
         ],
         const _ListHeader(),
         const SizedBox(height: 12),
-        ChallanList(shrinkWrap: true, onAddChallan: canAdd ? _restart : null),
+        ChallanList(
+          shrinkWrap: true,
+          onAddChallan: canAdd ? _restart : null,
+          selectedChallanIds: _selectedChallanIds,
+          onToggleSelection: _toggleChallanSelection,
+          onClearSelection: _clearChallanSelection,
+        ),
       ],
     );
   }
@@ -221,7 +244,12 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
                 const _ListHeader(),
                 const SizedBox(height: 12),
                 Expanded(
-                  child: ChallanList(onAddChallan: canAdd ? _restart : null),
+                  child: ChallanList(
+                    onAddChallan: canAdd ? _restart : null,
+                    selectedChallanIds: _selectedChallanIds,
+                    onToggleSelection: _toggleChallanSelection,
+                    onClearSelection: _clearChallanSelection,
+                  ),
                 ),
               ],
             ),
@@ -321,15 +349,27 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
     ref.read(challanFlowControllerProvider.notifier).setManualPayload(payload);
   }
 
-  /// Exports the currently visible challan list as a PDF.
-  ///
-  /// A project is passed to the report only when every exported challan belongs
-  /// to the same one, so a cross-project export never prints one project's
-  /// details on the cover.
+  /// Exports the selected challans, or all currently visible challans when
+  /// nothing is selected. Each challan is written to its own PDF page.
   Future<void> _downloadListPdf() async {
     final messenger = ScaffoldMessenger.of(context);
-    final challans = ref.read(challansProvider).value ?? const [];
-    if (challans.isEmpty) return;
+    final visibleChallans =
+        ref.read(challansProvider).value ?? const <EPassChallan>[];
+    final challans = _selectedChallanIds.isEmpty
+        ? visibleChallans
+        : visibleChallans
+              .where((challan) => _selectedChallanIds.contains(challan.id))
+              .toList(growable: false);
+    if (challans.isEmpty) {
+      if (_selectedChallanIds.isNotEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('No selected challans match the current filters.'),
+          ),
+        );
+      }
+      return;
+    }
 
     try {
       final org = await ref.read(infraWorkspaceProvider.future);
@@ -361,6 +401,19 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
         SnackBar(content: Text('Could not generate PDF: $error')),
       );
     }
+  }
+
+  void _toggleChallanSelection(String challanId) {
+    setState(() {
+      if (!_selectedChallanIds.add(challanId)) {
+        _selectedChallanIds.remove(challanId);
+      }
+    });
+  }
+
+  void _clearChallanSelection() {
+    if (_selectedChallanIds.isEmpty) return;
+    setState(_selectedChallanIds.clear);
   }
 
   Future<void> _save() async {

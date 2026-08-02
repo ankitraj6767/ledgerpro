@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -132,6 +133,7 @@ void main() {
 
       expect(file.existsSync(), isTrue);
       expect(await file.length(), greaterThan(2000));
+      expect(_pdfPageCount(await file.readAsBytes()), 1);
     });
 
     test('a challan with almost every optional field null still renders',
@@ -204,6 +206,7 @@ void main() {
       expect(file.existsSync(), isTrue);
       expect(file.path, contains('challans'));
       expect(await file.length(), greaterThan(2000));
+      expect(_pdfPageCount(await file.readAsBytes()), 3);
     });
 
     test('a cross-project export needs no project', () async {
@@ -270,4 +273,9 @@ void main() {
       expect(ChallanDates.istDay(null), '-');
     });
   });
+}
+
+int _pdfPageCount(List<int> bytes) {
+  final source = latin1.decode(bytes, allowInvalid: true);
+  return RegExp(r'/Type\s*/Page(?!s)').allMatches(source).length;
 }

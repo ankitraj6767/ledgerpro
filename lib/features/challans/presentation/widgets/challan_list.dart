@@ -15,13 +15,26 @@ import 'challan_card.dart';
 
 /// Searchable, filterable list of saved challans.
 class ChallanList extends ConsumerStatefulWidget {
-  const ChallanList({super.key, this.onAddChallan, this.shrinkWrap = false});
+  const ChallanList({
+    super.key,
+    this.onAddChallan,
+    this.shrinkWrap = false,
+    this.selectedChallanIds = const <String>{},
+    this.onToggleSelection,
+    this.onClearSelection,
+  });
 
   /// Wired to the empty state's primary action.
   final VoidCallback? onAddChallan;
 
   /// True when embedded inside another scrollable (desktop split layout).
   final bool shrinkWrap;
+
+  /// Selected records are owned by the parent screen so the app-bar PDF action
+  /// can export the same selection regardless of the responsive layout.
+  final Set<String> selectedChallanIds;
+  final ValueChanged<String>? onToggleSelection;
+  final VoidCallback? onClearSelection;
 
   @override
   ConsumerState<ChallanList> createState() => _ChallanListState();
@@ -84,7 +97,12 @@ class _ChallanListState extends ConsumerState<ChallanList> {
           itemBuilder: (context, index) {
             final challan = challans[index];
             return ChallanCard(
+              key: ValueKey(challan.id),
               challan: challan,
+              selected: widget.selectedChallanIds.contains(challan.id),
+              onSelectionChanged: widget.onToggleSelection == null
+                  ? null
+                  : (_) => widget.onToggleSelection!(challan.id),
               onTap: () => context.push(AppRoutes.challanDetail(challan.id)),
             );
           },
@@ -99,8 +117,45 @@ class _ChallanListState extends ConsumerState<ChallanList> {
         const SizedBox(height: 10),
         _filterBar(filter),
         const SizedBox(height: 12),
+        if (widget.onToggleSelection != null &&
+            widget.selectedChallanIds.isNotEmpty)
+          _selectionBar(),
         if (widget.shrinkWrap) content else Expanded(child: content),
       ],
+    );
+  }
+
+  Widget _selectionBar() {
+    return Card(
+      color: InfraColors.royalBlue.withValues(alpha: 0.08),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.check_box_outlined,
+              size: 18,
+              color: InfraColors.royalBlue,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${widget.selectedChallanIds.length} challan(s) selected',
+                style: const TextStyle(
+                  color: InfraColors.navy,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (widget.onClearSelection != null)
+              TextButton(
+                onPressed: widget.onClearSelection,
+                child: const Text('Clear'),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

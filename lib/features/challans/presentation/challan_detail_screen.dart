@@ -265,11 +265,7 @@ class ChallanDetailScreen extends ConsumerWidget {
   static String _portalLabel(String sourcePortal) =>
       ChallanPortalMapping.fromDb(sourcePortal).displayName;
 
-  /// Generates the challan PDF and hands it to the OS.
-  ///
-  /// Mirrors the expense/investment detail exports: the same report service, the
-  /// same premium layout, the same share-or-reveal behaviour, so a challan PDF
-  /// is indistinguishable in style from the rest of the app's reports.
+  /// Generates the compact one-page challan PDF and hands it to the OS.
   Future<void> _downloadPdf(
     BuildContext context,
     WidgetRef ref,

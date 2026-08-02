@@ -7,10 +7,18 @@ import '../../domain/challan_status.dart';
 
 /// One row in the recent-challan list.
 class ChallanCard extends StatelessWidget {
-  const ChallanCard({super.key, required this.challan, this.onTap});
+  const ChallanCard({
+    super.key,
+    required this.challan,
+    this.onTap,
+    this.selected = false,
+    this.onSelectionChanged,
+  });
 
   final EPassChallan challan;
   final VoidCallback? onTap;
+  final bool selected;
+  final ValueChanged<bool?>? onSelectionChanged;
 
   static final _dayFormat = DateFormat('dd MMM yyyy');
 
@@ -23,98 +31,116 @@ class ChallanCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      challan.challanNumber,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                      ),
-                    ),
+              if (onSelectionChanged != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Checkbox(
+                    value: selected,
+                    visualDensity: VisualDensity.compact,
+                    onChanged: onSelectionChanged,
                   ),
-                  const SizedBox(width: 8),
-                  ChallanStatusBadge(status: challan.verificationStatus),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                challan.projectName ?? 'Project',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: InfraColors.royalBlue,
                 ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 14,
-                runSpacing: 6,
-                children: [
-                  _Fact(
-                    icon: Icons.event_outlined,
-                    text: challan.challanDate == null
-                        ? 'No date'
-                        : _dayFormat.format(_toIst(challan.challanDate!)),
-                  ),
-                  _Fact(
-                    icon: Icons.landscape_outlined,
-                    text: challan.portalMineralName.isEmpty
-                        ? '—'
-                        : challan.portalMineralName,
-                  ),
-                  _Fact(
-                    icon: Icons.scale_outlined,
-                    text: challan.quantityLabel,
-                  ),
-                  _Fact(
-                    icon: Icons.local_shipping_outlined,
-                    text: challan.vehicleNumber,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    challan.verificationMethod ==
-                            ChallanVerificationMethod.webviewHumanVerification
-                        ? Icons.shield_outlined
-                        : Icons.edit_note_outlined,
-                    size: 12,
-                    color: InfraColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      challan.verificationMethod.label,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            challan.challanNumber,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ChallanStatusBadge(status: challan.verificationStatus),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      challan.projectName ?? 'Project',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 10.5,
-                        color: InfraColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: InfraColors.royalBlue,
                       ),
                     ),
-                  ),
-                  if (challan.hasMaterialMismatch)
-                    const Tooltip(
-                      message: 'Selected material differs from portal mineral',
-                      child: Icon(
-                        Icons.warning_amber_outlined,
-                        size: 14,
-                        color: InfraColors.orange,
-                      ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 6,
+                      children: [
+                        _Fact(
+                          icon: Icons.event_outlined,
+                          text: challan.challanDate == null
+                              ? 'No date'
+                              : _dayFormat.format(_toIst(challan.challanDate!)),
+                        ),
+                        _Fact(
+                          icon: Icons.landscape_outlined,
+                          text: challan.portalMineralName.isEmpty
+                              ? '—'
+                              : challan.portalMineralName,
+                        ),
+                        _Fact(
+                          icon: Icons.scale_outlined,
+                          text: challan.quantityLabel,
+                        ),
+                        _Fact(
+                          icon: Icons.local_shipping_outlined,
+                          text: challan.vehicleNumber,
+                        ),
+                      ],
                     ),
-                ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          challan.verificationMethod ==
+                                  ChallanVerificationMethod
+                                      .webviewHumanVerification
+                              ? Icons.shield_outlined
+                              : Icons.edit_note_outlined,
+                          size: 12,
+                          color: InfraColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            challan.verificationMethod.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              color: InfraColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        if (challan.hasMaterialMismatch)
+                          const Tooltip(
+                            message:
+                                'Selected material differs from portal mineral',
+                            child: Icon(
+                              Icons.warning_amber_outlined,
+                              size: 14,
+                              color: InfraColors.orange,
+                            ),
+                          ),
+                      ],
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
