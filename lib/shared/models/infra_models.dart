@@ -147,127 +147,47 @@ class ExpenseCategorySelection {
   int get hashCode => Object.hash(category, subcategory);
 }
 
-/// Canonical expense categories for infrastructure projects.
+/// Dynamic expense categories learned from the values already used in a
+/// project. Categories and subcategories remain free text; this class only
+/// groups saved values to make them easier to select again.
 class ExpenseCategories {
   const ExpenseCategories._();
 
-  /// The default hierarchy used by the category picker. Existing custom
-  /// categories are added as leaf nodes by [catalog].
-  static const hierarchy = <ExpenseCategory>[
-    ExpenseCategory(
-      name: 'Material',
-      subcategories: <String>[
-        'Cement',
-        'Steel',
-        'Sand',
-        'Bricks',
-        'Aggregate',
-        'Other Material',
-      ],
-    ),
-    ExpenseCategory(
-      name: 'Labor',
-      subcategories: <String>[
-        'Skilled Labor',
-        'Unskilled Labor',
-        'Contractor Labor',
-      ],
-    ),
-    ExpenseCategory(
-      name: 'Machine Rent',
-      subcategories: <String>[
-        'Excavator / JCB',
-        'Crane',
-        'Tractor',
-        'Other Machine',
-      ],
-    ),
-    ExpenseCategory(
-      name: 'Transport',
-      subcategories: <String>[
-        'Material Delivery',
-        'Freight',
-        'Local Transport',
-        'Other Transport',
-      ],
-    ),
-    ExpenseCategory(
-      name: 'Government Fees',
-      subcategories: <String>[
-        'Permit Fees',
-        'Inspection Fees',
-        'Taxes',
-        'Other Government Fees',
-      ],
-    ),
-    ExpenseCategory(
-      name: 'Contractor',
-      subcategories: <String>[
-        'Subcontractor Advance',
-        'Retention',
-        'Other Contractor',
-      ],
-    ),
-    ExpenseCategory(
-      name: 'Site Office',
-      subcategories: <String>[
-        'Office Rent',
-        'Utilities',
-        'Stationery',
-        'Communication',
-      ],
-    ),
-    ExpenseCategory(
-      name: 'Fuel',
-      subcategories: <String>['Diesel', 'Petrol', 'Lubricants', 'Other Fuel'],
-    ),
-    ExpenseCategory(
-      name: 'Miscellaneous',
-      subcategories: <String>['Travel', 'Meals', 'Repairs', 'Bank Charges'],
-    ),
-    ExpenseCategory(name: 'Other'),
-  ];
+  /// Builds a category tree from saved parent/child values without imposing
+  /// an enum. The first spelling encountered is retained while duplicate
+  /// values are merged case-insensitively.
+  static List<ExpenseCategory> fromSelections(
+    Iterable<ExpenseCategorySelection> selections,
+  ) {
+    final grouped = <String, _ExpenseCategoryAccumulator>{};
+    for (final selection in selections) {
+      final categoryName = selection.category.trim();
+      if (categoryName.isEmpty) continue;
 
-  static const values = <String>[
-    'Material',
-    'Labor',
-    'Machine Rent',
-    'Transport',
-    'Government Fees',
-    'Contractor',
-    'Site Office',
-    'Fuel',
-    'Miscellaneous',
-    'Other',
-  ];
-
-  /// Returns the canonical hierarchy plus any existing custom categories.
-  ///
-  /// Existing values are placed first, matching the old autocomplete ordering.
-  /// A case-insensitive match with a canonical category keeps the existing
-  /// spelling while gaining that category's subcategories.
-  static List<ExpenseCategory> catalog(Iterable<String> existing) {
-    final categories = <String, ExpenseCategory>{};
-    for (final value in existing) {
-      final trimmed = value.trim();
-      if (trimmed.isNotEmpty) {
-        categories.putIfAbsent(
-          trimmed.toLowerCase(),
-          () => ExpenseCategory(name: trimmed),
+      final categoryKey = categoryName.toLowerCase();
+      final category = grouped.putIfAbsent(
+        categoryKey,
+        () => _ExpenseCategoryAccumulator(categoryName),
+      );
+      final subcategoryName = selection.subcategory?.trim();
+      if (subcategoryName != null && subcategoryName.isNotEmpty) {
+        category.subcategories.putIfAbsent(
+          subcategoryName.toLowerCase(),
+          () => subcategoryName,
         );
       }
     }
 
-    for (final canonical in hierarchy) {
-      final key = canonical.name.toLowerCase();
-      final existingCategory = categories[key];
-      categories[key] = ExpenseCategory(
-        name: existingCategory?.name ?? canonical.name,
-        subcategories: canonical.subcategories,
-      );
-    }
-
-    return categories.values.toList(growable: false);
+    return grouped.values
+        .map(
+          (category) => ExpenseCategory(
+            name: category.name,
+            subcategories: category.subcategories.values.toList(
+              growable: false,
+            ),
+          ),
+        )
+        .toList(growable: false);
   }
 
   static bool matches(ExpenseCategory category, String query) {
@@ -279,12 +199,12 @@ class ExpenseCategories {
         );
   }
 
-  /// Existing project categories first, followed by the canonical defaults.
-  /// Matching is case-insensitive so values such as "fuel" and "Fuel" are
-  /// offered only once while preserving the user's most recent spelling.
+  /// Existing project categories in first-seen order. Matching is
+  /// case-insensitive so values such as "fuel" and "Fuel" are offered only
+  /// once while preserving the first saved spelling.
   static List<String> suggestions(Iterable<String> existing) {
     final unique = <String, String>{};
-    for (final category in [...existing, ...values]) {
+    for (final category in existing) {
       final trimmed = category.trim();
       if (trimmed.isNotEmpty) {
         unique.putIfAbsent(trimmed.toLowerCase(), () => trimmed);
@@ -300,6 +220,13 @@ class ExpenseCategories {
       (category) => category.toLowerCase().contains(normalized),
     );
   }
+}
+
+class _ExpenseCategoryAccumulator {
+  _ExpenseCategoryAccumulator(this.name);
+
+  final String name;
+  final Map<String, String> subcategories = <String, String>{};
 }
 
 @freezed

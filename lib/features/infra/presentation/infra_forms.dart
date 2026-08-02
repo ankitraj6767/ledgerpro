@@ -267,6 +267,8 @@ class ExpenseFormScreen extends ConsumerStatefulWidget {
 class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   final _category = TextEditingController();
   final _categoryFocus = FocusNode();
+  final _subcategory = TextEditingController();
+  final _subcategoryFocus = FocusNode();
   final _amount = TextEditingController();
   final _vendor = TextEditingController();
   final _billNumber = TextEditingController();
@@ -274,7 +276,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   String _paymentMode = 'cash';
   DateTime _date = DateTime.now();
   bool _saving = false;
-  ExpenseCategorySelection? _categorySelection;
 
   bool get _isEditing => widget.expense != null;
 
@@ -287,11 +288,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       _vendor.text = e.vendorName ?? '';
       _billNumber.text = e.billNumber ?? '';
       _notes.text = e.notes ?? '';
-      _categorySelection = ExpenseCategorySelection(
-        category: e.category,
-        subcategory: e.subcategory,
-      );
-      _category.text = _categorySelection!.displayLabel;
+      _category.text = e.category;
+      _subcategory.text = e.subcategory ?? '';
       _paymentMode = e.paymentMode;
       _date = e.expenseDate ?? DateTime.now();
     }
@@ -301,6 +299,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   void dispose() {
     _category.dispose();
     _categoryFocus.dispose();
+    _subcategory.dispose();
+    _subcategoryFocus.dispose();
     _amount.dispose();
     _vendor.dispose();
     _billNumber.dispose();
@@ -325,10 +325,18 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       return const AccessDeniedScreen();
     }
 
-    final categoryCatalog = ExpenseCategories.catalog(
-      existingExpenses.value?.map((expense) => expense.category) ??
-          const <String>[],
-    );
+    final categoryCatalog = ExpenseCategories.fromSelections([
+      for (final expense in existingExpenses.value ?? const <ProjectExpense>[])
+        ExpenseCategorySelection(
+          category: expense.category,
+          subcategory: expense.subcategory,
+        ),
+      if (widget.expense != null)
+        ExpenseCategorySelection(
+          category: widget.expense!.category,
+          subcategory: widget.expense!.subcategory,
+        ),
+    ]);
 
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Edit Expense' : 'Add Expense')),
@@ -336,6 +344,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _categoryAutocomplete(categoryCatalog),
+          const SizedBox(height: 12),
+          _subcategoryAutocomplete(categoryCatalog),
           const SizedBox(height: 12),
           _amountField(_amount, 'Amount (₹)'),
           const SizedBox(height: 12),
@@ -371,6 +381,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     return RawAutocomplete<ExpenseCategorySelection>(
       textEditingController: _category,
       focusNode: _categoryFocus,
+      displayStringForOption: (selection) => selection.category,
       optionsBuilder: (value) => catalog
           .where((category) => ExpenseCategories.matches(category, value.text))
           .map((category) => ExpenseCategorySelection(category: category.name)),
@@ -382,7 +393,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             onChanged: _handleCategoryChanged,
             onSubmitted: (_) => onSubmitted(),
             decoration: const InputDecoration(
-              labelText: 'Category / use case',
+              labelText: 'Category',
               prefixIcon: Icon(Icons.category_outlined),
             ),
           ),
@@ -409,7 +420,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                         ),
                       )
                       .toList(growable: false),
-                  query: _category.text,
                   onSelected: onSelected,
                 ),
               ),
@@ -420,20 +430,90 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  void _handleCategoryChanged(String value) {
-    final selection = _categorySelection;
-    if (selection != null && value != selection.displayLabel) {
-      setState(() => _categorySelection = null);
+  Widget _subcategoryAutocomplete(List<ExpenseCategory> catalog) {
+    return RawAutocomplete<String>(
+      textEditingController: _subcategory,
+      focusNode: _subcategoryFocus,
+      optionsBuilder: (value) {
+        final category = _findCategory(catalog, _category.text);
+        if (category == null) return const <String>[];
+        final query = value.text.trim().toLowerCase();
+        return category.subcategories.where(
+          (subcategory) =>
+              query.isEmpty || subcategory.toLowerCase().contains(query),
+        );
+      },
+      onSelected: (subcategory) => _setText(_subcategory, subcategory),
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) =>
+          TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onSubmitted: (_) => onSubmitted(),
+            decoration: const InputDecoration(
+              labelText: 'Subcategory',
+              prefixIcon: Icon(Icons.subdirectory_arrow_right),
+            ),
+          ),
+      optionsViewBuilder: (context, onSelected, options) {
+        final availableWidth = MediaQuery.sizeOf(context).width - 32;
+        final width = availableWidth < 600 ? availableWidth : 600.0;
+        final subcategories = options.toList(growable: false);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              width: width,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 240),
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: subcategories.length,
+                  itemBuilder: (context, index) {
+                    final subcategory = subcategories[index];
+                    return ListTile(
+                      leading: const Icon(Icons.subdirectory_arrow_right),
+                      title: Text(subcategory),
+                      onTap: () => onSelected(subcategory),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  ExpenseCategory? _findCategory(List<ExpenseCategory> catalog, String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    for (final category in catalog) {
+      if (category.name.toLowerCase() == normalized) return category;
     }
+    return null;
+  }
+
+  void _handleCategoryChanged(String value) {
+    if (_subcategory.text.isNotEmpty) _subcategory.clear();
   }
 
   void _selectCategory(ExpenseCategorySelection selection) {
-    setState(() => _categorySelection = selection);
-    _category.value = TextEditingValue(
-      text: selection.displayLabel,
-      selection: TextSelection.collapsed(offset: selection.displayLabel.length),
-    );
+    _setText(_category, selection.category.trim());
+    _setText(_subcategory, selection.subcategory?.trim() ?? '');
     _categoryFocus.unfocus();
+    _subcategoryFocus.unfocus();
+  }
+
+  void _setText(TextEditingController controller, String value) {
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
   }
 
   Future<void> _save() async {
@@ -448,21 +528,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       );
       return;
     }
-    final typedCategory = _category.text.trim();
-    final selectedCategory = _categorySelection;
-    final category =
-        selectedCategory != null &&
-            typedCategory == selectedCategory.displayLabel
-        ? selectedCategory.category.trim()
-        : typedCategory;
-    final subcategory =
-        selectedCategory != null &&
-            typedCategory == selectedCategory.displayLabel
-        ? selectedCategory.subcategory?.trim()
-        : null;
+    final category = _category.text.trim();
+    final typedSubcategory = _subcategory.text.trim();
+    final subcategory = typedSubcategory.isEmpty ? null : typedSubcategory;
     if (category.isEmpty) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Enter a category or use case.')),
+        const SnackBar(content: Text('Enter a category.')),
       );
       return;
     }

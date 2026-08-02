@@ -170,27 +170,38 @@ void main() {
   });
 
   group('ExpenseCategories hierarchy', () {
-    test(
-      'adds children to canonical categories without losing custom values',
-      () {
-        final catalog = ExpenseCategories.catalog(['fuel', 'Site-specific']);
-        final fuel = catalog.firstWhere((category) => category.name == 'fuel');
+    test('builds children from arbitrary saved values', () {
+      final catalog = ExpenseCategories.fromSelections([
+        const ExpenseCategorySelection(
+          category: 'Labor',
+          subcategory: 'Unskilled Labor',
+        ),
+        const ExpenseCategorySelection(
+          category: 'labor',
+          subcategory: 'Skilled Labor',
+        ),
+        const ExpenseCategorySelection(category: 'Labor'),
+        const ExpenseCategorySelection(
+          category: 'Site-specific',
+          subcategory: 'Night shift',
+        ),
+      ]);
 
-        expect(fuel.subcategories, contains('Diesel'));
-        expect(
-          catalog.map((category) => category.name),
-          containsAllInOrder(['fuel', 'Site-specific']),
-        );
-      },
-    );
+      expect(catalog, hasLength(2));
+      expect(catalog.first.name, 'Labor');
+      expect(catalog.first.subcategories, ['Unskilled Labor', 'Skilled Labor']);
+      expect(catalog.last.name, 'Site-specific');
+      expect(catalog.last.subcategories, ['Night shift']);
+    });
 
-    test('matches a parent when a child matches the search query', () {
-      final material = ExpenseCategories.hierarchy.firstWhere(
-        (category) => category.name == 'Material',
+    test('matches a saved parent when a child matches the query', () {
+      const labor = ExpenseCategory(
+        name: 'Labor',
+        subcategories: ['Unskilled Labor', 'Skilled Labor'],
       );
 
-      expect(ExpenseCategories.matches(material, 'cement'), isTrue);
-      expect(ExpenseCategories.matches(material, 'unrelated'), isFalse);
+      expect(ExpenseCategories.matches(labor, 'skilled'), isTrue);
+      expect(ExpenseCategories.matches(labor, 'unrelated'), isFalse);
     });
 
     test('formats a selected child while retaining separate values', () {

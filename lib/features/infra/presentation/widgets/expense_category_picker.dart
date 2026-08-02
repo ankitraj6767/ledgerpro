@@ -6,17 +6,16 @@ import '../../../../shared/models/infra_models.dart';
 ///
 /// Expansion is intentionally tracked by category name, so opening one parent
 /// never expands its siblings. Children are rendered only while their own
-/// parent is expanded.
+/// parent is explicitly expanded. The list receives saved project values, so
+/// it never limits users to a hard-coded category or subcategory enum.
 class ExpenseCategoryOptionsView extends StatefulWidget {
   const ExpenseCategoryOptionsView({
     super.key,
     required this.categories,
-    required this.query,
     required this.onSelected,
   });
 
   final List<ExpenseCategory> categories;
-  final String query;
   final ValueChanged<ExpenseCategorySelection> onSelected;
 
   @override
@@ -28,17 +27,8 @@ class _ExpenseCategoryOptionsViewState
     extends State<ExpenseCategoryOptionsView> {
   final Set<String> _expandedCategories = <String>{};
 
-  bool _matchesChild(ExpenseCategory category) {
-    final query = widget.query.trim().toLowerCase();
-    return query.isNotEmpty &&
-        category.subcategories.any(
-          (subcategory) => subcategory.toLowerCase().contains(query),
-        );
-  }
-
   bool _isExpanded(ExpenseCategory category) {
-    return _expandedCategories.contains(category.name) ||
-        _matchesChild(category);
+    return _expandedCategories.contains(category.name);
   }
 
   void _toggle(ExpenseCategory category) {

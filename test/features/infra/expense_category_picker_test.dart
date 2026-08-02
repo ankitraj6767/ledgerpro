@@ -17,7 +17,6 @@ void main() {
             height: 600,
             child: ExpenseCategoryOptionsView(
               categories: categories,
-              query: '',
               onSelected: (_) {},
             ),
           ),
@@ -62,7 +61,6 @@ void main() {
               categories: const [
                 ExpenseCategory(name: 'Item', subcategories: ['item1']),
               ],
-              query: '',
               onSelected: (value) => selected = value,
             ),
           ),
