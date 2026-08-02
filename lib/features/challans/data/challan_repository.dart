@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/challan_exceptions.dart';
 import '../domain/challan_models.dart';
+import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
 import '../domain/material_type.dart';
 
@@ -53,6 +54,9 @@ class ChallanRepository {
 
       if (filter.projectId != null) {
         query = query.eq('project_id', filter.projectId!);
+      }
+      if (filter.portal != null) {
+        query = query.eq('source_portal', filter.portal!.dbValue);
       }
       if (filter.status != null) {
         query = query.eq('verification_status', filter.status!.dbValue);

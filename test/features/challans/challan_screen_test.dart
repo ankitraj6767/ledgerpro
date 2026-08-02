@@ -119,8 +119,17 @@ void main() {
       expect(find.text('Continue'), findsOneWidget);
     });
 
-    testWidgets('offers every required material option', (tester) async {
+    testWidgets('offers every required material option in a dropdown', (
+      tester,
+    ) async {
       await pumpChallanScreen(tester);
+
+      final dropdown = find.byType(
+        DropdownButtonFormField<ChallanMaterialType?>,
+      );
+      expect(dropdown, findsOneWidget);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
 
       for (final label in [
         'Sand',
@@ -129,9 +138,11 @@ void main() {
         'Aggregate',
         'Boulder',
         'Dust',
+        'Gitti',
+        'Balu',
         'Other',
       ]) {
-        expect(find.widgetWithText(ChoiceChip, label), findsOneWidget);
+        expect(find.text(label), findsOneWidget);
       }
     });
 
@@ -475,6 +486,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Project'), findsWidgets);
+      expect(find.text('State'), findsWidgets);
       expect(find.text('Material'), findsWidgets);
       expect(find.text('Status'), findsWidgets);
       expect(find.text('Date range'), findsWidgets);

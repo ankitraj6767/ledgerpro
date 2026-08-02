@@ -252,6 +252,7 @@ abstract class ChallanFilter with _$ChallanFilter {
   const factory ChallanFilter({
     @Default('') String query,
     String? projectId,
+    ChallanPortal? portal,
     ChallanMaterialType? materialType,
     ChallanVerificationStatus? status,
     DateTime? fromDate,
@@ -264,6 +265,7 @@ abstract class ChallanFilter with _$ChallanFilter {
   bool get isActive =>
       query.trim().isNotEmpty ||
       projectId != null ||
+      portal != null ||
       materialType != null ||
       status != null ||
       fromDate != null ||
@@ -272,6 +274,7 @@ abstract class ChallanFilter with _$ChallanFilter {
   int get activeCount => [
     query.trim().isNotEmpty,
     projectId != null,
+    portal != null,
     materialType != null,
     status != null,
     fromDate != null || toDate != null,

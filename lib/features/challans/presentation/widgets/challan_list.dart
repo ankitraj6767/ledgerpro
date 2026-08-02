@@ -9,6 +9,7 @@ import '../../../../data/repositories/infra_repository.dart';
 import '../../../../shared/components/infra_components.dart';
 import '../../application/challan_providers.dart';
 import '../../domain/challan_models.dart';
+import '../../domain/challan_portal.dart';
 import '../../domain/challan_status.dart';
 import '../../domain/material_type.dart';
 import 'challan_card.dart';
@@ -160,6 +161,11 @@ class _ChallanListState extends ConsumerState<ChallanList> {
               challan.projectId != filter.projectId) {
             return false;
           }
+          if (filter.portal != null &&
+              ChallanPortalMapping.fromDb(challan.sourcePortal) !=
+                  filter.portal) {
+            return false;
+          }
           if (filter.materialType != null &&
               challan.selectedMaterialType != filter.materialType) {
             return false;
@@ -263,6 +269,18 @@ class _ChallanListState extends ConsumerState<ChallanList> {
             options: [for (final p in projects) (p.id, p.name)],
             onSelected: (value) =>
                 ref.read(challanFiltersProvider.notifier).setProject(value),
+          ),
+          const SizedBox(width: 8),
+          _FilterChip<ChallanPortal>(
+            label: 'State',
+            value: filter.portal,
+            display: (portal) => portal.stateName,
+            options: [
+              for (final portal in ChallanPortal.values)
+                (portal, portal.stateName),
+            ],
+            onSelected: (value) =>
+                ref.read(challanFiltersProvider.notifier).setPortal(value),
           ),
           const SizedBox(width: 8),
           _FilterChip<ChallanMaterialType>(

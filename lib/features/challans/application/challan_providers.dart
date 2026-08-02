@@ -56,6 +56,8 @@ class ChallanFiltersController extends Notifier<ChallanFilter> {
 
   void setProject(String? projectId) => state = _copy(projectId: projectId);
 
+  void setPortal(ChallanPortal? portal) => state = _copy(portal: portal);
+
   void setMaterial(ChallanMaterialType? material) =>
       state = _copy(materialType: material);
 
@@ -72,6 +74,7 @@ class ChallanFiltersController extends Notifier<ChallanFilter> {
   ChallanFilter _copy({
     String? query,
     Object? projectId = _unset,
+    Object? portal = _unset,
     Object? materialType = _unset,
     Object? status = _unset,
     Object? fromDate = _unset,
@@ -80,6 +83,7 @@ class ChallanFiltersController extends Notifier<ChallanFilter> {
     return ChallanFilter(
       query: query ?? state.query,
       projectId: projectId == _unset ? state.projectId : projectId as String?,
+      portal: portal == _unset ? state.portal : portal as ChallanPortal?,
       materialType: materialType == _unset
           ? state.materialType
           : materialType as ChallanMaterialType?,

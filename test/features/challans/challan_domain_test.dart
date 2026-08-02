@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_models.dart';
+import 'package:ledgerpro_mobile/features/challans/domain/challan_portal.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_status.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/material_type.dart';
 import 'package:ledgerpro_mobile/shared/models/infra_models.dart';
@@ -47,6 +48,14 @@ void main() {
       expect(ChallanMaterialType.sand.matchesPortalMineral('बालू'), isTrue);
       expect(
         ChallanMaterialType.aggregate.matchesPortalMineral('Stone Chips'),
+        isTrue,
+      );
+      expect(
+        ChallanMaterialType.gitti.matchesPortalMineral('Stone Chips'),
+        isTrue,
+      );
+      expect(
+        ChallanMaterialType.balu.matchesPortalMineral('SAND (BALU)'),
         isTrue,
       );
       expect(
@@ -236,6 +245,10 @@ void main() {
           materialType: ChallanMaterialType.sand,
         ).activeCount,
         3,
+      );
+      expect(
+        const ChallanFilter(portal: ChallanPortal.jharkhand).activeCount,
+        1,
       );
     });
   });

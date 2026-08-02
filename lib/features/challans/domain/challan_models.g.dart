@@ -158,6 +158,8 @@ const _$ChallanMaterialTypeEnumMap = {
   ChallanMaterialType.aggregate: 'aggregate',
   ChallanMaterialType.boulder: 'boulder',
   ChallanMaterialType.dust: 'dust',
+  ChallanMaterialType.gitti: 'gitti',
+  ChallanMaterialType.balu: 'balu',
   ChallanMaterialType.other: 'other',
 };
 
@@ -275,6 +277,7 @@ _ChallanFilter _$ChallanFilterFromJson(Map<String, dynamic> json) =>
     _ChallanFilter(
       query: json['query'] as String? ?? '',
       projectId: json['projectId'] as String?,
+      portal: $enumDecodeNullable(_$ChallanPortalEnumMap, json['portal']),
       materialType: $enumDecodeNullable(
         _$ChallanMaterialTypeEnumMap,
         json['materialType'],
@@ -295,8 +298,15 @@ Map<String, dynamic> _$ChallanFilterToJson(_ChallanFilter instance) =>
     <String, dynamic>{
       'query': instance.query,
       'projectId': instance.projectId,
+      'portal': _$ChallanPortalEnumMap[instance.portal],
       'materialType': _$ChallanMaterialTypeEnumMap[instance.materialType],
       'status': _$ChallanVerificationStatusEnumMap[instance.status],
       'fromDate': instance.fromDate?.toIso8601String(),
       'toDate': instance.toDate?.toIso8601String(),
     };
+
+const _$ChallanPortalEnumMap = {
+  ChallanPortal.bihar: 'bihar',
+  ChallanPortal.jharkhand: 'jharkhand',
+  ChallanPortal.madhyaPradesh: 'madhyaPradesh',
+};

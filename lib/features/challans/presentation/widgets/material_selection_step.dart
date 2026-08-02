@@ -104,18 +104,25 @@ class _MaterialSelectionStepState extends ConsumerState<MaterialSelectionStep> {
 
           const _FieldLabel('Material type'),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
+          DropdownButtonFormField<ChallanMaterialType?>(
+            initialValue: state.materialType,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              hintText: 'Select material type',
+              prefixIcon: Icon(Icons.landscape_outlined),
+            ),
+            items: [
+              const DropdownMenuItem<ChallanMaterialType?>(
+                value: null,
+                child: Text('Not specified'),
+              ),
               for (final material in ChallanMaterialType.values)
-                ChoiceChip(
-                  label: Text(material.label),
-                  selected: state.materialType == material,
-                  onSelected: (selected) =>
-                      controller.selectMaterial(selected ? material : null),
+                DropdownMenuItem<ChallanMaterialType?>(
+                  value: material,
+                  child: Text(material.label),
                 ),
             ],
+            onChanged: controller.selectMaterial,
           ),
           const SizedBox(height: 6),
           const Text(

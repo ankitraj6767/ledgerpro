@@ -3,7 +3,17 @@
 /// The selection is a *hint* only. After the portal capture the extracted
 /// "Mineral Name" is stored separately in `portal_mineral_name`, and a mismatch
 /// is surfaced to the user rather than silently overwritten.
-enum ChallanMaterialType { sand, stone, brick, aggregate, boulder, dust, other }
+enum ChallanMaterialType {
+  sand,
+  stone,
+  brick,
+  aggregate,
+  boulder,
+  dust,
+  gitti,
+  balu,
+  other,
+}
 
 extension ChallanMaterialTypeMapping on ChallanMaterialType {
   static const _labels = <ChallanMaterialType, String>{
@@ -13,6 +23,8 @@ extension ChallanMaterialTypeMapping on ChallanMaterialType {
     ChallanMaterialType.aggregate: 'Aggregate',
     ChallanMaterialType.boulder: 'Boulder',
     ChallanMaterialType.dust: 'Dust',
+    ChallanMaterialType.gitti: 'Gitti',
+    ChallanMaterialType.balu: 'Balu',
     ChallanMaterialType.other: 'Other',
   };
 
@@ -44,6 +56,15 @@ extension ChallanMaterialTypeMapping on ChallanMaterialType {
     ],
     ChallanMaterialType.boulder: ['boulder', 'bolder', 'बोल्डर'],
     ChallanMaterialType.dust: ['dust', 'stone dust', 'डस्ट', 'धूल'],
+    ChallanMaterialType.gitti: [
+      'gitti',
+      'गिट्टी',
+      'grit',
+      'chips',
+      'stone chips',
+      'aggregate',
+    ],
+    ChallanMaterialType.balu: ['balu', 'बालू', 'sand', 'रेत', 'ret'],
   };
 
   /// True when [portalMineralName] plausibly refers to this material.

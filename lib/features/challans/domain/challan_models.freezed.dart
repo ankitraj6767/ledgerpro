@@ -1359,7 +1359,7 @@ as String?,
 /// @nodoc
 mixin _$ChallanFilter {
 
- String get query; String? get projectId; ChallanMaterialType? get materialType; ChallanVerificationStatus? get status; DateTime? get fromDate; DateTime? get toDate;
+ String get query; String? get projectId; ChallanPortal? get portal; ChallanMaterialType? get materialType; ChallanVerificationStatus? get status; DateTime? get fromDate; DateTime? get toDate;
 /// Create a copy of ChallanFilter
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1372,16 +1372,16 @@ $ChallanFilterCopyWith<ChallanFilter> get copyWith => _$ChallanFilterCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,query,projectId,materialType,status,fromDate,toDate);
+int get hashCode => Object.hash(runtimeType,query,projectId,portal,materialType,status,fromDate,toDate);
 
 @override
 String toString() {
-  return 'ChallanFilter(query: $query, projectId: $projectId, materialType: $materialType, status: $status, fromDate: $fromDate, toDate: $toDate)';
+  return 'ChallanFilter(query: $query, projectId: $projectId, portal: $portal, materialType: $materialType, status: $status, fromDate: $fromDate, toDate: $toDate)';
 }
 
 
@@ -1392,7 +1392,7 @@ abstract mixin class $ChallanFilterCopyWith<$Res>  {
   factory $ChallanFilterCopyWith(ChallanFilter value, $Res Function(ChallanFilter) _then) = _$ChallanFilterCopyWithImpl;
 @useResult
 $Res call({
- String query, String? projectId, ChallanMaterialType? materialType, ChallanVerificationStatus? status, DateTime? fromDate, DateTime? toDate
+ String query, String? projectId, ChallanPortal? portal, ChallanMaterialType? materialType, ChallanVerificationStatus? status, DateTime? fromDate, DateTime? toDate
 });
 
 
@@ -1409,11 +1409,12 @@ class _$ChallanFilterCopyWithImpl<$Res>
 
 /// Create a copy of ChallanFilter
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? projectId = freezed,Object? materialType = freezed,Object? status = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? projectId = freezed,Object? portal = freezed,Object? materialType = freezed,Object? status = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
   return _then(_self.copyWith(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
-as String?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
+as String?,portal: freezed == portal ? _self.portal : portal // ignore: cast_nullable_to_non_nullable
+as ChallanPortal?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
 as ChallanMaterialType?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ChallanVerificationStatus?,fromDate: freezed == fromDate ? _self.fromDate : fromDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,toDate: freezed == toDate ? _self.toDate : toDate // ignore: cast_nullable_to_non_nullable
@@ -1502,10 +1503,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ChallanFilter() when $default != null:
-return $default(_that.query,_that.projectId,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
+return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
   return orElse();
 
 }
@@ -1523,10 +1524,10 @@ return $default(_that.query,_that.projectId,_that.materialType,_that.status,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)  $default,) {final _that = this;
 switch (_that) {
 case _ChallanFilter():
-return $default(_that.query,_that.projectId,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
+return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1543,10 +1544,10 @@ return $default(_that.query,_that.projectId,_that.materialType,_that.status,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  String? projectId,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)?  $default,) {final _that = this;
 switch (_that) {
 case _ChallanFilter() when $default != null:
-return $default(_that.query,_that.projectId,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
+return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
   return null;
 
 }
@@ -1558,11 +1559,12 @@ return $default(_that.query,_that.projectId,_that.materialType,_that.status,_tha
 @JsonSerializable()
 
 class _ChallanFilter extends ChallanFilter {
-  const _ChallanFilter({this.query = '', this.projectId, this.materialType, this.status, this.fromDate, this.toDate}): super._();
+  const _ChallanFilter({this.query = '', this.projectId, this.portal, this.materialType, this.status, this.fromDate, this.toDate}): super._();
   factory _ChallanFilter.fromJson(Map<String, dynamic> json) => _$ChallanFilterFromJson(json);
 
 @override@JsonKey() final  String query;
 @override final  String? projectId;
+@override final  ChallanPortal? portal;
 @override final  ChallanMaterialType? materialType;
 @override final  ChallanVerificationStatus? status;
 @override final  DateTime? fromDate;
@@ -1581,16 +1583,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,query,projectId,materialType,status,fromDate,toDate);
+int get hashCode => Object.hash(runtimeType,query,projectId,portal,materialType,status,fromDate,toDate);
 
 @override
 String toString() {
-  return 'ChallanFilter(query: $query, projectId: $projectId, materialType: $materialType, status: $status, fromDate: $fromDate, toDate: $toDate)';
+  return 'ChallanFilter(query: $query, projectId: $projectId, portal: $portal, materialType: $materialType, status: $status, fromDate: $fromDate, toDate: $toDate)';
 }
 
 
@@ -1601,7 +1603,7 @@ abstract mixin class _$ChallanFilterCopyWith<$Res> implements $ChallanFilterCopy
   factory _$ChallanFilterCopyWith(_ChallanFilter value, $Res Function(_ChallanFilter) _then) = __$ChallanFilterCopyWithImpl;
 @override @useResult
 $Res call({
- String query, String? projectId, ChallanMaterialType? materialType, ChallanVerificationStatus? status, DateTime? fromDate, DateTime? toDate
+ String query, String? projectId, ChallanPortal? portal, ChallanMaterialType? materialType, ChallanVerificationStatus? status, DateTime? fromDate, DateTime? toDate
 });
 
 
@@ -1618,11 +1620,12 @@ class __$ChallanFilterCopyWithImpl<$Res>
 
 /// Create a copy of ChallanFilter
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? projectId = freezed,Object? materialType = freezed,Object? status = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? projectId = freezed,Object? portal = freezed,Object? materialType = freezed,Object? status = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
   return _then(_ChallanFilter(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
-as String?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
+as String?,portal: freezed == portal ? _self.portal : portal // ignore: cast_nullable_to_non_nullable
+as ChallanPortal?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
 as ChallanMaterialType?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ChallanVerificationStatus?,fromDate: freezed == fromDate ? _self.fromDate : fromDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,toDate: freezed == toDate ? _self.toDate : toDate // ignore: cast_nullable_to_non_nullable
