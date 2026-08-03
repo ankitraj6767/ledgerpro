@@ -350,7 +350,7 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
   }
 
   /// Exports the selected challans, or all currently visible challans when
-  /// nothing is selected. Each challan is written to its own PDF page.
+  /// nothing is selected. The PDF places two challans on each A4 page.
   Future<void> _downloadListPdf() async {
     final messenger = ScaffoldMessenger.of(context);
     final visibleChallans =

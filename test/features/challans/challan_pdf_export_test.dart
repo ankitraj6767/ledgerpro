@@ -269,6 +269,20 @@ void main() {
       expect(_pdfPageCount(await file.readAsBytes()), 1);
     });
 
+    test('one hundred challans occupy fifty A4 pages', () async {
+      final file = await service.challansPdf(
+        organizationName: 'Org',
+        project: project,
+        challans: [
+          for (var index = 1; index <= 100; index++)
+            challan(challanNumber: '$index'),
+        ],
+      );
+
+      expect(file.existsSync(), isTrue);
+      expect(_pdfPageCount(await file.readAsBytes()), 50);
+    });
+
     test('a cross-project export needs no project', () async {
       final file = await service.challansPdf(
         organizationName: 'Org',

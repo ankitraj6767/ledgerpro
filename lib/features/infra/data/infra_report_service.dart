@@ -892,17 +892,45 @@ class InfraReportService {
         doc.addPage(
           pw.Page(
             pageTheme: _pageTheme(),
-            build: (_) => pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                _compactChallanPage(pageChallans[0], project),
-                if (pageChallans.length > 1) ...[
-                  pw.SizedBox(height: 12),
-                  pw.Container(height: 0.7, color: _line),
-                  pw.SizedBox(height: 12),
-                  _compactChallanPage(pageChallans[1], project),
-                ],
-              ],
+            build: (_) => pw.LayoutBuilder(
+              builder: (_, constraints) {
+                final maxWidth = constraints!.maxWidth;
+                final separatorHeight = 12 + 0.7 + 12;
+                final slotHeight =
+                    (constraints.maxHeight - separatorHeight) / 2;
+
+                pw.Widget slot(EPassChallan challan) {
+                  return pw.SizedBox(
+                    width: maxWidth,
+                    height: slotHeight,
+                    child: pw.FittedBox(
+                      fit: pw.BoxFit.scaleDown,
+                      alignment: pw.Alignment.topLeft,
+                      child: pw.SizedBox(
+                        width: maxWidth,
+                        child: _compactChallanPage(challan, project),
+                      ),
+                    ),
+                  );
+                }
+
+                return pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    slot(pageChallans[0]),
+                    if (pageChallans.length > 1) ...[
+                      pw.SizedBox(height: 12),
+                      pw.Container(
+                        width: double.infinity,
+                        height: 0.7,
+                        color: _line,
+                      ),
+                      pw.SizedBox(height: 12),
+                      slot(pageChallans[1]),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
         );
