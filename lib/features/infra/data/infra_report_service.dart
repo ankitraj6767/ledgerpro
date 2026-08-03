@@ -886,18 +886,60 @@ class InfraReportService {
           ),
         ),
       );
+    } else if (challans.length == 1) {
+      doc.addPage(
+        pw.Page(
+          pageTheme: _pageTheme(),
+          build: (_) => pw.LayoutBuilder(
+            builder: (_, constraints) {
+              final maxWidth = constraints!.maxWidth;
+              return pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.SizedBox(
+                    width: maxWidth,
+                    height: 28,
+                    child: pw.Center(
+                      child: pw.Text(
+                        'Echallan',
+                        style: pw.TextStyle(
+                          color: _ink,
+                          fontSize: 18,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+                  _compactChallanPage(
+                    challans.single,
+                    project,
+                    showRecordHeading: false,
+                    centerNumber: true,
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
     } else {
       for (var index = 0; index < challans.length; index += 2) {
         final pageChallans = challans.skip(index).take(2).toList();
+        final showDocumentHeading = index == 0;
         doc.addPage(
           pw.Page(
             pageTheme: _pageTheme(),
             build: (_) => pw.LayoutBuilder(
               builder: (_, constraints) {
                 final maxWidth = constraints!.maxWidth;
-                final separatorHeight = 12 + 0.7 + 12;
+                final headingHeight = showDocumentHeading ? 28 + 8 : 0;
+                final separatorHeight = pageChallans.length > 1
+                    ? 12 + 0.7 + 12
+                    : 0;
                 final slotHeight =
-                    (constraints.maxHeight - separatorHeight) / 2;
+                    (constraints.maxHeight - headingHeight - separatorHeight) /
+                    pageChallans.length;
 
                 pw.Widget slot(EPassChallan challan) {
                   return pw.SizedBox(
@@ -908,7 +950,12 @@ class InfraReportService {
                       alignment: pw.Alignment.topLeft,
                       child: pw.SizedBox(
                         width: maxWidth,
-                        child: _compactChallanPage(challan, project),
+                        child: _compactChallanPage(
+                          challan,
+                          project,
+                          showRecordHeading: false,
+                          centerNumber: true,
+                        ),
                       ),
                     ),
                   );
@@ -917,6 +964,23 @@ class InfraReportService {
                 return pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
+                    if (showDocumentHeading) ...[
+                      pw.SizedBox(
+                        width: maxWidth,
+                        height: 28,
+                        child: pw.Center(
+                          child: pw.Text(
+                            'Echallan',
+                            style: pw.TextStyle(
+                              color: _ink,
+                              fontSize: 18,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                    ],
                     slot(pageChallans[0]),
                     if (pageChallans.length > 1) ...[
                       pw.SizedBox(height: 12),
@@ -947,8 +1011,10 @@ class InfraReportService {
 
   pw.Widget _compactChallanPage(
     EPassChallan challan,
-    InfraProject? project,
-  ) {
+    InfraProject? project, {
+    bool showRecordHeading = true,
+    bool centerNumber = false,
+  }) {
     final projectName = project?.name ?? challan.projectName;
     final sections = <(String, PdfColor, List<List<String>>)>[
       (
@@ -1002,19 +1068,29 @@ class InfraReportService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          'Challan',
-          style: pw.TextStyle(
-            color: _ink,
-            fontSize: 18,
-            fontWeight: pw.FontWeight.bold,
+        if (showRecordHeading) ...[
+          pw.Text(
+            'Challan',
+            style: pw.TextStyle(
+              color: _ink,
+              fontSize: 18,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Text(
-          challan.challanNumber,
-          style: const pw.TextStyle(color: _muted, fontSize: 9.5),
-        ),
+          pw.SizedBox(height: 3),
+        ],
+        if (centerNumber)
+          pw.Center(
+            child: pw.Text(
+              'Challan Number: ${challan.challanNumber}',
+              style: const pw.TextStyle(color: _muted, fontSize: 9.5),
+            ),
+          )
+        else
+          pw.Text(
+            challan.challanNumber,
+            style: const pw.TextStyle(color: _muted, fontSize: 9.5),
+          ),
         pw.SizedBox(height: 9),
         for (final section in sections) ...[
           _compactChallanSection(
