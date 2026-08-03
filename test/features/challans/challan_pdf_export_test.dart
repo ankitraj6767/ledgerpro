@@ -69,6 +69,8 @@ void main() {
     String unit = 'INMT',
     int? royaltyPaise,
     String? projectName = 'Madhubani Bus Stand',
+    String source = 'MS RAMIYA CONSTRUCTIONS PVT LTD',
+    String destination = 'Madhubani Bus Stand',
     bool sparse = false,
   }) {
     return EPassChallan(
@@ -92,8 +94,8 @@ void main() {
       normalizedVehicleNumber: 'BR09PB4263',
       consignorName: sparse ? null : 'DIR DHIRENDRA KUMAR',
       consigneeName: sparse ? null : 'ROYAL CONSTRUCTION BUS STAND',
-      sourceLocation: sparse ? null : 'MS RAMIYA CONSTRUCTIONS PVT LTD',
-      destination: sparse ? null : 'Madhubani Bus Stand',
+      sourceLocation: sparse ? null : source,
+      destination: sparse ? null : destination,
       generatedFrom: sparse ? null : 'Web',
       royaltyAmountPaise: royaltyPaise,
       portalResponseHash: sparse ? null : 'a' * 64,
@@ -202,7 +204,7 @@ void main() {
   });
 
   group('challan list PDF', () {
-    test('exports the list in the order it is given', () async {
+    test('exports two challans per A4 page in the order given', () async {
       final file = await service.challansPdf(
         organizationName: 'NAVDREAM Infra Pvt. Ltd.',
         project: project,
@@ -220,7 +222,51 @@ void main() {
       expect(file.existsSync(), isTrue);
       expect(file.path, contains('challans'));
       expect(await file.length(), greaterThan(2000));
-      expect(_pdfPageCount(await file.readAsBytes()), 3);
+      expect(_pdfPageCount(await file.readAsBytes()), 2);
+    });
+
+    test('two selected challans share one A4 page', () async {
+      final file = await service.challansPdf(
+        organizationName: 'Org',
+        project: project,
+        challans: [
+          challan(challanNumber: '111'),
+          challan(challanNumber: '222'),
+        ],
+      );
+
+      expect(file.existsSync(), isTrue);
+      expect(_pdfPageCount(await file.readAsBytes()), 1);
+    });
+
+    test('long transport values still fit two challans on one A4 page',
+        () async {
+      final file = await service.challansPdf(
+        organizationName: 'Org',
+        project: project,
+        challans: [
+          challan(
+            challanNumber: '111',
+            source:
+                'MS HIMALIYA STONE WORKS (MOUZA PINARGARIA PLOT NO 1705 TO '
+                '1707 1709 1710 1463)',
+            destination:
+                'Royal construction Bus stand madhubani,, MADHUBANI, BIHAR, '
+                'Pin Code- 847211',
+          ),
+          challan(
+            challanNumber: '222',
+            source:
+                'MS HIMALIYA STONE WORKS (MOUZA PINARGARIA PLOT NO 1705 TO '
+                '1707 1709 1710 1463)',
+            destination:
+                'Royal construction Bus stand madhubani,, MADHUBANI, BIHAR, '
+                'Pin Code- 847211',
+          ),
+        ],
+      );
+
+      expect(_pdfPageCount(await file.readAsBytes()), 1);
     });
 
     test('a cross-project export needs no project', () async {

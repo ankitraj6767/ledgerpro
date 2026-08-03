@@ -841,7 +841,7 @@ class InfraReportService {
     );
   }
 
-  /// Exports each challan as one compact page, in the order received.
+  /// Exports challans two per A4 page, in the order received.
   Future<File> challansPdf({
     required String organizationName,
     InfraProject? project,
@@ -887,11 +887,23 @@ class InfraReportService {
         ),
       );
     } else {
-      for (final challan in challans) {
+      for (var index = 0; index < challans.length; index += 2) {
+        final pageChallans = challans.skip(index).take(2).toList();
         doc.addPage(
           pw.Page(
             pageTheme: _pageTheme(),
-            build: (_) => _compactChallanPage(challan, project),
+            build: (_) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _compactChallanPage(pageChallans[0], project),
+                if (pageChallans.length > 1) ...[
+                  pw.SizedBox(height: 12),
+                  pw.Container(height: 0.7, color: _line),
+                  pw.SizedBox(height: 12),
+                  _compactChallanPage(pageChallans[1], project),
+                ],
+              ],
+            ),
           ),
         );
       }
