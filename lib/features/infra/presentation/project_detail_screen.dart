@@ -2540,7 +2540,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 children: [
                   _FinanceSearchBar(
                     controller: _searchController,
-                    hintText: 'Search expenses, category, notes',
+                    hintText: 'Search category or subcategory',
                     query: _query,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
@@ -2690,8 +2690,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                 icon: Icons.receipt_long_outlined,
                                 title: 'No matching expenses',
                                 query: _query,
-                                messageTail:
-                                    'Try category, payment mode, notes, or amount.',
+                                messageTail: 'Try a category or subcategory.',
                               ),
                             ],
                           )
@@ -2744,17 +2743,14 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
   }
 
   bool _matchesExpense(ProjectExpense expense) {
+    // Expense search is intentionally limited to the persisted category
+    // hierarchy. Searching notes, vendor, payment mode, amount, or date can
+    // surface an unrelated category (for example, a MATERIAL expense whose
+    // notes contain "site"). The same token matching still supports searches
+    // across both parent category and subcategory.
     return _matchesFinanceSearch([
-      expense.vendorName,
       expense.category,
       expense.subcategory,
-      expense.categoryLabel,
-      expense.paymentMode,
-      expense.billNumber,
-      richTextToPlain(expense.notes),
-      Money.fromPaise(expense.amountPaise).formatInr(),
-      (expense.amountPaise / 100).toStringAsFixed(2),
-      _searchDate(expense.expenseDate),
     ], _query);
   }
 }
