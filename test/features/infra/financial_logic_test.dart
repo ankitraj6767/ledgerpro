@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ledgerpro_mobile/features/infra/domain/expense_search.dart';
 import 'package:ledgerpro_mobile/shared/models/infra_models.dart';
 
 void main() {
@@ -109,6 +110,42 @@ void main() {
 
       expect(groups.single.hasSubcategories, isFalse);
       expect(groups.single.totalAmountPaise, 2500);
+    });
+  });
+
+  group('Project expense search', () {
+    const expense = ProjectExpense(
+      id: 'expense-1',
+      projectId: 'p1',
+      category: 'Labour',
+      subcategory: 'Skilled',
+      amountPaise: 51500000,
+      notes: 'This note must not expand the search scope',
+    );
+
+    test('keeps category and subcategory token matching', () {
+      expect(matchesProjectExpenseSearch(expense, 'labour'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, 'skilled'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, 'labour skilled'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, 'unskilled'), isFalse);
+    });
+
+    test('matches the displayed amount and common numeric input formats', () {
+      expect(matchesProjectExpenseSearch(expense, '515000'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, '515000.00'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, '5,15,000'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, '₹5,15,000.00'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, '₹515000.00'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, '999999'), isFalse);
+    });
+
+    test('supports combining category and amount terms', () {
+      expect(matchesProjectExpenseSearch(expense, 'skilled 515000'), isTrue);
+      expect(matchesProjectExpenseSearch(expense, 'labour 999999'), isFalse);
+    });
+
+    test('does not reintroduce searches over unrelated expense metadata', () {
+      expect(matchesProjectExpenseSearch(expense, 'note'), isFalse);
     });
   });
 
