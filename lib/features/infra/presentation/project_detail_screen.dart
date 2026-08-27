@@ -14,6 +14,7 @@ import '../../../shared/components/donut_expense_chart.dart';
 import '../../../shared/components/infra_components.dart';
 import '../../../shared/models/infra_models.dart';
 import '../data/infra_report_service.dart';
+import '../domain/expense_search.dart';
 import 'infra_forms.dart';
 import 'widgets/project_expense_category_group.dart';
 
@@ -2540,7 +2541,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                 children: [
                   _FinanceSearchBar(
                     controller: _searchController,
-                    hintText: 'Search category or subcategory',
+                    hintText: 'Search category, subcategory or amount',
                     query: _query,
                     onChanged: _setQuery,
                     onClear: _clearSearch,
@@ -2690,7 +2691,8 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                                 icon: Icons.receipt_long_outlined,
                                 title: 'No matching expenses',
                                 query: _query,
-                                messageTail: 'Try a category or subcategory.',
+                                messageTail:
+                                    'Try a category, subcategory, or amount.',
                               ),
                             ],
                           )
@@ -2743,15 +2745,7 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
   }
 
   bool _matchesExpense(ProjectExpense expense) {
-    // Expense search is intentionally limited to the persisted category
-    // hierarchy. Searching notes, vendor, payment mode, amount, or date can
-    // surface an unrelated category (for example, a MATERIAL expense whose
-    // notes contain "site"). The same token matching still supports searches
-    // across both parent category and subcategory.
-    return _matchesFinanceSearch([
-      expense.category,
-      expense.subcategory,
-    ], _query);
+    return matchesProjectExpenseSearch(expense, _query);
   }
 }
 
