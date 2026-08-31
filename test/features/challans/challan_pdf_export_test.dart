@@ -201,6 +201,24 @@ void main() {
         expect(file.existsSync(), isTrue, reason: portal);
       }
     });
+
+    test(
+      'Jharkhand pass numbers with slash are safe filename components',
+      () async {
+        final file = await service.challanDetailPdf(
+          organizationName: 'Org',
+          project: project,
+          challan: challan(
+            sourcePortal: 'jharkhand_minerals_portal',
+            challanNumber: 'F82602479/22',
+          ),
+        );
+
+        expect(file.existsSync(), isTrue);
+        expect(file.path, contains('challan_f82602479_22_'));
+        expect(file.parent.parent.path, root.path);
+      },
+    );
   });
 
   group('challan list PDF', () {
