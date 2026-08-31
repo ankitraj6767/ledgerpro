@@ -2147,13 +2147,15 @@ class InfraReportService {
     dynamic content,
   ) async {
     final dir = await _reportsDirectory();
-    final safe = projectName
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'^_+|_+$'), '');
+    // Both the project name and [kind] become filename components. Challan
+    // numbers are supplied by state portals and may contain separators (for
+    // example Jharkhand pass number `F82602479/22`). Leaving one unsanitized
+    // would make the OS treat it as a nested path and the write would fail.
+    final safeProjectName = _safeFilePart(projectName);
+    final safeKind = _safeFilePart(kind);
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final file = File(
-      '${dir.path}${Platform.pathSeparator}navdreaminfra_${safe}_${kind}_$stamp.$ext',
+      '${dir.path}${Platform.pathSeparator}navdreaminfra_${safeProjectName}_${safeKind}_$stamp.$ext',
     );
     if (content is String) {
       await file.writeAsString(content, flush: true);
@@ -2161,6 +2163,14 @@ class InfraReportService {
       await file.writeAsBytes(content as List<int>, flush: true);
     }
     return file;
+  }
+
+  String _safeFilePart(String value) {
+    final safe = value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return safe.isEmpty ? 'report' : safe;
   }
 
   Future<Directory> _reportsDirectory() async {
