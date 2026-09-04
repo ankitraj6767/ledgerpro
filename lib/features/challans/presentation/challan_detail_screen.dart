@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -96,6 +98,7 @@ class ChallanDetailScreen extends ConsumerWidget {
 
   Widget _body(BuildContext context, WidgetRef ref, EPassChallan challan) {
     final project = ref.watch(projectByIdProvider(challan.projectId));
+    final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return RefreshIndicator(
       onRefresh: () {
@@ -132,6 +135,34 @@ class ChallanDetailScreen extends ConsumerWidget {
               color: challan.isPortalCaptured
                   ? InfraColors.green
                   : InfraColors.orange,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Card(
+            child: SwitchListTile.adaptive(
+              value: challan.royaltyPaid,
+              onChanged: permissions.canMarkChallanRoyalty
+                  ? (paid) =>
+                        unawaited(_setRoyaltyPaid(context, ref, challan, paid))
+                  : null,
+              secondary: Icon(
+                challan.royaltyPaid
+                    ? Icons.verified_outlined
+                    : Icons.pending_outlined,
+                color: challan.royaltyPaid
+                    ? InfraColors.green
+                    : InfraColors.textSecondary,
+              ),
+              title: const Text(
+                'Government royalty paid',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                challan.royaltyPaid
+                    ? 'Marked paid${challan.royaltyPaidAt == null ? '' : ' on ${_formatDate(challan.royaltyPaidAt!)}'}'
+                    : 'Mark this when the royalty has been paid to the government.',
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -259,6 +290,53 @@ class ChallanDetailScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _setRoyaltyPaid(
+    BuildContext context,
+    WidgetRef ref,
+    EPassChallan challan,
+    bool paid,
+  ) async {
+    try {
+      await ref
+          .read(challanRepositoryProvider)
+          .updateRoyaltyPaid(challanId: challan.id, royaltyPaid: paid);
+      ref.invalidate(challanByIdProvider(challan.id));
+      ref.invalidate(challansProvider);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is ChallanException
+                ? error.message
+                : 'Could not update royalty status. Please try again.',
+          ),
+        ),
+      );
+    }
+  }
+
+  static String _formatDate(DateTime value) {
+    final date = value.toUtc().add(const Duration(hours: 5, minutes: 30));
+    return '${date.day.toString().padLeft(2, '0')} '
+        '${_monthName(date.month)} ${date.year}';
+  }
+
+  static String _monthName(int month) => const [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][month - 1];
 
   /// Portal name for display, resolved through the portal enum so a new portal
   /// only has to be added in one place.

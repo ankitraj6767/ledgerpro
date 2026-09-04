@@ -6,41 +6,88 @@ import '../../domain/challan_models.dart';
 import '../../domain/challan_status.dart';
 
 /// One row in the recent-challan list.
-class ChallanCard extends StatelessWidget {
+class ChallanCard extends StatefulWidget {
   const ChallanCard({
     super.key,
     required this.challan,
     this.onTap,
     this.selected = false,
     this.onSelectionChanged,
+    this.onRoyaltyPaidChanged,
   });
 
   final EPassChallan challan;
   final VoidCallback? onTap;
   final bool selected;
   final ValueChanged<bool?>? onSelectionChanged;
+  final Future<void> Function(bool paid)? onRoyaltyPaidChanged;
+
+  @override
+  State<ChallanCard> createState() => _ChallanCardState();
+}
+
+class _ChallanCardState extends State<ChallanCard> {
+  bool? _optimisticRoyaltyPaid;
+  bool _updatingRoyalty = false;
+
+  @override
+  void didUpdateWidget(covariant ChallanCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_updatingRoyalty &&
+        oldWidget.challan.royaltyPaid != widget.challan.royaltyPaid) {
+      _optimisticRoyaltyPaid = null;
+    }
+  }
+
+  Future<void> _setRoyaltyPaid(bool paid) async {
+    final callback = widget.onRoyaltyPaidChanged;
+    if (callback == null || _updatingRoyalty) return;
+    setState(() {
+      _optimisticRoyaltyPaid = paid;
+      _updatingRoyalty = true;
+    });
+    try {
+      await callback(paid);
+      if (!mounted) return;
+      setState(() {
+        // Keep the confirmed value visible until the refreshed provider data
+        // arrives. This also keeps the UI correct when a test or offline
+        // cache supplies the previous snapshot for one more frame.
+        _optimisticRoyaltyPaid = paid;
+        _updatingRoyalty = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _optimisticRoyaltyPaid = widget.challan.royaltyPaid;
+        _updatingRoyalty = false;
+      });
+    }
+  }
 
   static final _dayFormat = DateFormat('dd MMM yyyy');
 
   @override
   Widget build(BuildContext context) {
+    final challan = widget.challan;
+    final royaltyPaid = _optimisticRoyaltyPaid ?? challan.royaltyPaid;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (onSelectionChanged != null)
+              if (widget.onSelectionChanged != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: Checkbox(
-                    value: selected,
+                    value: widget.selected,
                     visualDensity: VisualDensity.compact,
-                    onChanged: onSelectionChanged,
+                    onChanged: widget.onSelectionChanged,
                   ),
                 ),
               Expanded(
@@ -138,7 +185,62 @@ class ChallanCard extends StatelessWidget {
                             ),
                           ),
                       ],
-                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: _updatingRoyalty
+                              ? const Padding(
+                                  padding: EdgeInsets.all(7),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Checkbox(
+                                  value: royaltyPaid,
+                                  visualDensity: VisualDensity.compact,
+                                  onChanged: widget.onRoyaltyPaidChanged == null
+                                      ? null
+                                      : (value) =>
+                                            _setRoyaltyPaid(value ?? false),
+                                ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          royaltyPaid
+                              ? Icons.verified_outlined
+                              : Icons.pending_outlined,
+                          size: 14,
+                          color: royaltyPaid
+                              ? InfraColors.green
+                              : InfraColors.textSecondary,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          royaltyPaid ? 'Royalty paid' : 'Royalty pending',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: royaltyPaid
+                                ? InfraColors.green
+                                : InfraColors.textSecondary,
+                          ),
+                        ),
+                        if (challan.royaltyPaidAt != null) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            _dayFormat.format(_toIst(challan.royaltyPaidAt!)),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: InfraColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),

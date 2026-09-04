@@ -103,6 +103,11 @@ class OrgPermissions {
   /// challan number, so the same challan can be added again afterwards.
   bool get canDeleteChallan => canManageUsers;
 
+  /// Royalty tracking is available to the same operational roles that can
+  /// add challans. Read-only roles can still see the current state and filter.
+  bool get canMarkChallanRoyalty =>
+      canManageProjects || role == OrgMemberRole.siteStaff;
+
   /// Legacy name retained so existing callers keep compiling.
   @Deprecated('Use canDeleteChallan instead')
   bool get canArchiveChallan => canDeleteChallan;

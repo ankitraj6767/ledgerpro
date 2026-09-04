@@ -8,6 +8,7 @@ import '../../../../app/theme/infra_theme.dart';
 import '../../../../data/repositories/infra_repository.dart';
 import '../../../../shared/components/infra_components.dart';
 import '../../application/challan_providers.dart';
+import '../../domain/challan_exceptions.dart';
 import '../../domain/challan_models.dart';
 import '../../domain/challan_portal.dart';
 import '../../domain/challan_status.dart';
@@ -95,10 +96,8 @@ class _ChallanListState extends ConsumerState<ChallanList> {
     );
   }
 
-  Widget _challanContent(
-    List<EPassChallan> challans,
-    ChallanFilter filter,
-  ) {
+  Widget _challanContent(List<EPassChallan> challans, ChallanFilter filter) {
+    final permissions = ref.watch(currentOrgPermissionsProvider);
     if (challans.isEmpty) {
       return filter.isActive
           ? _noMatches()
@@ -133,6 +132,9 @@ class _ChallanListState extends ConsumerState<ChallanList> {
           onSelectionChanged: widget.onToggleSelection == null
               ? null
               : (_) => widget.onToggleSelection!(challan.id),
+          onRoyaltyPaidChanged: permissions.canMarkChallanRoyalty
+              ? (paid) => _setRoyaltyPaid(challan, paid)
+              : null,
           onTap: () => context.push(AppRoutes.challanDetail(challan.id)),
         );
       },
@@ -174,13 +176,16 @@ class _ChallanListState extends ConsumerState<ChallanList> {
               challan.verificationStatus != filter.status) {
             return false;
           }
+          if (filter.royaltyPaid != null &&
+              challan.royaltyPaid != filter.royaltyPaid) {
+            return false;
+          }
           final date = challan.challanDate;
           if (filter.fromDate != null &&
               (date == null || date.isBefore(filter.fromDate!))) {
             return false;
           }
-          if (endOfDay != null &&
-              (date == null || date.isAfter(endOfDay))) {
+          if (endOfDay != null && (date == null || date.isAfter(endOfDay))) {
             return false;
           }
           if (query.isNotEmpty &&
@@ -191,6 +196,28 @@ class _ChallanListState extends ConsumerState<ChallanList> {
           return true;
         })
         .toList(growable: false);
+  }
+
+  Future<void> _setRoyaltyPaid(EPassChallan challan, bool paid) async {
+    try {
+      await ref
+          .read(challanRepositoryProvider)
+          .updateRoyaltyPaid(challanId: challan.id, royaltyPaid: paid);
+      ref.invalidate(challansProvider);
+      ref.invalidate(challanByIdProvider(challan.id));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is ChallanException
+                ? error.message
+                : 'Could not update royalty status. Please try again.',
+          ),
+        ),
+      );
+      rethrow;
+    }
   }
 
   Widget _selectionBar() {
@@ -304,6 +331,16 @@ class _ChallanListState extends ConsumerState<ChallanList> {
                 ref.read(challanFiltersProvider.notifier).setStatus(value),
           ),
           const SizedBox(width: 8),
+          _FilterChip<bool>(
+            label: 'Royalty',
+            value: filter.royaltyPaid,
+            display: (paid) => paid ? 'Paid' : 'Pending',
+            options: const [(true, 'Paid'), (false, 'Pending')],
+            allLabel: 'All royalty statuses',
+            onSelected: (value) =>
+                ref.read(challanFiltersProvider.notifier).setRoyaltyPaid(value),
+          ),
+          const SizedBox(width: 8),
           _dateRangeChip(filter),
           if (filter.isActive) ...[
             const SizedBox(width: 8),
@@ -385,6 +422,7 @@ class _FilterChip<T> extends StatelessWidget {
     required this.display,
     required this.options,
     required this.onSelected,
+    this.allLabel,
   });
 
   final String label;
@@ -392,6 +430,7 @@ class _FilterChip<T> extends StatelessWidget {
   final String Function(T value) display;
   final List<(T, String)> options;
   final ValueChanged<T?> onSelected;
+  final String? allLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +441,7 @@ class _FilterChip<T> extends StatelessWidget {
       itemBuilder: (context) => [
         PopupMenuItem<T?>(
           value: null,
-          child: Text('All ${label.toLowerCase()}s'),
+          child: Text(allLabel ?? 'All ${label.toLowerCase()}s'),
         ),
         const PopupMenuDivider(),
         for (final option in options)

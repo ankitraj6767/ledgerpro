@@ -196,6 +196,11 @@ _EPassChallan _$EPassChallanFromJson(Map<String, dynamic> json) =>
       destination: json['destination'] as String?,
       generatedFrom: json['generatedFrom'] as String?,
       royaltyAmountPaise: (json['royaltyAmountPaise'] as num?)?.toInt(),
+      royaltyPaid: json['royaltyPaid'] as bool? ?? false,
+      royaltyPaidAt: json['royaltyPaidAt'] == null
+          ? null
+          : DateTime.parse(json['royaltyPaidAt'] as String),
+      royaltyPaidBy: json['royaltyPaidBy'] as String?,
       portalPayload:
           json['portalPayload'] as Map<String, dynamic>? ??
           const <String, dynamic>{},
@@ -258,6 +263,9 @@ Map<String, dynamic> _$EPassChallanToJson(_EPassChallan instance) =>
       'destination': instance.destination,
       'generatedFrom': instance.generatedFrom,
       'royaltyAmountPaise': instance.royaltyAmountPaise,
+      'royaltyPaid': instance.royaltyPaid,
+      'royaltyPaidAt': instance.royaltyPaidAt?.toIso8601String(),
+      'royaltyPaidBy': instance.royaltyPaidBy,
       'portalPayload': instance.portalPayload,
       'portalResponseHash': instance.portalResponseHash,
       'verificationStatus':
@@ -286,6 +294,7 @@ _ChallanFilter _$ChallanFilterFromJson(Map<String, dynamic> json) =>
         _$ChallanVerificationStatusEnumMap,
         json['status'],
       ),
+      royaltyPaid: json['royaltyPaid'] as bool?,
       fromDate: json['fromDate'] == null
           ? null
           : DateTime.parse(json['fromDate'] as String),
@@ -301,6 +310,7 @@ Map<String, dynamic> _$ChallanFilterToJson(_ChallanFilter instance) =>
       'portal': _$ChallanPortalEnumMap[instance.portal],
       'materialType': _$ChallanMaterialTypeEnumMap[instance.materialType],
       'status': _$ChallanVerificationStatusEnumMap[instance.status],
+      'royaltyPaid': instance.royaltyPaid,
       'fromDate': instance.fromDate?.toIso8601String(),
       'toDate': instance.toDate?.toIso8601String(),
     };

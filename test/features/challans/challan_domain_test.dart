@@ -250,6 +250,8 @@ void main() {
         const ChallanFilter(portal: ChallanPortal.jharkhand).activeCount,
         1,
       );
+      expect(const ChallanFilter(royaltyPaid: true).isActive, isTrue);
+      expect(const ChallanFilter(royaltyPaid: true).activeCount, 1);
     });
   });
 
@@ -261,6 +263,7 @@ void main() {
         expect(permissions.canAddChallan, isTrue);
         expect(permissions.canDeleteChallan, isTrue);
         expect(permissions.canExportChallans, isTrue);
+        expect(permissions.canMarkChallanRoyalty, isTrue);
       }
     });
 
@@ -271,6 +274,7 @@ void main() {
       expect(permissions.canAddChallan, isTrue);
       expect(permissions.canExportChallans, isTrue);
       expect(permissions.canDeleteChallan, isFalse);
+      expect(permissions.canMarkChallanRoyalty, isTrue);
     });
 
     test('site staff can view and add but not archive or export', () {
@@ -280,6 +284,7 @@ void main() {
       expect(permissions.canAddChallan, isTrue);
       expect(permissions.canDeleteChallan, isFalse);
       expect(permissions.canExportChallans, isFalse);
+      expect(permissions.canMarkChallanRoyalty, isTrue);
     });
 
     test('viewer and customer are read-only', () {
@@ -289,6 +294,7 @@ void main() {
         expect(permissions.canAddChallan, isFalse);
         expect(permissions.canDeleteChallan, isFalse);
         expect(permissions.canExportChallans, isFalse);
+        expect(permissions.canMarkChallanRoyalty, isFalse);
       }
     });
 

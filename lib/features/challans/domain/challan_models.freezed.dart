@@ -986,7 +986,9 @@ $CapturedPortalPayloadCopyWith<$Res> get payload {
 /// @nodoc
 mixin _$EPassChallan {
 
- String get id; String get organizationId; String get projectId; String get sourcePortal; String? get portalUrl; String get financialYear; String get challanNumber; String get normalizedChallanNumber; String? get uidNumber; DateTime? get challanDate; DateTime? get validUntil; ChallanMaterialType? get selectedMaterialType; String get portalMineralName; double get quantity; String get quantityUnit; String? get vehicleType; String get vehicleNumber; String get normalizedVehicleNumber; String? get consignorName; String? get consigneeName; String? get sourceLocation; String? get destination; String? get generatedFrom; int? get royaltyAmountPaise; Map<String, dynamic> get portalPayload; String? get portalResponseHash; ChallanVerificationStatus get verificationStatus; ChallanVerificationMethod get verificationMethod; DateTime? get capturedAt; DateTime? get verifiedAt; String? get createdBy; DateTime? get createdAt; DateTime? get updatedAt; DateTime? get deletedAt;/// Joined for display only; not a column on `epass_challans`.
+ String get id; String get organizationId; String get projectId; String get sourcePortal; String? get portalUrl; String get financialYear; String get challanNumber; String get normalizedChallanNumber; String? get uidNumber; DateTime? get challanDate; DateTime? get validUntil; ChallanMaterialType? get selectedMaterialType; String get portalMineralName; double get quantity; String get quantityUnit; String? get vehicleType; String get vehicleNumber; String get normalizedVehicleNumber; String? get consignorName; String? get consigneeName; String? get sourceLocation; String? get destination; String? get generatedFrom; int? get royaltyAmountPaise;/// Whether the royalty for this challan has already been paid to the
+/// government. Existing rows default to pending until explicitly marked.
+ bool get royaltyPaid; DateTime? get royaltyPaidAt; String? get royaltyPaidBy; Map<String, dynamic> get portalPayload; String? get portalResponseHash; ChallanVerificationStatus get verificationStatus; ChallanVerificationMethod get verificationMethod; DateTime? get capturedAt; DateTime? get verifiedAt; String? get createdBy; DateTime? get createdAt; DateTime? get updatedAt; DateTime? get deletedAt;/// Joined for display only; not a column on `epass_challans`.
  String? get projectName;
 /// Create a copy of EPassChallan
 /// with the given fields replaced by the non-null parameter values.
@@ -1000,16 +1002,16 @@ $EPassChallanCopyWith<EPassChallan> get copyWith => _$EPassChallanCopyWithImpl<E
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EPassChallan&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourcePortal, sourcePortal) || other.sourcePortal == sourcePortal)&&(identical(other.portalUrl, portalUrl) || other.portalUrl == portalUrl)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.normalizedChallanNumber, normalizedChallanNumber) || other.normalizedChallanNumber == normalizedChallanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.selectedMaterialType, selectedMaterialType) || other.selectedMaterialType == selectedMaterialType)&&(identical(other.portalMineralName, portalMineralName) || other.portalMineralName == portalMineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.normalizedVehicleNumber, normalizedVehicleNumber) || other.normalizedVehicleNumber == normalizedVehicleNumber)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&const DeepCollectionEquality().equals(other.portalPayload, portalPayload)&&(identical(other.portalResponseHash, portalResponseHash) || other.portalResponseHash == portalResponseHash)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.verificationMethod, verificationMethod) || other.verificationMethod == verificationMethod)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.projectName, projectName) || other.projectName == projectName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EPassChallan&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourcePortal, sourcePortal) || other.sourcePortal == sourcePortal)&&(identical(other.portalUrl, portalUrl) || other.portalUrl == portalUrl)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.normalizedChallanNumber, normalizedChallanNumber) || other.normalizedChallanNumber == normalizedChallanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.selectedMaterialType, selectedMaterialType) || other.selectedMaterialType == selectedMaterialType)&&(identical(other.portalMineralName, portalMineralName) || other.portalMineralName == portalMineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.normalizedVehicleNumber, normalizedVehicleNumber) || other.normalizedVehicleNumber == normalizedVehicleNumber)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&(identical(other.royaltyPaid, royaltyPaid) || other.royaltyPaid == royaltyPaid)&&(identical(other.royaltyPaidAt, royaltyPaidAt) || other.royaltyPaidAt == royaltyPaidAt)&&(identical(other.royaltyPaidBy, royaltyPaidBy) || other.royaltyPaidBy == royaltyPaidBy)&&const DeepCollectionEquality().equals(other.portalPayload, portalPayload)&&(identical(other.portalResponseHash, portalResponseHash) || other.portalResponseHash == portalResponseHash)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.verificationMethod, verificationMethod) || other.verificationMethod == verificationMethod)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.projectName, projectName) || other.projectName == projectName));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,organizationId,projectId,sourcePortal,portalUrl,financialYear,challanNumber,normalizedChallanNumber,uidNumber,challanDate,validUntil,selectedMaterialType,portalMineralName,quantity,quantityUnit,vehicleType,vehicleNumber,normalizedVehicleNumber,consignorName,consigneeName,sourceLocation,destination,generatedFrom,royaltyAmountPaise,const DeepCollectionEquality().hash(portalPayload),portalResponseHash,verificationStatus,verificationMethod,capturedAt,verifiedAt,createdBy,createdAt,updatedAt,deletedAt,projectName]);
+int get hashCode => Object.hashAll([runtimeType,id,organizationId,projectId,sourcePortal,portalUrl,financialYear,challanNumber,normalizedChallanNumber,uidNumber,challanDate,validUntil,selectedMaterialType,portalMineralName,quantity,quantityUnit,vehicleType,vehicleNumber,normalizedVehicleNumber,consignorName,consigneeName,sourceLocation,destination,generatedFrom,royaltyAmountPaise,royaltyPaid,royaltyPaidAt,royaltyPaidBy,const DeepCollectionEquality().hash(portalPayload),portalResponseHash,verificationStatus,verificationMethod,capturedAt,verifiedAt,createdBy,createdAt,updatedAt,deletedAt,projectName]);
 
 @override
 String toString() {
-  return 'EPassChallan(id: $id, organizationId: $organizationId, projectId: $projectId, sourcePortal: $sourcePortal, portalUrl: $portalUrl, financialYear: $financialYear, challanNumber: $challanNumber, normalizedChallanNumber: $normalizedChallanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, selectedMaterialType: $selectedMaterialType, portalMineralName: $portalMineralName, quantity: $quantity, quantityUnit: $quantityUnit, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, normalizedVehicleNumber: $normalizedVehicleNumber, consignorName: $consignorName, consigneeName: $consigneeName, sourceLocation: $sourceLocation, destination: $destination, generatedFrom: $generatedFrom, royaltyAmountPaise: $royaltyAmountPaise, portalPayload: $portalPayload, portalResponseHash: $portalResponseHash, verificationStatus: $verificationStatus, verificationMethod: $verificationMethod, capturedAt: $capturedAt, verifiedAt: $verifiedAt, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt, projectName: $projectName)';
+  return 'EPassChallan(id: $id, organizationId: $organizationId, projectId: $projectId, sourcePortal: $sourcePortal, portalUrl: $portalUrl, financialYear: $financialYear, challanNumber: $challanNumber, normalizedChallanNumber: $normalizedChallanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, selectedMaterialType: $selectedMaterialType, portalMineralName: $portalMineralName, quantity: $quantity, quantityUnit: $quantityUnit, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, normalizedVehicleNumber: $normalizedVehicleNumber, consignorName: $consignorName, consigneeName: $consigneeName, sourceLocation: $sourceLocation, destination: $destination, generatedFrom: $generatedFrom, royaltyAmountPaise: $royaltyAmountPaise, royaltyPaid: $royaltyPaid, royaltyPaidAt: $royaltyPaidAt, royaltyPaidBy: $royaltyPaidBy, portalPayload: $portalPayload, portalResponseHash: $portalResponseHash, verificationStatus: $verificationStatus, verificationMethod: $verificationMethod, capturedAt: $capturedAt, verifiedAt: $verifiedAt, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt, projectName: $projectName)';
 }
 
 
@@ -1020,7 +1022,7 @@ abstract mixin class $EPassChallanCopyWith<$Res>  {
   factory $EPassChallanCopyWith(EPassChallan value, $Res Function(EPassChallan) _then) = _$EPassChallanCopyWithImpl;
 @useResult
 $Res call({
- String id, String organizationId, String projectId, String sourcePortal, String? portalUrl, String financialYear, String challanNumber, String normalizedChallanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, ChallanMaterialType? selectedMaterialType, String portalMineralName, double quantity, String quantityUnit, String? vehicleType, String vehicleNumber, String normalizedVehicleNumber, String? consignorName, String? consigneeName, String? sourceLocation, String? destination, String? generatedFrom, int? royaltyAmountPaise, Map<String, dynamic> portalPayload, String? portalResponseHash, ChallanVerificationStatus verificationStatus, ChallanVerificationMethod verificationMethod, DateTime? capturedAt, DateTime? verifiedAt, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt, String? projectName
+ String id, String organizationId, String projectId, String sourcePortal, String? portalUrl, String financialYear, String challanNumber, String normalizedChallanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, ChallanMaterialType? selectedMaterialType, String portalMineralName, double quantity, String quantityUnit, String? vehicleType, String vehicleNumber, String normalizedVehicleNumber, String? consignorName, String? consigneeName, String? sourceLocation, String? destination, String? generatedFrom, int? royaltyAmountPaise, bool royaltyPaid, DateTime? royaltyPaidAt, String? royaltyPaidBy, Map<String, dynamic> portalPayload, String? portalResponseHash, ChallanVerificationStatus verificationStatus, ChallanVerificationMethod verificationMethod, DateTime? capturedAt, DateTime? verifiedAt, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt, String? projectName
 });
 
 
@@ -1037,7 +1039,7 @@ class _$EPassChallanCopyWithImpl<$Res>
 
 /// Create a copy of EPassChallan
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? organizationId = null,Object? projectId = null,Object? sourcePortal = null,Object? portalUrl = freezed,Object? financialYear = null,Object? challanNumber = null,Object? normalizedChallanNumber = null,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? selectedMaterialType = freezed,Object? portalMineralName = null,Object? quantity = null,Object? quantityUnit = null,Object? vehicleType = freezed,Object? vehicleNumber = null,Object? normalizedVehicleNumber = null,Object? consignorName = freezed,Object? consigneeName = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? generatedFrom = freezed,Object? royaltyAmountPaise = freezed,Object? portalPayload = null,Object? portalResponseHash = freezed,Object? verificationStatus = null,Object? verificationMethod = null,Object? capturedAt = freezed,Object? verifiedAt = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,Object? projectName = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? organizationId = null,Object? projectId = null,Object? sourcePortal = null,Object? portalUrl = freezed,Object? financialYear = null,Object? challanNumber = null,Object? normalizedChallanNumber = null,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? selectedMaterialType = freezed,Object? portalMineralName = null,Object? quantity = null,Object? quantityUnit = null,Object? vehicleType = freezed,Object? vehicleNumber = null,Object? normalizedVehicleNumber = null,Object? consignorName = freezed,Object? consigneeName = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? generatedFrom = freezed,Object? royaltyAmountPaise = freezed,Object? royaltyPaid = null,Object? royaltyPaidAt = freezed,Object? royaltyPaidBy = freezed,Object? portalPayload = null,Object? portalResponseHash = freezed,Object? verificationStatus = null,Object? verificationMethod = null,Object? capturedAt = freezed,Object? verifiedAt = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,Object? projectName = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
@@ -1063,7 +1065,10 @@ as String?,sourceLocation: freezed == sourceLocation ? _self.sourceLocation : so
 as String?,destination: freezed == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
 as String?,generatedFrom: freezed == generatedFrom ? _self.generatedFrom : generatedFrom // ignore: cast_nullable_to_non_nullable
 as String?,royaltyAmountPaise: freezed == royaltyAmountPaise ? _self.royaltyAmountPaise : royaltyAmountPaise // ignore: cast_nullable_to_non_nullable
-as int?,portalPayload: null == portalPayload ? _self.portalPayload : portalPayload // ignore: cast_nullable_to_non_nullable
+as int?,royaltyPaid: null == royaltyPaid ? _self.royaltyPaid : royaltyPaid // ignore: cast_nullable_to_non_nullable
+as bool,royaltyPaidAt: freezed == royaltyPaidAt ? _self.royaltyPaidAt : royaltyPaidAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,royaltyPaidBy: freezed == royaltyPaidBy ? _self.royaltyPaidBy : royaltyPaidBy // ignore: cast_nullable_to_non_nullable
+as String?,portalPayload: null == portalPayload ? _self.portalPayload : portalPayload // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,portalResponseHash: freezed == portalResponseHash ? _self.portalResponseHash : portalResponseHash // ignore: cast_nullable_to_non_nullable
 as String?,verificationStatus: null == verificationStatus ? _self.verificationStatus : verificationStatus // ignore: cast_nullable_to_non_nullable
 as ChallanVerificationStatus,verificationMethod: null == verificationMethod ? _self.verificationMethod : verificationMethod // ignore: cast_nullable_to_non_nullable
@@ -1159,10 +1164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String organizationId,  String projectId,  String sourcePortal,  String? portalUrl,  String financialYear,  String challanNumber,  String normalizedChallanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  ChallanMaterialType? selectedMaterialType,  String portalMineralName,  double quantity,  String quantityUnit,  String? vehicleType,  String vehicleNumber,  String normalizedVehicleNumber,  String? consignorName,  String? consigneeName,  String? sourceLocation,  String? destination,  String? generatedFrom,  int? royaltyAmountPaise,  Map<String, dynamic> portalPayload,  String? portalResponseHash,  ChallanVerificationStatus verificationStatus,  ChallanVerificationMethod verificationMethod,  DateTime? capturedAt,  DateTime? verifiedAt,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt,  String? projectName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String organizationId,  String projectId,  String sourcePortal,  String? portalUrl,  String financialYear,  String challanNumber,  String normalizedChallanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  ChallanMaterialType? selectedMaterialType,  String portalMineralName,  double quantity,  String quantityUnit,  String? vehicleType,  String vehicleNumber,  String normalizedVehicleNumber,  String? consignorName,  String? consigneeName,  String? sourceLocation,  String? destination,  String? generatedFrom,  int? royaltyAmountPaise,  bool royaltyPaid,  DateTime? royaltyPaidAt,  String? royaltyPaidBy,  Map<String, dynamic> portalPayload,  String? portalResponseHash,  ChallanVerificationStatus verificationStatus,  ChallanVerificationMethod verificationMethod,  DateTime? capturedAt,  DateTime? verifiedAt,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt,  String? projectName)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EPassChallan() when $default != null:
-return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal,_that.portalUrl,_that.financialYear,_that.challanNumber,_that.normalizedChallanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.selectedMaterialType,_that.portalMineralName,_that.quantity,_that.quantityUnit,_that.vehicleType,_that.vehicleNumber,_that.normalizedVehicleNumber,_that.consignorName,_that.consigneeName,_that.sourceLocation,_that.destination,_that.generatedFrom,_that.royaltyAmountPaise,_that.portalPayload,_that.portalResponseHash,_that.verificationStatus,_that.verificationMethod,_that.capturedAt,_that.verifiedAt,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt,_that.projectName);case _:
+return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal,_that.portalUrl,_that.financialYear,_that.challanNumber,_that.normalizedChallanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.selectedMaterialType,_that.portalMineralName,_that.quantity,_that.quantityUnit,_that.vehicleType,_that.vehicleNumber,_that.normalizedVehicleNumber,_that.consignorName,_that.consigneeName,_that.sourceLocation,_that.destination,_that.generatedFrom,_that.royaltyAmountPaise,_that.royaltyPaid,_that.royaltyPaidAt,_that.royaltyPaidBy,_that.portalPayload,_that.portalResponseHash,_that.verificationStatus,_that.verificationMethod,_that.capturedAt,_that.verifiedAt,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt,_that.projectName);case _:
   return orElse();
 
 }
@@ -1180,10 +1185,10 @@ return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String organizationId,  String projectId,  String sourcePortal,  String? portalUrl,  String financialYear,  String challanNumber,  String normalizedChallanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  ChallanMaterialType? selectedMaterialType,  String portalMineralName,  double quantity,  String quantityUnit,  String? vehicleType,  String vehicleNumber,  String normalizedVehicleNumber,  String? consignorName,  String? consigneeName,  String? sourceLocation,  String? destination,  String? generatedFrom,  int? royaltyAmountPaise,  Map<String, dynamic> portalPayload,  String? portalResponseHash,  ChallanVerificationStatus verificationStatus,  ChallanVerificationMethod verificationMethod,  DateTime? capturedAt,  DateTime? verifiedAt,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt,  String? projectName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String organizationId,  String projectId,  String sourcePortal,  String? portalUrl,  String financialYear,  String challanNumber,  String normalizedChallanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  ChallanMaterialType? selectedMaterialType,  String portalMineralName,  double quantity,  String quantityUnit,  String? vehicleType,  String vehicleNumber,  String normalizedVehicleNumber,  String? consignorName,  String? consigneeName,  String? sourceLocation,  String? destination,  String? generatedFrom,  int? royaltyAmountPaise,  bool royaltyPaid,  DateTime? royaltyPaidAt,  String? royaltyPaidBy,  Map<String, dynamic> portalPayload,  String? portalResponseHash,  ChallanVerificationStatus verificationStatus,  ChallanVerificationMethod verificationMethod,  DateTime? capturedAt,  DateTime? verifiedAt,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt,  String? projectName)  $default,) {final _that = this;
 switch (_that) {
 case _EPassChallan():
-return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal,_that.portalUrl,_that.financialYear,_that.challanNumber,_that.normalizedChallanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.selectedMaterialType,_that.portalMineralName,_that.quantity,_that.quantityUnit,_that.vehicleType,_that.vehicleNumber,_that.normalizedVehicleNumber,_that.consignorName,_that.consigneeName,_that.sourceLocation,_that.destination,_that.generatedFrom,_that.royaltyAmountPaise,_that.portalPayload,_that.portalResponseHash,_that.verificationStatus,_that.verificationMethod,_that.capturedAt,_that.verifiedAt,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt,_that.projectName);case _:
+return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal,_that.portalUrl,_that.financialYear,_that.challanNumber,_that.normalizedChallanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.selectedMaterialType,_that.portalMineralName,_that.quantity,_that.quantityUnit,_that.vehicleType,_that.vehicleNumber,_that.normalizedVehicleNumber,_that.consignorName,_that.consigneeName,_that.sourceLocation,_that.destination,_that.generatedFrom,_that.royaltyAmountPaise,_that.royaltyPaid,_that.royaltyPaidAt,_that.royaltyPaidBy,_that.portalPayload,_that.portalResponseHash,_that.verificationStatus,_that.verificationMethod,_that.capturedAt,_that.verifiedAt,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt,_that.projectName);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1200,10 +1205,10 @@ return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String organizationId,  String projectId,  String sourcePortal,  String? portalUrl,  String financialYear,  String challanNumber,  String normalizedChallanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  ChallanMaterialType? selectedMaterialType,  String portalMineralName,  double quantity,  String quantityUnit,  String? vehicleType,  String vehicleNumber,  String normalizedVehicleNumber,  String? consignorName,  String? consigneeName,  String? sourceLocation,  String? destination,  String? generatedFrom,  int? royaltyAmountPaise,  Map<String, dynamic> portalPayload,  String? portalResponseHash,  ChallanVerificationStatus verificationStatus,  ChallanVerificationMethod verificationMethod,  DateTime? capturedAt,  DateTime? verifiedAt,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt,  String? projectName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String organizationId,  String projectId,  String sourcePortal,  String? portalUrl,  String financialYear,  String challanNumber,  String normalizedChallanNumber,  String? uidNumber,  DateTime? challanDate,  DateTime? validUntil,  ChallanMaterialType? selectedMaterialType,  String portalMineralName,  double quantity,  String quantityUnit,  String? vehicleType,  String vehicleNumber,  String normalizedVehicleNumber,  String? consignorName,  String? consigneeName,  String? sourceLocation,  String? destination,  String? generatedFrom,  int? royaltyAmountPaise,  bool royaltyPaid,  DateTime? royaltyPaidAt,  String? royaltyPaidBy,  Map<String, dynamic> portalPayload,  String? portalResponseHash,  ChallanVerificationStatus verificationStatus,  ChallanVerificationMethod verificationMethod,  DateTime? capturedAt,  DateTime? verifiedAt,  String? createdBy,  DateTime? createdAt,  DateTime? updatedAt,  DateTime? deletedAt,  String? projectName)?  $default,) {final _that = this;
 switch (_that) {
 case _EPassChallan() when $default != null:
-return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal,_that.portalUrl,_that.financialYear,_that.challanNumber,_that.normalizedChallanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.selectedMaterialType,_that.portalMineralName,_that.quantity,_that.quantityUnit,_that.vehicleType,_that.vehicleNumber,_that.normalizedVehicleNumber,_that.consignorName,_that.consigneeName,_that.sourceLocation,_that.destination,_that.generatedFrom,_that.royaltyAmountPaise,_that.portalPayload,_that.portalResponseHash,_that.verificationStatus,_that.verificationMethod,_that.capturedAt,_that.verifiedAt,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt,_that.projectName);case _:
+return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal,_that.portalUrl,_that.financialYear,_that.challanNumber,_that.normalizedChallanNumber,_that.uidNumber,_that.challanDate,_that.validUntil,_that.selectedMaterialType,_that.portalMineralName,_that.quantity,_that.quantityUnit,_that.vehicleType,_that.vehicleNumber,_that.normalizedVehicleNumber,_that.consignorName,_that.consigneeName,_that.sourceLocation,_that.destination,_that.generatedFrom,_that.royaltyAmountPaise,_that.royaltyPaid,_that.royaltyPaidAt,_that.royaltyPaidBy,_that.portalPayload,_that.portalResponseHash,_that.verificationStatus,_that.verificationMethod,_that.capturedAt,_that.verifiedAt,_that.createdBy,_that.createdAt,_that.updatedAt,_that.deletedAt,_that.projectName);case _:
   return null;
 
 }
@@ -1215,7 +1220,7 @@ return $default(_that.id,_that.organizationId,_that.projectId,_that.sourcePortal
 @JsonSerializable()
 
 class _EPassChallan extends EPassChallan {
-  const _EPassChallan({required this.id, required this.organizationId, required this.projectId, this.sourcePortal = 'bihar_khanan_soft', this.portalUrl, required this.financialYear, required this.challanNumber, required this.normalizedChallanNumber, this.uidNumber, this.challanDate, this.validUntil, this.selectedMaterialType, required this.portalMineralName, this.quantity = 0, this.quantityUnit = 'MT', this.vehicleType, required this.vehicleNumber, required this.normalizedVehicleNumber, this.consignorName, this.consigneeName, this.sourceLocation, this.destination, this.generatedFrom, this.royaltyAmountPaise, final  Map<String, dynamic> portalPayload = const <String, dynamic>{}, this.portalResponseHash, this.verificationStatus = ChallanVerificationStatus.manualUnverified, this.verificationMethod = ChallanVerificationMethod.manualEntry, this.capturedAt, this.verifiedAt, this.createdBy, this.createdAt, this.updatedAt, this.deletedAt, this.projectName}): _portalPayload = portalPayload,super._();
+  const _EPassChallan({required this.id, required this.organizationId, required this.projectId, this.sourcePortal = 'bihar_khanan_soft', this.portalUrl, required this.financialYear, required this.challanNumber, required this.normalizedChallanNumber, this.uidNumber, this.challanDate, this.validUntil, this.selectedMaterialType, required this.portalMineralName, this.quantity = 0, this.quantityUnit = 'MT', this.vehicleType, required this.vehicleNumber, required this.normalizedVehicleNumber, this.consignorName, this.consigneeName, this.sourceLocation, this.destination, this.generatedFrom, this.royaltyAmountPaise, this.royaltyPaid = false, this.royaltyPaidAt, this.royaltyPaidBy, final  Map<String, dynamic> portalPayload = const <String, dynamic>{}, this.portalResponseHash, this.verificationStatus = ChallanVerificationStatus.manualUnverified, this.verificationMethod = ChallanVerificationMethod.manualEntry, this.capturedAt, this.verifiedAt, this.createdBy, this.createdAt, this.updatedAt, this.deletedAt, this.projectName}): _portalPayload = portalPayload,super._();
   factory _EPassChallan.fromJson(Map<String, dynamic> json) => _$EPassChallanFromJson(json);
 
 @override final  String id;
@@ -1242,6 +1247,11 @@ class _EPassChallan extends EPassChallan {
 @override final  String? destination;
 @override final  String? generatedFrom;
 @override final  int? royaltyAmountPaise;
+/// Whether the royalty for this challan has already been paid to the
+/// government. Existing rows default to pending until explicitly marked.
+@override@JsonKey() final  bool royaltyPaid;
+@override final  DateTime? royaltyPaidAt;
+@override final  String? royaltyPaidBy;
  final  Map<String, dynamic> _portalPayload;
 @override@JsonKey() Map<String, dynamic> get portalPayload {
   if (_portalPayload is EqualUnmodifiableMapView) return _portalPayload;
@@ -1274,16 +1284,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EPassChallan&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourcePortal, sourcePortal) || other.sourcePortal == sourcePortal)&&(identical(other.portalUrl, portalUrl) || other.portalUrl == portalUrl)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.normalizedChallanNumber, normalizedChallanNumber) || other.normalizedChallanNumber == normalizedChallanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.selectedMaterialType, selectedMaterialType) || other.selectedMaterialType == selectedMaterialType)&&(identical(other.portalMineralName, portalMineralName) || other.portalMineralName == portalMineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.normalizedVehicleNumber, normalizedVehicleNumber) || other.normalizedVehicleNumber == normalizedVehicleNumber)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&const DeepCollectionEquality().equals(other._portalPayload, _portalPayload)&&(identical(other.portalResponseHash, portalResponseHash) || other.portalResponseHash == portalResponseHash)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.verificationMethod, verificationMethod) || other.verificationMethod == verificationMethod)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.projectName, projectName) || other.projectName == projectName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EPassChallan&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourcePortal, sourcePortal) || other.sourcePortal == sourcePortal)&&(identical(other.portalUrl, portalUrl) || other.portalUrl == portalUrl)&&(identical(other.financialYear, financialYear) || other.financialYear == financialYear)&&(identical(other.challanNumber, challanNumber) || other.challanNumber == challanNumber)&&(identical(other.normalizedChallanNumber, normalizedChallanNumber) || other.normalizedChallanNumber == normalizedChallanNumber)&&(identical(other.uidNumber, uidNumber) || other.uidNumber == uidNumber)&&(identical(other.challanDate, challanDate) || other.challanDate == challanDate)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&(identical(other.selectedMaterialType, selectedMaterialType) || other.selectedMaterialType == selectedMaterialType)&&(identical(other.portalMineralName, portalMineralName) || other.portalMineralName == portalMineralName)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.quantityUnit, quantityUnit) || other.quantityUnit == quantityUnit)&&(identical(other.vehicleType, vehicleType) || other.vehicleType == vehicleType)&&(identical(other.vehicleNumber, vehicleNumber) || other.vehicleNumber == vehicleNumber)&&(identical(other.normalizedVehicleNumber, normalizedVehicleNumber) || other.normalizedVehicleNumber == normalizedVehicleNumber)&&(identical(other.consignorName, consignorName) || other.consignorName == consignorName)&&(identical(other.consigneeName, consigneeName) || other.consigneeName == consigneeName)&&(identical(other.sourceLocation, sourceLocation) || other.sourceLocation == sourceLocation)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.generatedFrom, generatedFrom) || other.generatedFrom == generatedFrom)&&(identical(other.royaltyAmountPaise, royaltyAmountPaise) || other.royaltyAmountPaise == royaltyAmountPaise)&&(identical(other.royaltyPaid, royaltyPaid) || other.royaltyPaid == royaltyPaid)&&(identical(other.royaltyPaidAt, royaltyPaidAt) || other.royaltyPaidAt == royaltyPaidAt)&&(identical(other.royaltyPaidBy, royaltyPaidBy) || other.royaltyPaidBy == royaltyPaidBy)&&const DeepCollectionEquality().equals(other._portalPayload, _portalPayload)&&(identical(other.portalResponseHash, portalResponseHash) || other.portalResponseHash == portalResponseHash)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.verificationMethod, verificationMethod) || other.verificationMethod == verificationMethod)&&(identical(other.capturedAt, capturedAt) || other.capturedAt == capturedAt)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.projectName, projectName) || other.projectName == projectName));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,organizationId,projectId,sourcePortal,portalUrl,financialYear,challanNumber,normalizedChallanNumber,uidNumber,challanDate,validUntil,selectedMaterialType,portalMineralName,quantity,quantityUnit,vehicleType,vehicleNumber,normalizedVehicleNumber,consignorName,consigneeName,sourceLocation,destination,generatedFrom,royaltyAmountPaise,const DeepCollectionEquality().hash(_portalPayload),portalResponseHash,verificationStatus,verificationMethod,capturedAt,verifiedAt,createdBy,createdAt,updatedAt,deletedAt,projectName]);
+int get hashCode => Object.hashAll([runtimeType,id,organizationId,projectId,sourcePortal,portalUrl,financialYear,challanNumber,normalizedChallanNumber,uidNumber,challanDate,validUntil,selectedMaterialType,portalMineralName,quantity,quantityUnit,vehicleType,vehicleNumber,normalizedVehicleNumber,consignorName,consigneeName,sourceLocation,destination,generatedFrom,royaltyAmountPaise,royaltyPaid,royaltyPaidAt,royaltyPaidBy,const DeepCollectionEquality().hash(_portalPayload),portalResponseHash,verificationStatus,verificationMethod,capturedAt,verifiedAt,createdBy,createdAt,updatedAt,deletedAt,projectName]);
 
 @override
 String toString() {
-  return 'EPassChallan(id: $id, organizationId: $organizationId, projectId: $projectId, sourcePortal: $sourcePortal, portalUrl: $portalUrl, financialYear: $financialYear, challanNumber: $challanNumber, normalizedChallanNumber: $normalizedChallanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, selectedMaterialType: $selectedMaterialType, portalMineralName: $portalMineralName, quantity: $quantity, quantityUnit: $quantityUnit, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, normalizedVehicleNumber: $normalizedVehicleNumber, consignorName: $consignorName, consigneeName: $consigneeName, sourceLocation: $sourceLocation, destination: $destination, generatedFrom: $generatedFrom, royaltyAmountPaise: $royaltyAmountPaise, portalPayload: $portalPayload, portalResponseHash: $portalResponseHash, verificationStatus: $verificationStatus, verificationMethod: $verificationMethod, capturedAt: $capturedAt, verifiedAt: $verifiedAt, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt, projectName: $projectName)';
+  return 'EPassChallan(id: $id, organizationId: $organizationId, projectId: $projectId, sourcePortal: $sourcePortal, portalUrl: $portalUrl, financialYear: $financialYear, challanNumber: $challanNumber, normalizedChallanNumber: $normalizedChallanNumber, uidNumber: $uidNumber, challanDate: $challanDate, validUntil: $validUntil, selectedMaterialType: $selectedMaterialType, portalMineralName: $portalMineralName, quantity: $quantity, quantityUnit: $quantityUnit, vehicleType: $vehicleType, vehicleNumber: $vehicleNumber, normalizedVehicleNumber: $normalizedVehicleNumber, consignorName: $consignorName, consigneeName: $consigneeName, sourceLocation: $sourceLocation, destination: $destination, generatedFrom: $generatedFrom, royaltyAmountPaise: $royaltyAmountPaise, royaltyPaid: $royaltyPaid, royaltyPaidAt: $royaltyPaidAt, royaltyPaidBy: $royaltyPaidBy, portalPayload: $portalPayload, portalResponseHash: $portalResponseHash, verificationStatus: $verificationStatus, verificationMethod: $verificationMethod, capturedAt: $capturedAt, verifiedAt: $verifiedAt, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt, projectName: $projectName)';
 }
 
 
@@ -1294,7 +1304,7 @@ abstract mixin class _$EPassChallanCopyWith<$Res> implements $EPassChallanCopyWi
   factory _$EPassChallanCopyWith(_EPassChallan value, $Res Function(_EPassChallan) _then) = __$EPassChallanCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String organizationId, String projectId, String sourcePortal, String? portalUrl, String financialYear, String challanNumber, String normalizedChallanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, ChallanMaterialType? selectedMaterialType, String portalMineralName, double quantity, String quantityUnit, String? vehicleType, String vehicleNumber, String normalizedVehicleNumber, String? consignorName, String? consigneeName, String? sourceLocation, String? destination, String? generatedFrom, int? royaltyAmountPaise, Map<String, dynamic> portalPayload, String? portalResponseHash, ChallanVerificationStatus verificationStatus, ChallanVerificationMethod verificationMethod, DateTime? capturedAt, DateTime? verifiedAt, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt, String? projectName
+ String id, String organizationId, String projectId, String sourcePortal, String? portalUrl, String financialYear, String challanNumber, String normalizedChallanNumber, String? uidNumber, DateTime? challanDate, DateTime? validUntil, ChallanMaterialType? selectedMaterialType, String portalMineralName, double quantity, String quantityUnit, String? vehicleType, String vehicleNumber, String normalizedVehicleNumber, String? consignorName, String? consigneeName, String? sourceLocation, String? destination, String? generatedFrom, int? royaltyAmountPaise, bool royaltyPaid, DateTime? royaltyPaidAt, String? royaltyPaidBy, Map<String, dynamic> portalPayload, String? portalResponseHash, ChallanVerificationStatus verificationStatus, ChallanVerificationMethod verificationMethod, DateTime? capturedAt, DateTime? verifiedAt, String? createdBy, DateTime? createdAt, DateTime? updatedAt, DateTime? deletedAt, String? projectName
 });
 
 
@@ -1311,7 +1321,7 @@ class __$EPassChallanCopyWithImpl<$Res>
 
 /// Create a copy of EPassChallan
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? organizationId = null,Object? projectId = null,Object? sourcePortal = null,Object? portalUrl = freezed,Object? financialYear = null,Object? challanNumber = null,Object? normalizedChallanNumber = null,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? selectedMaterialType = freezed,Object? portalMineralName = null,Object? quantity = null,Object? quantityUnit = null,Object? vehicleType = freezed,Object? vehicleNumber = null,Object? normalizedVehicleNumber = null,Object? consignorName = freezed,Object? consigneeName = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? generatedFrom = freezed,Object? royaltyAmountPaise = freezed,Object? portalPayload = null,Object? portalResponseHash = freezed,Object? verificationStatus = null,Object? verificationMethod = null,Object? capturedAt = freezed,Object? verifiedAt = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,Object? projectName = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? organizationId = null,Object? projectId = null,Object? sourcePortal = null,Object? portalUrl = freezed,Object? financialYear = null,Object? challanNumber = null,Object? normalizedChallanNumber = null,Object? uidNumber = freezed,Object? challanDate = freezed,Object? validUntil = freezed,Object? selectedMaterialType = freezed,Object? portalMineralName = null,Object? quantity = null,Object? quantityUnit = null,Object? vehicleType = freezed,Object? vehicleNumber = null,Object? normalizedVehicleNumber = null,Object? consignorName = freezed,Object? consigneeName = freezed,Object? sourceLocation = freezed,Object? destination = freezed,Object? generatedFrom = freezed,Object? royaltyAmountPaise = freezed,Object? royaltyPaid = null,Object? royaltyPaidAt = freezed,Object? royaltyPaidBy = freezed,Object? portalPayload = null,Object? portalResponseHash = freezed,Object? verificationStatus = null,Object? verificationMethod = null,Object? capturedAt = freezed,Object? verifiedAt = freezed,Object? createdBy = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? deletedAt = freezed,Object? projectName = freezed,}) {
   return _then(_EPassChallan(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
@@ -1337,7 +1347,10 @@ as String?,sourceLocation: freezed == sourceLocation ? _self.sourceLocation : so
 as String?,destination: freezed == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
 as String?,generatedFrom: freezed == generatedFrom ? _self.generatedFrom : generatedFrom // ignore: cast_nullable_to_non_nullable
 as String?,royaltyAmountPaise: freezed == royaltyAmountPaise ? _self.royaltyAmountPaise : royaltyAmountPaise // ignore: cast_nullable_to_non_nullable
-as int?,portalPayload: null == portalPayload ? _self._portalPayload : portalPayload // ignore: cast_nullable_to_non_nullable
+as int?,royaltyPaid: null == royaltyPaid ? _self.royaltyPaid : royaltyPaid // ignore: cast_nullable_to_non_nullable
+as bool,royaltyPaidAt: freezed == royaltyPaidAt ? _self.royaltyPaidAt : royaltyPaidAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,royaltyPaidBy: freezed == royaltyPaidBy ? _self.royaltyPaidBy : royaltyPaidBy // ignore: cast_nullable_to_non_nullable
+as String?,portalPayload: null == portalPayload ? _self._portalPayload : portalPayload // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,portalResponseHash: freezed == portalResponseHash ? _self.portalResponseHash : portalResponseHash // ignore: cast_nullable_to_non_nullable
 as String?,verificationStatus: null == verificationStatus ? _self.verificationStatus : verificationStatus // ignore: cast_nullable_to_non_nullable
 as ChallanVerificationStatus,verificationMethod: null == verificationMethod ? _self.verificationMethod : verificationMethod // ignore: cast_nullable_to_non_nullable
@@ -1359,7 +1372,7 @@ as String?,
 /// @nodoc
 mixin _$ChallanFilter {
 
- String get query; String? get projectId; ChallanPortal? get portal; ChallanMaterialType? get materialType; ChallanVerificationStatus? get status; DateTime? get fromDate; DateTime? get toDate;
+ String get query; String? get projectId; ChallanPortal? get portal; ChallanMaterialType? get materialType; ChallanVerificationStatus? get status; bool? get royaltyPaid; DateTime? get fromDate; DateTime? get toDate;
 /// Create a copy of ChallanFilter
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1372,16 +1385,16 @@ $ChallanFilterCopyWith<ChallanFilter> get copyWith => _$ChallanFilterCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.royaltyPaid, royaltyPaid) || other.royaltyPaid == royaltyPaid)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,query,projectId,portal,materialType,status,fromDate,toDate);
+int get hashCode => Object.hash(runtimeType,query,projectId,portal,materialType,status,royaltyPaid,fromDate,toDate);
 
 @override
 String toString() {
-  return 'ChallanFilter(query: $query, projectId: $projectId, portal: $portal, materialType: $materialType, status: $status, fromDate: $fromDate, toDate: $toDate)';
+  return 'ChallanFilter(query: $query, projectId: $projectId, portal: $portal, materialType: $materialType, status: $status, royaltyPaid: $royaltyPaid, fromDate: $fromDate, toDate: $toDate)';
 }
 
 
@@ -1392,7 +1405,7 @@ abstract mixin class $ChallanFilterCopyWith<$Res>  {
   factory $ChallanFilterCopyWith(ChallanFilter value, $Res Function(ChallanFilter) _then) = _$ChallanFilterCopyWithImpl;
 @useResult
 $Res call({
- String query, String? projectId, ChallanPortal? portal, ChallanMaterialType? materialType, ChallanVerificationStatus? status, DateTime? fromDate, DateTime? toDate
+ String query, String? projectId, ChallanPortal? portal, ChallanMaterialType? materialType, ChallanVerificationStatus? status, bool? royaltyPaid, DateTime? fromDate, DateTime? toDate
 });
 
 
@@ -1409,14 +1422,15 @@ class _$ChallanFilterCopyWithImpl<$Res>
 
 /// Create a copy of ChallanFilter
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? projectId = freezed,Object? portal = freezed,Object? materialType = freezed,Object? status = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? projectId = freezed,Object? portal = freezed,Object? materialType = freezed,Object? status = freezed,Object? royaltyPaid = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
   return _then(_self.copyWith(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String?,portal: freezed == portal ? _self.portal : portal // ignore: cast_nullable_to_non_nullable
 as ChallanPortal?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
 as ChallanMaterialType?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as ChallanVerificationStatus?,fromDate: freezed == fromDate ? _self.fromDate : fromDate // ignore: cast_nullable_to_non_nullable
+as ChallanVerificationStatus?,royaltyPaid: freezed == royaltyPaid ? _self.royaltyPaid : royaltyPaid // ignore: cast_nullable_to_non_nullable
+as bool?,fromDate: freezed == fromDate ? _self.fromDate : fromDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,toDate: freezed == toDate ? _self.toDate : toDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
@@ -1503,10 +1517,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  bool? royaltyPaid,  DateTime? fromDate,  DateTime? toDate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ChallanFilter() when $default != null:
-return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
+return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.royaltyPaid,_that.fromDate,_that.toDate);case _:
   return orElse();
 
 }
@@ -1524,10 +1538,10 @@ return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  bool? royaltyPaid,  DateTime? fromDate,  DateTime? toDate)  $default,) {final _that = this;
 switch (_that) {
 case _ChallanFilter():
-return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
+return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.royaltyPaid,_that.fromDate,_that.toDate);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1544,10 +1558,10 @@ return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  DateTime? fromDate,  DateTime? toDate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  String? projectId,  ChallanPortal? portal,  ChallanMaterialType? materialType,  ChallanVerificationStatus? status,  bool? royaltyPaid,  DateTime? fromDate,  DateTime? toDate)?  $default,) {final _that = this;
 switch (_that) {
 case _ChallanFilter() when $default != null:
-return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.fromDate,_that.toDate);case _:
+return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_that.status,_that.royaltyPaid,_that.fromDate,_that.toDate);case _:
   return null;
 
 }
@@ -1559,7 +1573,7 @@ return $default(_that.query,_that.projectId,_that.portal,_that.materialType,_tha
 @JsonSerializable()
 
 class _ChallanFilter extends ChallanFilter {
-  const _ChallanFilter({this.query = '', this.projectId, this.portal, this.materialType, this.status, this.fromDate, this.toDate}): super._();
+  const _ChallanFilter({this.query = '', this.projectId, this.portal, this.materialType, this.status, this.royaltyPaid, this.fromDate, this.toDate}): super._();
   factory _ChallanFilter.fromJson(Map<String, dynamic> json) => _$ChallanFilterFromJson(json);
 
 @override@JsonKey() final  String query;
@@ -1567,6 +1581,7 @@ class _ChallanFilter extends ChallanFilter {
 @override final  ChallanPortal? portal;
 @override final  ChallanMaterialType? materialType;
 @override final  ChallanVerificationStatus? status;
+@override final  bool? royaltyPaid;
 @override final  DateTime? fromDate;
 @override final  DateTime? toDate;
 
@@ -1583,16 +1598,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChallanFilter&&(identical(other.query, query) || other.query == query)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.portal, portal) || other.portal == portal)&&(identical(other.materialType, materialType) || other.materialType == materialType)&&(identical(other.status, status) || other.status == status)&&(identical(other.royaltyPaid, royaltyPaid) || other.royaltyPaid == royaltyPaid)&&(identical(other.fromDate, fromDate) || other.fromDate == fromDate)&&(identical(other.toDate, toDate) || other.toDate == toDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,query,projectId,portal,materialType,status,fromDate,toDate);
+int get hashCode => Object.hash(runtimeType,query,projectId,portal,materialType,status,royaltyPaid,fromDate,toDate);
 
 @override
 String toString() {
-  return 'ChallanFilter(query: $query, projectId: $projectId, portal: $portal, materialType: $materialType, status: $status, fromDate: $fromDate, toDate: $toDate)';
+  return 'ChallanFilter(query: $query, projectId: $projectId, portal: $portal, materialType: $materialType, status: $status, royaltyPaid: $royaltyPaid, fromDate: $fromDate, toDate: $toDate)';
 }
 
 
@@ -1603,7 +1618,7 @@ abstract mixin class _$ChallanFilterCopyWith<$Res> implements $ChallanFilterCopy
   factory _$ChallanFilterCopyWith(_ChallanFilter value, $Res Function(_ChallanFilter) _then) = __$ChallanFilterCopyWithImpl;
 @override @useResult
 $Res call({
- String query, String? projectId, ChallanPortal? portal, ChallanMaterialType? materialType, ChallanVerificationStatus? status, DateTime? fromDate, DateTime? toDate
+ String query, String? projectId, ChallanPortal? portal, ChallanMaterialType? materialType, ChallanVerificationStatus? status, bool? royaltyPaid, DateTime? fromDate, DateTime? toDate
 });
 
 
@@ -1620,14 +1635,15 @@ class __$ChallanFilterCopyWithImpl<$Res>
 
 /// Create a copy of ChallanFilter
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? projectId = freezed,Object? portal = freezed,Object? materialType = freezed,Object? status = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? projectId = freezed,Object? portal = freezed,Object? materialType = freezed,Object? status = freezed,Object? royaltyPaid = freezed,Object? fromDate = freezed,Object? toDate = freezed,}) {
   return _then(_ChallanFilter(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String?,portal: freezed == portal ? _self.portal : portal // ignore: cast_nullable_to_non_nullable
 as ChallanPortal?,materialType: freezed == materialType ? _self.materialType : materialType // ignore: cast_nullable_to_non_nullable
 as ChallanMaterialType?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as ChallanVerificationStatus?,fromDate: freezed == fromDate ? _self.fromDate : fromDate // ignore: cast_nullable_to_non_nullable
+as ChallanVerificationStatus?,royaltyPaid: freezed == royaltyPaid ? _self.royaltyPaid : royaltyPaid // ignore: cast_nullable_to_non_nullable
+as bool?,fromDate: freezed == fromDate ? _self.fromDate : fromDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,toDate: freezed == toDate ? _self.toDate : toDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

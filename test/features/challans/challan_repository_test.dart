@@ -33,6 +33,9 @@ void main() {
       'destination': 'Gaya',
       'generated_from': 'Mine Owner',
       'royalty_amount_paise': 125050,
+      'royalty_paid': true,
+      'royalty_paid_at': '2026-05-12T11:00:00Z',
+      'royalty_paid_by': 'user-1',
       'portal_payload': {
         'fields': {'challanNumber': 'BR-2026-001234'},
       },
@@ -66,6 +69,9 @@ void main() {
       expect(challan.vehicleNumber, 'BR 01 GH 4567');
       expect(challan.normalizedVehicleNumber, 'BR01GH4567');
       expect(challan.royaltyAmountPaise, 125050);
+      expect(challan.royaltyPaid, isTrue);
+      expect(challan.royaltyPaidAt, DateTime.utc(2026, 5, 12, 11));
+      expect(challan.royaltyPaidBy, 'user-1');
       expect(challan.portalResponseHash, 'abc123');
       expect(
         challan.verificationStatus,
@@ -127,6 +133,9 @@ void main() {
       expect(challan.uidNumber, isNull);
       expect(challan.challanDate, isNull);
       expect(challan.royaltyAmountPaise, isNull);
+      expect(challan.royaltyPaid, isFalse);
+      expect(challan.royaltyPaidAt, isNull);
+      expect(challan.royaltyPaidBy, isNull);
       expect(challan.selectedMaterialType, isNull);
       expect(challan.projectName, isNull);
       expect(challan.portalPayload, isEmpty);

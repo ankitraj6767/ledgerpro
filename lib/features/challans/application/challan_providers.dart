@@ -64,6 +64,9 @@ class ChallanFiltersController extends Notifier<ChallanFilter> {
   void setStatus(ChallanVerificationStatus? status) =>
       state = _copy(status: status);
 
+  void setRoyaltyPaid(bool? royaltyPaid) =>
+      state = _copy(royaltyPaid: royaltyPaid);
+
   void setDateRange({DateTime? from, DateTime? to}) =>
       state = _copy(fromDate: from, toDate: to);
 
@@ -77,6 +80,7 @@ class ChallanFiltersController extends Notifier<ChallanFilter> {
     Object? portal = _unset,
     Object? materialType = _unset,
     Object? status = _unset,
+    Object? royaltyPaid = _unset,
     Object? fromDate = _unset,
     Object? toDate = _unset,
   }) {
@@ -90,6 +94,9 @@ class ChallanFiltersController extends Notifier<ChallanFilter> {
       status: status == _unset
           ? state.status
           : status as ChallanVerificationStatus?,
+      royaltyPaid: royaltyPaid == _unset
+          ? state.royaltyPaid
+          : royaltyPaid as bool?,
       fromDate: fromDate == _unset ? state.fromDate : fromDate as DateTime?,
       toDate: toDate == _unset ? state.toDate : toDate as DateTime?,
     );

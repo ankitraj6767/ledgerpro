@@ -382,6 +382,7 @@ void main() {
       expect(find.text('Manual'), findsOneWidget);
       expect(find.text('Portal (human verified)'), findsOneWidget);
       expect(find.text('Manual entry'), findsOneWidget);
+      expect(find.text('Royalty pending'), findsNWidgets(2));
       expect(find.text('Highway Package 3'), findsWidgets);
       expect(find.text('12.5 MT'), findsWidgets);
     });
@@ -397,10 +398,12 @@ void main() {
         ],
       );
 
-      Finder checkboxFor(int index) => find.descendant(
-        of: find.byType(ChallanCard).at(index),
-        matching: find.byType(Checkbox),
-      );
+      Finder checkboxFor(int index) => find
+          .descendant(
+            of: find.byType(ChallanCard).at(index),
+            matching: find.byType(Checkbox),
+          )
+          .first;
 
       await tester.tap(checkboxFor(0));
       await tester.pumpAndSettle();
@@ -417,6 +420,50 @@ void main() {
       await tester.tap(checkboxFor(1));
       await tester.pumpAndSettle();
       expect(find.text('2 challan(s) selected'), findsOneWidget);
+    });
+
+    testWidgets('royalty paid has its own control beside PDF selection', (
+      tester,
+    ) async {
+      when(
+        () => repository.updateRoyaltyPaid(
+          challanId: any(named: 'challanId'),
+          royaltyPaid: any(named: 'royaltyPaid'),
+        ),
+      ).thenAnswer((invocation) async {
+        final id = invocation.namedArguments[#challanId] as String;
+        return challan(id: id).copyWith(royaltyPaid: true);
+      });
+
+      await pumpChallanScreen(tester, challans: [challan()]);
+
+      final card = find.byType(ChallanCard);
+      expect(
+        find.descendant(of: card, matching: find.byType(Checkbox)),
+        findsNWidgets(2),
+      );
+      expect(find.text('Royalty pending'), findsOneWidget);
+      expect(
+        tester
+            .widget<Checkbox>(
+              find.descendant(of: card, matching: find.byType(Checkbox)).last,
+            )
+            .onChanged,
+        isNotNull,
+      );
+
+      await tester.tap(
+        find.descendant(of: card, matching: find.byType(Checkbox)).last,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Royalty paid'), findsOneWidget);
+      verify(
+        () => repository.updateRoyaltyPaid(
+          challanId: 'challan-1',
+          royaltyPaid: true,
+        ),
+      ).called(1);
     });
 
     testWidgets('shows cached challans while the live list refreshes', (
@@ -441,9 +488,7 @@ void main() {
             ),
             projectsProvider.overrideWith((ref) async => projects),
             challanRepositoryProvider.overrideWithValue(repository),
-            challansProvider.overrideWith(
-              (ref) => pendingChallans.future,
-            ),
+            challansProvider.overrideWith((ref) => pendingChallans.future),
             cachedChallansProvider.overrideWithValue([challan()]),
             networkOnlineProvider.overrideWithValue(true),
           ],
@@ -489,7 +534,16 @@ void main() {
       expect(find.text('State'), findsWidgets);
       expect(find.text('Material'), findsWidgets);
       expect(find.text('Status'), findsWidgets);
+      expect(find.text('Royalty'), findsOneWidget);
       expect(find.text('Date range'), findsWidgets);
+
+      final royaltyFilter = find.text('Royalty');
+      await tester.ensureVisible(royaltyFilter);
+      await tester.tap(royaltyFilter);
+      await tester.pumpAndSettle();
+      expect(find.text('Paid'), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
+      expect(find.text('All royalty statuses'), findsOneWidget);
     });
   });
 

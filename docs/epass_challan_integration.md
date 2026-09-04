@@ -423,7 +423,8 @@ honestly labelled `manual_unverified`.
 
 ## 6. Database schema
 
-Migration: **`supabase/migrations/20260725090000_epass_challan_material_entries.sql`**
+Migrations: **`supabase/migrations/20260725090000_epass_challan_material_entries.sql`**
+and **`supabase/migrations/20260904053156_challan_royalty_paid_tracking.sql`**
 (additive only; no existing migration was modified).
 
 ### `public.epass_challans`
@@ -434,7 +435,8 @@ Key columns: `organization_id`, `project_id`, `source_portal`
 `selected_material_type`, `portal_mineral_name`, `quantity numeric(14,3)`,
 `quantity_unit`, `vehicle_type`, `vehicle_number`, `normalized_vehicle_number`,
 `consignor_name`, `consignee_name`, `source_location`, `destination`,
-`generated_from`, `royalty_amount_paise`, `portal_payload jsonb`,
+`generated_from`, `royalty_amount_paise`, `royalty_paid`, `royalty_paid_at`,
+`royalty_paid_by`, `portal_payload jsonb`,
 `portal_response_hash`, `verification_status`, `verification_method`,
 `captured_at`, `verified_at`, `created_by`, `updated_by`, `created_at`,
 `updated_at`, `deleted_at`.
@@ -458,7 +460,14 @@ Triggers:
 
 Indexes: `(organization_id, created_at desc)`, `(project_id, challan_date desc)`,
 `normalized_challan_number`, `normalized_vehicle_number`, `portal_mineral_name`,
-`verification_status` — all partial on `deleted_at is null`.
+`verification_status`, `(organization_id, royalty_paid, challan_date desc)` —
+all partial on `deleted_at is null`.
+
+`royalty_paid` is an operational tracking flag and defaults to `false` for all
+existing and newly saved challans. Authorized operational roles can mark it
+from the list card or detail screen; the UI records the date and the user who
+made the change. The list has a Royalty filter with **Paid**, **Pending**, and
+**All royalty statuses** options.
 
 ### Duplicate policy
 
@@ -497,6 +506,7 @@ Because the pre-check can race a concurrent insert, the RPC also catches
 |----------|---------|
 | `create_epass_challan(...)` | Authenticates `auth.uid()`, resolves the org **from the project** (so the client cannot claim another org), verifies role, rejects `official_api`, normalizes server-side, duplicate-checks, inserts, writes a `challan_created` / `manual_challan_created` audit row, returns the row. All atomic. |
 | `delete_epass_challan(uuid)` | Owner/manager only. Soft-delete plus `challan_deleted` audit row. Frees the challan number for re-entry. |
+| `set_epass_challan_royalty_paid(uuid, boolean)` | Owner/manager/accountant/site staff only. Updates only royalty tracking fields and writes a paid/pending audit row. |
 | `archive_epass_challan(uuid)` | Superseded by `delete_epass_challan`; kept so any older client keeps working. |
 | `record_challan_duplicate_block(uuid, text)` | Writes the `duplicate_save_blocked` audit row. Separate function because `create_epass_challan` **raises** on a duplicate, which would roll back an audit row written in the same transaction. |
 
@@ -522,23 +532,24 @@ using (ledger_private.can_read_project_data(organization_id, project_id))
 -- insert: owner / manager / accountant / site_staff, and the project must
 --         belong to the same organization
 -- update (archive): owner / manager only
+-- royalty tracking: owner / manager / accountant / site_staff
 ```
 
-| Role | View | Add | Delete | Export |
-|------|:----:|:---:|:-------:|:------:|
-| Owner | ✅ all | ✅ | ✅ | ✅ |
-| Manager | ✅ all | ✅ | ✅ | ✅ |
-| Accountant | ✅ all | ✅ | ❌ | ✅ |
-| Site staff | ✅ accessible projects | ✅ | ❌ | ❌ |
-| Viewer | ✅ read-only | ❌ | ❌ | ❌ |
-| Customer | ✅ **only** assigned projects | ❌ | ❌ | ❌ |
+| Role | View | Add | Mark royalty | Delete | Export |
+|------|:----:|:---:|:-----------:|:------:|:------:|
+| Owner | ✅ all | ✅ | ✅ | ✅ | ✅ |
+| Manager | ✅ all | ✅ | ✅ | ✅ | ✅ |
+| Accountant | ✅ all | ✅ | ✅ | ❌ | ✅ |
+| Site staff | ✅ accessible projects | ✅ | ✅ | ❌ | ❌ |
+| Viewer | ✅ read-only | ❌ | ❌ | ❌ | ❌ |
+| Customer | ✅ **only** assigned projects | ❌ | ❌ | ❌ | ❌ |
 
 Customer scoping comes from `ledger_private.can_read_project_data`, which routes
 customers through `customer_project_assignments`.
 
 Matching UI getters on `OrgPermissions`: `canViewChallans`, `canAddChallan`,
-`canDeleteChallan`, `canExportChallans` (`canArchiveChallan` is retained as a
-deprecated alias). **UI gating mirrors RLS but is never
+`canMarkChallanRoyalty`, `canDeleteChallan`, `canExportChallans`
+(`canArchiveChallan` is retained as a deprecated alias). **UI gating mirrors RLS but is never
 the authority** — hiding a button neither grants nor denies access.
 
 Grants: `select, insert, update` on the table to `authenticated` only (no
@@ -628,6 +639,7 @@ Audit rows are written to `project_audit_logs` with `entity_table =
 | `manual_challan_created` | `create_epass_challan` (manual method) |
 | `challan_deleted` | `delete_epass_challan` |
 | `challan_archived` | `archive_epass_challan` (legacy) |
+| `challan_royalty_marked_paid` / `challan_royalty_marked_pending` | `set_epass_challan_royalty_paid` |
 | `duplicate_save_blocked` | `record_challan_duplicate_block` |
 
 Never logged or stored: CAPTCHA values, passwords, cookies, authorization

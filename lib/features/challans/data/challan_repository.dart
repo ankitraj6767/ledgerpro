@@ -33,6 +33,7 @@ class ChallanRepository {
       'quantity_unit, vehicle_type, vehicle_number, normalized_vehicle_number, '
       'consignor_name, consignee_name, source_location, destination, '
       'generated_from, royalty_amount_paise, verification_status, '
+      'royalty_paid, royalty_paid_at, royalty_paid_by, '
       'verification_method, captured_at, created_at, updated_at, '
       'infra_projects!inner(name)';
 
@@ -66,6 +67,9 @@ class ChallanRepository {
           'selected_material_type',
           filter.materialType!.dbValue,
         );
+      }
+      if (filter.royaltyPaid != null) {
+        query = query.eq('royalty_paid', filter.royaltyPaid!);
       }
       if (filter.fromDate != null) {
         query = query.gte('challan_date', filter.fromDate!.toIso8601String());
@@ -246,6 +250,23 @@ class ChallanRepository {
     );
   }
 
+  /// Marks whether government royalty has been paid for a challan.
+  ///
+  /// The server RPC updates only the royalty tracking fields and records an
+  /// audit event, so the flag cannot be used to modify challan data.
+  Future<EPassChallan> updateRoyaltyPaid({
+    required String challanId,
+    required bool royaltyPaid,
+  }) async {
+    return _guard(() async {
+      final row = await _client.rpc(
+        'set_epass_challan_royalty_paid',
+        params: {'p_challan_id': challanId, 'p_royalty_paid': royaltyPaid},
+      );
+      return challanFromRow(Map<String, dynamic>.from(row as Map));
+    });
+  }
+
   /// Legacy alias kept so older callers keep working.
   @Deprecated('Use deleteChallan instead')
   Future<void> archiveChallan(String challanId) => deleteChallan(challanId);
@@ -359,6 +380,9 @@ class ChallanRepository {
       destination: r['destination']?.toString(),
       generatedFrom: r['generated_from']?.toString(),
       royaltyAmountPaise: (r['royalty_amount_paise'] as num?)?.toInt(),
+      royaltyPaid: r['royalty_paid'] as bool? ?? false,
+      royaltyPaidAt: _date(r['royalty_paid_at']),
+      royaltyPaidBy: r['royalty_paid_by']?.toString(),
       portalPayload: r['portal_payload'] is Map
           ? Map<String, dynamic>.from(r['portal_payload'] as Map)
           : const <String, dynamic>{},

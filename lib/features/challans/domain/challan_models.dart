@@ -202,6 +202,12 @@ abstract class EPassChallan with _$EPassChallan {
     String? destination,
     String? generatedFrom,
     int? royaltyAmountPaise,
+
+    /// Whether the royalty for this challan has already been paid to the
+    /// government. Existing rows default to pending until explicitly marked.
+    @Default(false) bool royaltyPaid,
+    DateTime? royaltyPaidAt,
+    String? royaltyPaidBy,
     @Default(<String, dynamic>{}) Map<String, dynamic> portalPayload,
     String? portalResponseHash,
     @Default(ChallanVerificationStatus.manualUnverified)
@@ -255,6 +261,7 @@ abstract class ChallanFilter with _$ChallanFilter {
     ChallanPortal? portal,
     ChallanMaterialType? materialType,
     ChallanVerificationStatus? status,
+    bool? royaltyPaid,
     DateTime? fromDate,
     DateTime? toDate,
   }) = _ChallanFilter;
@@ -268,6 +275,7 @@ abstract class ChallanFilter with _$ChallanFilter {
       portal != null ||
       materialType != null ||
       status != null ||
+      royaltyPaid != null ||
       fromDate != null ||
       toDate != null;
 
@@ -277,6 +285,7 @@ abstract class ChallanFilter with _$ChallanFilter {
     portal != null,
     materialType != null,
     status != null,
+    royaltyPaid != null,
     fromDate != null || toDate != null,
   ].where((active) => active).length;
 }
