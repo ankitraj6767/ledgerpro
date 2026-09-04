@@ -17,16 +17,25 @@ import '../domain/challan_portal.dart';
 import '../domain/challan_status.dart';
 import '../domain/material_type.dart';
 import 'widgets/challan_card.dart';
+import 'widgets/royalty_unmark_dialog.dart';
 
 /// Read-only detail view for one saved challan.
-class ChallanDetailScreen extends ConsumerWidget {
+class ChallanDetailScreen extends ConsumerStatefulWidget {
   const ChallanDetailScreen({super.key, required this.challanId});
 
   final String challanId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final challanAsync = ref.watch(challanByIdProvider(challanId));
+  ConsumerState<ChallanDetailScreen> createState() =>
+      _ChallanDetailScreenState();
+}
+
+class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
+  bool _updatingRoyalty = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final challanAsync = ref.watch(challanByIdProvider(widget.challanId));
     final permissions = ref.watch(currentOrgPermissionsProvider);
 
     return Scaffold(
@@ -80,7 +89,7 @@ class ChallanDetailScreen extends ConsumerWidget {
           message: error is ChallanException
               ? error.message
               : 'Could not load this challan.',
-          onRetry: () => ref.invalidate(challanByIdProvider(challanId)),
+          onRetry: () => ref.invalidate(challanByIdProvider(widget.challanId)),
         ),
         data: (challan) {
           if (challan == null) {
@@ -102,9 +111,9 @@ class ChallanDetailScreen extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () {
-        ref.invalidate(challanByIdProvider(challanId));
+        ref.invalidate(challanByIdProvider(widget.challanId));
         return ref.awaitRefresh(
-          ref.read(challanByIdProvider(challanId).future),
+          ref.read(challanByIdProvider(widget.challanId).future),
         );
       },
       child: ListView(
@@ -142,18 +151,24 @@ class ChallanDetailScreen extends ConsumerWidget {
           Card(
             child: SwitchListTile.adaptive(
               value: challan.royaltyPaid,
-              onChanged: permissions.canMarkChallanRoyalty
+              onChanged: permissions.canMarkChallanRoyalty && !_updatingRoyalty
                   ? (paid) =>
                         unawaited(_setRoyaltyPaid(context, ref, challan, paid))
                   : null,
-              secondary: Icon(
-                challan.royaltyPaid
-                    ? Icons.verified_outlined
-                    : Icons.pending_outlined,
-                color: challan.royaltyPaid
-                    ? InfraColors.green
-                    : InfraColors.textSecondary,
-              ),
+              secondary: _updatingRoyalty
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      challan.royaltyPaid
+                          ? Icons.verified_outlined
+                          : Icons.pending_outlined,
+                      color: challan.royaltyPaid
+                          ? InfraColors.green
+                          : InfraColors.textSecondary,
+                    ),
               title: const Text(
                 'Government royalty paid',
                 style: TextStyle(fontWeight: FontWeight.w800),
@@ -297,6 +312,16 @@ class ChallanDetailScreen extends ConsumerWidget {
     EPassChallan challan,
     bool paid,
   ) async {
+    if (_updatingRoyalty) return;
+    if (challan.royaltyPaid && !paid) {
+      final confirmed = await RoyaltyUnmarkDialog.confirm(
+        context,
+        challan: challan,
+      );
+      if (!confirmed || !context.mounted) return;
+    }
+
+    setState(() => _updatingRoyalty = true);
     try {
       await ref
           .read(challanRepositoryProvider)
@@ -314,6 +339,8 @@ class ChallanDetailScreen extends ConsumerWidget {
           ),
         ),
       );
+    } finally {
+      if (mounted) setState(() => _updatingRoyalty = false);
     }
   }
 

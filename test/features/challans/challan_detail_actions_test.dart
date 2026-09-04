@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerpro_mobile/data/repositories/infra_repository.dart';
 import 'package:ledgerpro_mobile/features/challans/application/challan_providers.dart';
+import 'package:ledgerpro_mobile/features/challans/data/challan_repository.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_models.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_status.dart';
 import 'package:ledgerpro_mobile/features/challans/presentation/challan_detail_screen.dart';
 import 'package:ledgerpro_mobile/shared/models/infra_models.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockChallanRepository extends Mock implements ChallanRepository {}
 
 /// Actions available on the challan detail screen.
 ///
@@ -36,6 +40,7 @@ void main() {
     WidgetTester tester, {
     OrgMemberRole role = OrgMemberRole.owner,
     EPassChallan? record,
+    ChallanRepository? repository,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(430, 1400);
@@ -48,6 +53,8 @@ void main() {
             OrgPermissions(role, currentUserId: 'user-1'),
           ),
           projectsProvider.overrideWith((ref) async => const []),
+          if (repository != null)
+            challanRepositoryProvider.overrideWithValue(repository),
           challanByIdProvider(
             'challan-1',
           ).overrideWith((ref) async => record ?? challan),
@@ -122,5 +129,57 @@ void main() {
       find.widgetWithIcon(IconButton, Icons.picture_as_pdf_outlined),
       findsNothing,
     );
+  });
+
+  testWidgets('requires confirmation before unmarking paid royalty', (
+    tester,
+  ) async {
+    final repository = _MockChallanRepository();
+    final paidChallan = challan.copyWith(
+      royaltyPaid: true,
+      royaltyPaidAt: DateTime.utc(2026, 6, 3),
+    );
+    when(
+      () => repository.updateRoyaltyPaid(
+        challanId: any(named: 'challanId'),
+        royaltyPaid: any(named: 'royaltyPaid'),
+      ),
+    ).thenAnswer((_) async => paidChallan.copyWith(royaltyPaid: false));
+
+    await pumpDetail(tester, record: paidChallan, repository: repository);
+
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unmark government royalty?'), findsOneWidget);
+    expect(find.text('Keep marked paid'), findsOneWidget);
+    expect(find.text('Unmark as unpaid'), findsOneWidget);
+    verifyNever(
+      () => repository.updateRoyaltyPaid(
+        challanId: 'challan-1',
+        royaltyPaid: false,
+      ),
+    );
+
+    await tester.tap(find.text('Keep marked paid'));
+    await tester.pumpAndSettle();
+    verifyNever(
+      () => repository.updateRoyaltyPaid(
+        challanId: 'challan-1',
+        royaltyPaid: false,
+      ),
+    );
+
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unmark as unpaid'));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.updateRoyaltyPaid(
+        challanId: 'challan-1',
+        royaltyPaid: false,
+      ),
+    ).called(1);
   });
 }

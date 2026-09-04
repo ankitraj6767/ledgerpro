@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../app/theme/infra_theme.dart';
 import '../../domain/challan_models.dart';
 import '../../domain/challan_status.dart';
+import 'royalty_unmark_dialog.dart';
 
 /// One row in the recent-challan list.
 class ChallanCard extends StatefulWidget {
@@ -42,6 +43,17 @@ class _ChallanCardState extends State<ChallanCard> {
   Future<void> _setRoyaltyPaid(bool paid) async {
     final callback = widget.onRoyaltyPaidChanged;
     if (callback == null || _updatingRoyalty) return;
+
+    final currentRoyaltyPaid =
+        _optimisticRoyaltyPaid ?? widget.challan.royaltyPaid;
+    if (currentRoyaltyPaid && !paid) {
+      final confirmed = await RoyaltyUnmarkDialog.confirm(
+        context,
+        challan: widget.challan,
+      );
+      if (!confirmed || !mounted) return;
+    }
+
     setState(() {
       _optimisticRoyaltyPaid = paid;
       _updatingRoyalty = true;
@@ -219,26 +231,37 @@ class _ChallanCardState extends State<ChallanCard> {
                               : InfraColors.textSecondary,
                         ),
                         const SizedBox(width: 5),
-                        Text(
-                          royaltyPaid ? 'Royalty paid' : 'Royalty pending',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: royaltyPaid
-                                ? InfraColors.green
-                                : InfraColors.textSecondary,
+                        Expanded(
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 2,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                royaltyPaid
+                                    ? 'Royalty paid'
+                                    : 'Royalty pending',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: royaltyPaid
+                                      ? InfraColors.green
+                                      : InfraColors.textSecondary,
+                                ),
+                              ),
+                              if (challan.royaltyPaidAt != null)
+                                Text(
+                                  _dayFormat.format(
+                                    _toIst(challan.royaltyPaidAt!),
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: InfraColors.textSecondary,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (challan.royaltyPaidAt != null) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            _dayFormat.format(_toIst(challan.royaltyPaidAt!)),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: InfraColors.textSecondary,
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ],

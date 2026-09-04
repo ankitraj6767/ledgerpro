@@ -467,7 +467,8 @@ all partial on `deleted_at is null`.
 existing and newly saved challans. Authorized operational roles can mark it
 from the list card or detail screen; the UI records the date and the user who
 made the change. The list has a Royalty filter with **Paid**, **Pending**, and
-**All royalty statuses** options.
+**All royalty statuses** options. Reversing a paid marker from either surface
+requires an explicit confirmation and is recorded as a separate audit event.
 
 ### Duplicate policy
 

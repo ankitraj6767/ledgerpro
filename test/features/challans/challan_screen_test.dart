@@ -466,6 +466,65 @@ void main() {
       ).called(1);
     });
 
+    testWidgets('requires confirmation before unmarking paid royalty', (
+      tester,
+    ) async {
+      final paidChallan = challan().copyWith(
+        royaltyPaid: true,
+        royaltyPaidAt: DateTime.utc(2026, 5, 12),
+      );
+      when(
+        () => repository.updateRoyaltyPaid(
+          challanId: any(named: 'challanId'),
+          royaltyPaid: any(named: 'royaltyPaid'),
+        ),
+      ).thenAnswer((invocation) async {
+        final id = invocation.namedArguments[#challanId] as String;
+        return challan(id: id).copyWith(royaltyPaid: false);
+      });
+
+      await pumpChallanScreen(tester, challans: [paidChallan]);
+      final card = find.byType(ChallanCard);
+      final royaltyCheckbox = find
+          .descendant(of: card, matching: find.byType(Checkbox))
+          .last;
+
+      await tester.tap(royaltyCheckbox);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unmark government royalty?'), findsOneWidget);
+      expect(find.text('Keep marked paid'), findsOneWidget);
+      expect(find.text('Unmark as unpaid'), findsOneWidget);
+      verifyNever(
+        () => repository.updateRoyaltyPaid(
+          challanId: 'challan-1',
+          royaltyPaid: false,
+        ),
+      );
+
+      await tester.tap(find.text('Keep marked paid'));
+      await tester.pumpAndSettle();
+      expect(find.text('Royalty paid'), findsOneWidget);
+      verifyNever(
+        () => repository.updateRoyaltyPaid(
+          challanId: 'challan-1',
+          royaltyPaid: false,
+        ),
+      );
+
+      await tester.tap(royaltyCheckbox);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Unmark as unpaid'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => repository.updateRoyaltyPaid(
+          challanId: 'challan-1',
+          royaltyPaid: false,
+        ),
+      ).called(1);
+    });
+
     testWidgets('shows cached challans while the live list refreshes', (
       tester,
     ) async {
