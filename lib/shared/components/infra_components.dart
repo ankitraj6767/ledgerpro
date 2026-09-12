@@ -22,11 +22,17 @@ class KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
       decoration: BoxDecoration(
         color: InfraColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: InfraColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.ink.withValues(alpha: 0.045),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,7 +66,8 @@ class KpiCard extends StatelessWidget {
             style: const TextStyle(
               color: InfraColors.textPrimary,
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
         ],
@@ -83,7 +90,7 @@ class StatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(7),
       ),
       child: Text(
         label,
@@ -114,7 +121,7 @@ class ProjectProgressBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: p,
               minHeight: 7,
-              backgroundColor: InfraColors.border,
+              backgroundColor: InfraColors.surfaceMuted,
               valueColor: AlwaysStoppedAnimation(
                 percent >= 100 ? InfraColors.green : InfraColors.royalBlue,
               ),
@@ -163,6 +170,7 @@ class AmountText extends StatelessWidget {
         color: color ?? InfraColors.textPrimary,
         fontSize: size,
         fontWeight: weight,
+        fontFeatures: const [FontFeature.tabularFigures()],
       ),
     );
   }
@@ -187,7 +195,7 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -201,7 +209,7 @@ class SectionCard extends StatelessWidget {
                   child: Text(
                     title,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 15,
                       color: InfraColors.textPrimary,
                     ),
@@ -300,12 +308,19 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: InfraColors.textSecondary),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: InfraColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 24, color: InfraColors.textSecondary),
+            ),
             const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             if (message != null) ...[
               const SizedBox(height: 8),

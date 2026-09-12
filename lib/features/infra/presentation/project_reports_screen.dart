@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/infra_theme.dart';
 import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
+import '../../../shared/components/ledgerpro_design_system.dart';
 import '../../../shared/models/infra_models.dart';
 import '../data/infra_report_service.dart';
 
@@ -36,7 +38,7 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
         widget.project;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Project Reports')),
+      backgroundColor: InfraColors.porcelain,
       body: project == null
           ? const EmptyState(
               icon: Icons.error_outline,
@@ -45,39 +47,46 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
           : RefreshIndicator(
               onRefresh: () => ref.refreshProject(widget.projectId),
               child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              children: [
-                _card(
-                  icon: Icons.summarize_outlined,
-                  title: 'Project Summary (PDF)',
-                  subtitle: 'Investments, funds, and expenses overview',
-                  onTap: () => _summaryPdf(project),
-                ),
-                _card(
-                  icon: Icons.savings_outlined,
-                  title: 'Investor Report (PDF)',
-                  subtitle: 'All investments for this project',
-                  onTap: () => _investorsPdf(project),
-                ),
-                _card(
-                  icon: Icons.account_balance_outlined,
-                  title: 'Government Funds (PDF)',
-                  subtitle: 'Sanctions, receipts, and pending funds',
-                  onTap: () => _governmentFundsPdf(project),
-                ),
-                _card(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'Expense Report (PDF)',
-                  subtitle: 'All expenses for this project',
-                  onTap: () => _expensesPdf(project),
-                ),
-                if (_busy)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const LedgerProPageHeader(
+                    eyebrow: 'Document center',
+                    title: 'Project reports',
+                    subtitle:
+                        'Generate and share source-backed project documents.',
                   ),
-              ],
+                  const SizedBox(height: 24),
+                  _card(
+                    icon: Icons.summarize_outlined,
+                    title: 'Project Summary (PDF)',
+                    subtitle: 'Investments, funds, and expenses overview',
+                    onTap: () => _summaryPdf(project),
+                  ),
+                  _card(
+                    icon: Icons.savings_outlined,
+                    title: 'Investor Report (PDF)',
+                    subtitle: 'All investments for this project',
+                    onTap: () => _investorsPdf(project),
+                  ),
+                  _card(
+                    icon: Icons.account_balance_outlined,
+                    title: 'Government Funds (PDF)',
+                    subtitle: 'Sanctions, receipts, and pending funds',
+                    onTap: () => _governmentFundsPdf(project),
+                  ),
+                  _card(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'Expense Report (PDF)',
+                    subtitle: 'All expenses for this project',
+                    onTap: () => _expensesPdf(project),
+                  ),
+                  if (_busy)
+                    const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                ],
               ),
             ),
     );
@@ -90,7 +99,9 @@ class _ProjectReportsScreenState extends ConsumerState<ProjectReportsScreen> {
     required VoidCallback onTap,
   }) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         leading: Icon(icon),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: Text(subtitle),

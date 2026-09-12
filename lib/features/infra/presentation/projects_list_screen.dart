@@ -7,6 +7,7 @@ import '../../../app/theme/infra_theme.dart';
 import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
+import '../../../shared/components/ledgerpro_design_system.dart';
 import '../../../shared/models/infra_models.dart';
 import 'infra_home_screen.dart' show ProjectCard;
 
@@ -50,6 +51,7 @@ class _ProjectsListScreenState extends ConsumerState<ProjectsListScreen> {
     String query,
   ) {
     return Scaffold(
+      backgroundColor: InfraColors.porcelain,
       appBar: AppBar(title: const Text('Projects')),
       floatingActionButton: permissions.canManageProjects
           ? FloatingActionButton.extended(
@@ -153,12 +155,19 @@ class _ProjectsListScreenState extends ConsumerState<ProjectsListScreen> {
                       Row(
                         children: [
                           const Expanded(
-                            child: Text(
-                              'Projects',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 22,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                LedgerProEyebrow('Portfolio'),
+                                SizedBox(height: 6),
+                                Text(
+                                  'Projects',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 26,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           if (permissions.canManageProjects)
@@ -394,9 +403,7 @@ class _DesktopProjectListTile extends StatelessWidget {
           : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: selected ? InfraColors.royalBlue : InfraColors.border,
-        ),
+        side: BorderSide.none,
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),

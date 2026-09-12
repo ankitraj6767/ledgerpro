@@ -11,6 +11,7 @@ import '../../../core/update/update_controller.dart';
 import '../../../core/update/update_service.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
+import '../../../shared/components/ledgerpro_design_system.dart';
 import '../../../shared/components/navdream_logo.dart';
 import '../../../shared/models/infra_models.dart';
 
@@ -23,7 +24,7 @@ class GlobalExpensesScreen extends ConsumerWidget {
     final projectsAsync = ref.watch(projectsProvider);
     final cachedProjects = ref.watch(cachedDashboardProvider)?.projects;
     return Scaffold(
-      appBar: AppBar(title: const Text('Expenses')),
+      backgroundColor: InfraColors.porcelain,
       body: projectsAsync.when(
         loading: () => cachedProjects == null
             ? const Center(child: CircularProgressIndicator())
@@ -66,8 +67,14 @@ class GlobalExpensesScreen extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
+          const LedgerProPageHeader(
+            eyebrow: 'Cost control',
+            title: 'Expenses',
+            subtitle: 'Choose a project to review or record expenditure.',
+          ),
+          const SizedBox(height: 24),
           const Text(
-            'Select a project to view or add expenses',
+            'Project expense ledgers',
             style: TextStyle(color: InfraColors.textSecondary),
           ),
           const SizedBox(height: 12),
@@ -110,7 +117,7 @@ class GlobalReportsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(projectsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
+      backgroundColor: InfraColors.porcelain,
       body: projectsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorStateView(
@@ -137,33 +144,37 @@ class GlobalReportsScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () => ref.refreshWorkspace(),
             child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            children: [
-              const Text(
-                'Project reports',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              ...projects.map(
-                (p) => Card(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.picture_as_pdf_outlined,
-                      color: InfraColors.royalBlue,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              children: [
+                const LedgerProPageHeader(
+                  eyebrow: 'Document center',
+                  title: 'Reports',
+                  subtitle:
+                      'Generate source-backed financial documents by project.',
+                ),
+                const SizedBox(height: 24),
+                ...projects.map(
+                  (p) => Card(
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.picture_as_pdf_outlined,
+                        color: InfraColors.royalBlue,
+                      ),
+                      title: Text(
+                        p.name,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      subtitle: const Text('PDF reports'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push(
+                        AppRoutes.projectReports(p.id),
+                        extra: p,
+                      ),
                     ),
-                    title: Text(
-                      p.name,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    subtitle: const Text('PDF reports'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () =>
-                        context.push(AppRoutes.projectReports(p.id), extra: p),
                   ),
                 ),
-              ),
-            ],
+              ],
             ),
           );
         },
@@ -181,83 +192,89 @@ class ProfileScreen extends ConsumerWidget {
     final orgAsync = ref.watch(organizationProfileProvider);
     final permissions = ref.watch(currentOrgPermissionsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      backgroundColor: InfraColors.porcelain,
       body: RefreshIndicator(
         onRefresh: () => ref.refreshWorkspace(),
         child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const NavdreamLogo(
-                    size: 56,
-                    borderRadius: BorderRadius.all(Radius.circular(16)),
-                    showBorder: true,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          orgAsync.value?.name ?? AppConstants.appName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                          ),
-                        ),
-                        Text(
-                          orgAsync.value?.ownerName ?? 'Owner',
-                          style: const TextStyle(
-                            color: InfraColors.textSecondary,
-                          ),
-                        ),
-                      ],
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            const LedgerProPageHeader(
+              eyebrow: 'Workspace',
+              title: 'Profile',
+              subtitle: 'Account, security and administration controls.',
+            ),
+            const SizedBox(height: 24),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const NavdreamLogo(
+                      size: 56,
+                      borderRadius: BorderRadius.all(Radius.circular(16)),
+                      showBorder: true,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            orgAsync.value?.name ?? AppConstants.appName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                          ),
+                          Text(
+                            orgAsync.value?.ownerName ?? 'Owner',
+                            style: const TextStyle(
+                              color: InfraColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          if (permissions.canEditSettings)
-            _tile(
-              context,
-              Icons.settings_outlined,
-              'Settings',
-              AppRoutes.settings,
+            const SizedBox(height: 16),
+            if (permissions.canEditSettings)
+              _tile(
+                context,
+                Icons.settings_outlined,
+                'Settings',
+                AppRoutes.settings,
+              ),
+            if (permissions.canManageUsers)
+              _tile(
+                context,
+                Icons.group_outlined,
+                'Customers',
+                AppRoutes.customers,
+              ),
+            if (permissions.canViewAuditLogs)
+              _tile(
+                context,
+                Icons.manage_search_outlined,
+                'Audit logs',
+                AppRoutes.auditLogs,
+              ),
+            _tile(context, Icons.lock_outline, 'App lock', AppRoutes.appLock),
+            const _AppUpdateTile(),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: InfraColors.red),
+              onPressed: () async {
+                await ref.read(appSessionControllerProvider).signOut();
+                if (context.mounted) context.go(AppRoutes.login);
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign out'),
             ),
-          if (permissions.canManageUsers)
-            _tile(
-              context,
-              Icons.group_outlined,
-              'Customers',
-              AppRoutes.customers,
-            ),
-          if (permissions.canViewAuditLogs)
-            _tile(
-              context,
-              Icons.manage_search_outlined,
-              'Audit logs',
-              AppRoutes.auditLogs,
-            ),
-          _tile(context, Icons.lock_outline, 'App lock', AppRoutes.appLock),
-          const _AppUpdateTile(),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(foregroundColor: InfraColors.red),
-            onPressed: () async {
-              await ref.read(appSessionControllerProvider).signOut();
-              if (context.mounted) context.go(AppRoutes.login);
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
-          ),
-        ],
+          ],
         ),
       ),
     );

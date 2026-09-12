@@ -9,6 +9,7 @@ import '../../core/sync/infra_realtime_service.dart';
 import '../../core/sync/offline_sync_service.dart';
 import '../../core/update/presentation/update_prompt.dart';
 import '../../data/repositories/infra_repository.dart';
+import '../components/ledgerpro_design_system.dart';
 import '../components/navdream_logo.dart';
 
 class AdaptiveBreakpoints {
@@ -104,18 +105,28 @@ class _MobileShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onSelected,
-        destinations: InfraShell._items
-            .map(
-              (item) => NavigationDestination(
-                icon: Icon(item.icon),
-                selectedIcon: Icon(item.selectedIcon),
-                label: item.label,
-              ),
-            )
-            .toList(),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: NavigationBar(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: onSelected,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              destinations: InfraShell._items
+                  .map(
+                    (item) => NavigationDestination(
+                      icon: Icon(item.icon),
+                      selectedIcon: Icon(item.selectedIcon),
+                      label: item.label,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -138,29 +149,19 @@ class _TabletShell extends StatelessWidget {
       body: Row(
         children: [
           NavigationRail(
-            backgroundColor: InfraColors.navy,
+            backgroundColor: InfraColors.graphite,
             selectedIndex: selectedIndex,
             onDestinationSelected: onSelected,
             labelType: NavigationRailLabelType.all,
+            groupAlignment: -0.75,
+            minWidth: 76,
             leading: const Padding(
-              padding: EdgeInsets.only(top: 18, bottom: 18),
+              padding: EdgeInsets.only(top: 18, bottom: 30),
               child: NavdreamLogo(
                 size: 42,
                 borderRadius: BorderRadius.all(Radius.circular(12)),
                 showBorder: true,
               ),
-            ),
-            selectedIconTheme: const IconThemeData(color: InfraColors.gold),
-            unselectedIconTheme: const IconThemeData(color: Colors.white70),
-            selectedLabelTextStyle: const TextStyle(
-              color: InfraColors.gold,
-              fontWeight: FontWeight.w800,
-              fontSize: 11,
-            ),
-            unselectedLabelTextStyle: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-              fontSize: 11,
             ),
             destinations: InfraShell._items
                 .map(
@@ -172,7 +173,7 @@ class _TabletShell extends StatelessWidget {
                 )
                 .toList(),
           ),
-          const VerticalDivider(width: 1, color: InfraColors.border),
+          const VerticalDivider(width: 1, color: InfraColors.graphiteSoft),
           Expanded(child: child),
         ],
       ),
@@ -194,7 +195,7 @@ class _DesktopShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: InfraColors.background,
+      backgroundColor: InfraColors.porcelain,
       body: Row(
         children: [
           _DesktopSidebar(selectedIndex: selectedIndex, onSelected: onSelected),
@@ -229,11 +230,11 @@ class _DesktopSidebar extends ConsumerWidget {
         ref.watch(cachedDashboardProvider)?.orgName ??
         AppConstants.appName;
     return Container(
-      width: 244,
-      color: InfraColors.navy,
+      width: 232,
+      color: InfraColors.graphite,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -259,7 +260,9 @@ class _DesktopSidebar extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 34),
+              const LedgerProEyebrow('Workspace', color: Colors.white54),
+              const SizedBox(height: 10),
               for (var i = 0; i < InfraShell._items.length; i++) ...[
                 _SidebarButton(
                   item: InfraShell._items[i],
@@ -269,6 +272,8 @@ class _DesktopSidebar extends ConsumerWidget {
                 const SizedBox(height: 6),
               ],
               const Spacer(),
+              const LedgerProEyebrow('Operations', color: Colors.white54),
+              const SizedBox(height: 10),
               const _SyncBadge(compact: false),
             ],
           ),
@@ -300,13 +305,13 @@ class _CommandBarState extends ConsumerState<_CommandBar> {
     return SafeArea(
       bottom: false,
       child: Container(
-        height: 74,
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        color: InfraColors.surface,
+        height: 76,
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        color: InfraColors.porcelain,
         child: Row(
           children: [
             SizedBox(
-              width: 380,
+              width: 360,
               child: TextField(
                 controller: _search,
                 textInputAction: TextInputAction.search,
@@ -319,6 +324,8 @@ class _CommandBarState extends ConsumerState<_CommandBar> {
               ),
             ),
             const Spacer(),
+            const LedgerProEyebrow('Command center'),
+            const SizedBox(width: 20),
             _CommandButton(
               icon: Icons.add_business_outlined,
               label: 'Project',
@@ -405,9 +412,8 @@ class _SyncBadge extends ConsumerWidget {
         vertical: compact ? 8 : 10,
       ),
       decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: status.color.withValues(alpha: 0.24)),
+        color: status.color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
@@ -449,22 +455,27 @@ class _SidebarButton extends StatelessWidget {
     return Tooltip(
       message: item.label,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: Container(
-          height: 44,
+          height: 46,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: selected
-                ? InfraColors.royalBlue.withValues(alpha: 0.22)
+                ? Colors.white.withValues(alpha: 0.11)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
+            border: selected
+                ? const Border(
+                    left: BorderSide(color: InfraColors.royalBlue, width: 3),
+                  )
+                : null,
           ),
           child: Row(
             children: [
               Icon(
                 selected ? item.selectedIcon : item.icon,
-                color: selected ? InfraColors.gold : Colors.white70,
+                color: selected ? Colors.white : Colors.white60,
                 size: 20,
               ),
               const SizedBox(width: 12),

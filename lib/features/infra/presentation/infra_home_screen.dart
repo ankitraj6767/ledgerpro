@@ -8,6 +8,7 @@ import '../../../core/money/money.dart';
 import '../../../core/refresh/pull_to_refresh.dart';
 import '../../../data/repositories/infra_repository.dart';
 import '../../../shared/components/infra_components.dart';
+import '../../../shared/components/ledgerpro_design_system.dart';
 import '../../../shared/components/navdream_logo.dart';
 import '../../../shared/models/infra_models.dart';
 
@@ -64,7 +65,9 @@ class InfraHomeScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _KpiRow(summary: summary),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 28),
+                      const LedgerProEyebrow('Portfolio overview'),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           const Expanded(
@@ -176,7 +179,7 @@ class _DesktopDashboard extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
             GridView.count(
               crossAxisCount: 5,
               shrinkWrap: true,
@@ -306,7 +309,13 @@ class _DashboardPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: InfraColors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: InfraColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.ink.withValues(alpha: 0.045),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,7 +328,7 @@ class _DashboardPanel extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
                 ),
@@ -458,8 +467,14 @@ class _DesktopKpi extends StatelessWidget {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: InfraColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: InfraColors.border),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: InfraColors.ink.withValues(alpha: 0.045),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,8 +487,9 @@ class _DesktopKpi extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               fontSize: 22,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           Text(
@@ -531,11 +547,7 @@ class _HeroHeader extends StatelessWidget {
         28,
       ),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [InfraColors.navy, Color(0xFF0A2A52)],
-        ),
+        color: InfraColors.graphite,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
@@ -769,12 +781,14 @@ class ProjectCard extends StatelessWidget {
       project.locationState,
     ].where((e) => (e ?? '').isNotEmpty).join(', ');
     return Card(
+      elevation: 0,
+      shadowColor: InfraColors.ink.withValues(alpha: 0.08),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () =>
             context.push(AppRoutes.projectDetail(project.id), extra: project),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Container(
@@ -799,7 +813,7 @@ class ProjectCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
                     ),

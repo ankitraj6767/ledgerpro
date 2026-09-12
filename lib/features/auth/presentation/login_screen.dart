@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/infra_theme.dart';
 import '../../../data/repositories/infra_repository.dart';
-import '../../../shared/components/infra_components.dart';
+import '../../../shared/components/ledgerpro_design_system.dart';
 import '../../../shared/components/navdream_logo.dart';
 import '../data/auth_repository.dart';
 
@@ -15,6 +15,108 @@ class LoginScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _BrandIntro extends StatelessWidget {
+  const _BrandIntro({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const NavdreamLogo(
+          size: 72,
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          showBorder: true,
+          showShadow: true,
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'LEDGERPRO',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2.4,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          compact
+              ? 'Financial control for infrastructure operations.'
+              : 'Financial command\ncenter for infrastructure operations.',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: compact ? 28 : 44,
+            height: 1.04,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -1.2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          AppConstants.appTagline,
+          style: const TextStyle(color: Colors.white60, fontSize: 15),
+        ),
+        if (!compact) ...[
+          const SizedBox(height: 44),
+          const _AccessPrinciple(
+            icon: Icons.account_balance_wallet_outlined,
+            title: 'Capital clarity',
+            detail: 'Keep investment, receipts and costs legible.',
+          ),
+          const SizedBox(height: 16),
+          const _AccessPrinciple(
+            icon: Icons.verified_user_outlined,
+            title: 'Operational trust',
+            detail: 'Secure access with an audit-ready workspace.',
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AccessPrinciple extends StatelessWidget {
+  const _AccessPrinciple({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: InfraColors.gold, size: 20),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              detail,
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
@@ -35,109 +137,136 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: InfraColors.navy,
+      backgroundColor: InfraColors.graphite,
       body: SafeArea(
-        child: ResponsiveFormArea(
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 24),
-              const NavdreamLogo(
-                size: 76,
-                borderRadius: BorderRadius.all(Radius.circular(22)),
-                showBorder: true,
-                showShadow: true,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                AppConstants.appName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 28,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final desktop = constraints.maxWidth >= 900;
+            final form = _authCard();
+            if (!desktop) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                children: [
+                  _BrandIntro(compact: true),
+                  const SizedBox(height: 32),
+                  form,
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(72, 48, 56, 48),
+                    child: _BrandIntro(compact: false),
+                  ),
                 ),
-              ),
-              const Text(
-                AppConstants.appTagline,
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 40),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: InfraColors.surface,
-                  borderRadius: BorderRadius.circular(18),
+                Expanded(
+                  flex: 4,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(48),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 440),
+                        child: form,
+                      ),
+                    ),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _emailMode ? 'Email sign-in' : 'Phone OTP login',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Sign in to manage your infrastructure projects.',
-                      style: TextStyle(color: InfraColors.textSecondary),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_emailMode) ...[
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.mail_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock_outline),
-                        ),
-                      ),
-                    ] else
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone number',
-                          prefixIcon: Icon(Icons.phone_android_outlined),
-                        ),
-                      ),
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: _loading ? null : _continue,
-                      icon: _loading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.arrow_forward),
-                      label: Text(_emailMode ? 'Sign in' : 'Send OTP'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => setState(() => _emailMode = !_emailMode),
-                      icon: Icon(
-                        _emailMode ? Icons.sms_outlined : Icons.mail_outline,
-                      ),
-                      label: Text(
-                        _emailMode ? 'Use phone OTP' : 'Use email sign-in',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
+      ),
+    );
+  }
+
+  Widget _authCard() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: InfraColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 32,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LedgerProEyebrow(
+            _emailMode ? 'Secure email access' : 'Secure phone access',
+            color: InfraColors.slate,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _emailMode ? 'Sign in to your workspace' : 'Verify your phone',
+            style: const TextStyle(
+              color: InfraColors.ink,
+              fontSize: 23,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text('Access your infrastructure finance command center.'),
+          const SizedBox(height: 24),
+          if (_emailMode) ...[
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.mail_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+            ),
+          ] else
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone number',
+                prefixIcon: Icon(Icons.phone_android_outlined),
+              ),
+            ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _loading ? null : _continue,
+              icon: _loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward),
+              label: Text(_emailMode ? 'Sign in' : 'Send OTP'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() => _emailMode = !_emailMode),
+              icon: Icon(_emailMode ? Icons.sms_outlined : Icons.mail_outline),
+              label: Text(_emailMode ? 'Use phone OTP' : 'Use email sign-in'),
+            ),
+          ),
+        ],
       ),
     );
   }

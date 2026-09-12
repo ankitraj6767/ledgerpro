@@ -23,6 +23,7 @@ import '../../features/settings/presentation/sync_queue_screen.dart';
 import '../../shared/components/navdream_logo.dart';
 import '../../shared/models/infra_models.dart';
 import '../../shared/widgets/infra_shell.dart';
+import '../theme/infra_theme.dart';
 import '../constants/app_constants.dart';
 
 /// Safely resolves a route's `extra` payload into an [InfraProject].
@@ -307,7 +308,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF03152E),
+      backgroundColor: InfraColors.graphite,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(28),
@@ -326,8 +327,9 @@ class SplashScreen extends StatelessWidget {
                 AppConstants.appName,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   fontSize: 30,
+                  letterSpacing: -0.6,
                 ),
               ),
               const SizedBox(height: 8),
@@ -338,7 +340,7 @@ class SplashScreen extends StatelessWidget {
               const Spacer(),
               const LinearProgressIndicator(
                 minHeight: 4,
-                color: Color(0xFFD6A83A),
+                color: InfraColors.gold,
                 backgroundColor: Colors.white24,
               ),
             ],
