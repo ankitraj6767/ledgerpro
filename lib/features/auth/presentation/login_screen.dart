@@ -4,10 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/constants/app_constants.dart';
-import '../../../app/theme/infra_theme.dart';
 import '../../../data/repositories/infra_repository.dart';
-import '../../../shared/components/infra_components.dart';
-import '../../../shared/components/navdream_logo.dart';
+import '../../../shared/components/auth_components.dart';
 import '../data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -23,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _emailMode = false;
   bool _loading = false;
+  bool _passwordVisible = false;
 
   @override
   void dispose() {
@@ -34,105 +33,238 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: InfraColors.navy,
-      body: SafeArea(
-        child: ResponsiveFormArea(
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 24),
-              const NavdreamLogo(
-                size: 76,
-                borderRadius: BorderRadius.all(Radius.circular(22)),
-                showBorder: true,
-                showShadow: true,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                AppConstants.appName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 28,
+    return AuthPage(
+      dark: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AuthBrand(dark: true),
+          const SizedBox(height: 40),
+          Container(
+            width: 32,
+            height: 3,
+            decoration: BoxDecoration(
+              color: AuthPalette.gold,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: 'Build with\n'),
+                TextSpan(
+                  text: 'confidence.',
+                  style: TextStyle(color: AuthPalette.gold),
                 ),
-              ),
-              const Text(
-                AppConstants.appTagline,
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 40),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: InfraColors.surface,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _emailMode ? 'Email sign-in' : 'Phone OTP login',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
+              ],
+            ),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 38,
+              height: 1.12,
+              letterSpacing: -1.3,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            AppConstants.appTagline,
+            style: TextStyle(
+              color: Color(0xFFAFBFCA),
+              fontSize: 14,
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 32),
+          AuthCard(
+            child: AutofillGroup(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Your workspace awaits',
+                    style: TextStyle(
+                      color: AuthPalette.ink,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 23,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Sign in to manage your infrastructure projects.',
+                    style: TextStyle(
+                      color: AuthPalette.muted,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _signInMethods(),
+                  const SizedBox(height: 24),
+                  if (_emailMode) ...[
+                    const AuthFieldLabel('Email address'),
+                    TextField(
+                      controller: _emailController,
+                      enabled: !_loading,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.username],
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        hintText: 'you@company.com',
+                        prefixIcon: Icon(Icons.mail_outline_rounded, size: 20),
+                        labelText: 'Email address',
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Sign in to manage your infrastructure projects.',
-                      style: TextStyle(color: InfraColors.textSecondary),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_emailMode) ...[
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.mail_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock_outline),
-                        ),
-                      ),
-                    ] else
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone number',
-                          prefixIcon: Icon(Icons.phone_android_outlined),
-                        ),
-                      ),
                     const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: _loading ? null : _continue,
-                      icon: _loading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.arrow_forward),
-                      label: Text(_emailMode ? 'Sign in' : 'Send OTP'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => setState(() => _emailMode = !_emailMode),
-                      icon: Icon(
-                        _emailMode ? Icons.sms_outlined : Icons.mail_outline,
+                    const AuthFieldLabel('Password'),
+                    TextField(
+                      controller: _passwordController,
+                      enabled: !_loading,
+                      obscureText: !_passwordVisible,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.password],
+                      onSubmitted: (_) => _continue(),
+                      decoration: InputDecoration(
+                        hintText: 'Enter your password',
+                        labelText: 'Password',
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                        prefixIcon: const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 20,
+                        ),
+                        suffixIcon: IconButton(
+                          tooltip: _passwordVisible
+                              ? 'Hide password'
+                              : 'Show password',
+                          onPressed: () => setState(
+                            () => _passwordVisible = !_passwordVisible,
+                          ),
+                          icon: Icon(
+                            _passwordVisible
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 20,
+                          ),
+                        ),
                       ),
-                      label: Text(
-                        _emailMode ? 'Use phone OTP' : 'Use email sign-in',
+                    ),
+                  ] else ...[
+                    const AuthFieldLabel('Phone number'),
+                    TextField(
+                      controller: _phoneController,
+                      enabled: !_loading,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.telephoneNumber],
+                      onSubmitted: (_) => _continue(),
+                      decoration: const InputDecoration(
+                        hintText: '+91 98765 43210',
+                        labelText: 'Phone number',
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                        prefixIcon: Icon(Icons.phone_outlined, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'We’ll send a one-time code to your phone.',
+                      style: TextStyle(
+                        color: AuthPalette.muted,
+                        fontSize: 12,
+                        height: 1.5,
                       ),
                     ),
                   ],
+                  const SizedBox(height: 24),
+                  AuthPrimaryButton(
+                    label: _loading
+                        ? (_emailMode ? 'Signing in…' : 'Sending code…')
+                        : (_emailMode ? 'Sign in' : 'Send OTP'),
+                    loading: _loading,
+                    onPressed: _continue,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 26),
+          const AuthFooter(
+            text: 'Your projects. One connected workspace.',
+            dark: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _signInMethods() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F3F5),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          _methodButton(
+            email: true,
+            label: 'Email',
+            icon: Icons.mail_outline_rounded,
+          ),
+          _methodButton(
+            email: false,
+            label: 'Phone OTP',
+            icon: Icons.sms_outlined,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _methodButton({
+    required bool email,
+    required String label,
+    required IconData icon,
+  }) {
+    final selected = _emailMode == email;
+    return Expanded(
+      child: Semantics(
+        selected: selected,
+        child: TextButton(
+          onPressed: _loading
+              ? null
+              : () {
+                  FocusScope.of(context).unfocus();
+                  setState(() {
+                    _emailMode = email;
+                    _passwordVisible = false;
+                  });
+                },
+          style: TextButton.styleFrom(
+            backgroundColor: selected ? Colors.white : Colors.transparent,
+            foregroundColor: selected ? AuthPalette.ink : AuthPalette.muted,
+            minimumSize: const Size(0, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 7,
+            children: [
+              Icon(icon, size: 17),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ],
@@ -143,6 +275,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _continue() async {
+    if (_loading) return;
+    FocusScope.of(context).unfocus();
     setState(() => _loading = true);
     final messenger = ScaffoldMessenger.of(context);
     final container = ProviderScope.containerOf(context, listen: false);
