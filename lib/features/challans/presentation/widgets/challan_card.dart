@@ -84,191 +84,229 @@ class _ChallanCardState extends State<ChallanCard> {
     final challan = widget.challan;
     final royaltyPaid = _optimisticRoyaltyPaid ?? challan.royaltyPaid;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 14),
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(
+          color: widget.selected ? InfraColors.navy : InfraColors.border,
+          width: widget.selected ? 1.5 : 1,
+        ),
+      ),
       child: InkWell(
         onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.onSelectionChanged != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Checkbox(
-                    value: widget.selected,
-                    visualDensity: VisualDensity.compact,
-                    onChanged: widget.onSelectionChanged,
-                  ),
-                ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            challan.challanNumber,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 14,
-                            ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          challan.challanNumber,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: InfraColors.navy,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            height: 1.3,
+                            letterSpacing: -0.3,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        ChallanStatusBadge(status: challan.verificationStatus),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      challan.projectName ?? 'Project',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: InfraColors.royalBlue,
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 14,
-                      runSpacing: 6,
+                      if (widget.onSelectionChanged != null)
+                        Semantics(
+                          label:
+                              'Select challan ${challan.challanNumber} for PDF',
+                          child: Checkbox(
+                            value: widget.selected,
+                            onChanged: widget.onSelectionChanged,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  ChallanStatusBadge(status: challan.verificationStatus),
+                  const SizedBox(height: 14),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.business_outlined,
+                        size: 16,
+                        color: InfraColors.textSecondary,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          challan.projectName ?? 'Project',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: InfraColors.navy,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final paired =
+                          constraints.maxWidth >= 260 &&
+                          MediaQuery.textScalerOf(context).scale(13) <= 18;
+                      final width = paired
+                          ? (constraints.maxWidth - 12) / 2
+                          : constraints.maxWidth;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final fact in [
+                            _Fact(
+                              icon: Icons.event_outlined,
+                              text: challan.challanDate == null
+                                  ? 'No date'
+                                  : _dayFormat.format(
+                                      _toIst(challan.challanDate!),
+                                    ),
+                            ),
+                            _Fact(
+                              icon: Icons.landscape_outlined,
+                              text: challan.portalMineralName.isEmpty
+                                  ? '—'
+                                  : challan.portalMineralName,
+                            ),
+                            _Fact(
+                              icon: Icons.scale_outlined,
+                              text: challan.quantityLabel,
+                            ),
+                            _Fact(
+                              icon: Icons.local_shipping_outlined,
+                              text: challan.vehicleNumber,
+                            ),
+                          ])
+                            SizedBox(width: width, child: fact),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        challan.verificationMethod ==
+                                ChallanVerificationMethod
+                                    .webviewHumanVerification
+                            ? Icons.shield_outlined
+                            : Icons.edit_note_outlined,
+                        size: 14,
+                        color: InfraColors.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          challan.verificationMethod.label,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            height: 1.4,
+                            color: InfraColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      if (challan.hasMaterialMismatch)
+                        const Tooltip(
+                          message:
+                              'Selected material differs from portal mineral',
+                          child: Icon(
+                            Icons.warning_amber_outlined,
+                            size: 18,
+                            color: InfraColors.orange,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                border: Border(top: BorderSide(color: InfraColors.border)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Row(
+                children: [
+                  SizedBox.square(
+                    dimension: 48,
+                    child: _updatingRoyalty
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Semantics(
+                            label: 'Government royalty paid',
+                            child: Checkbox(
+                              value: royaltyPaid,
+                              onChanged: widget.onRoyaltyPaidChanged == null
+                                  ? null
+                                  : (value) => _setRoyaltyPaid(value ?? false),
+                            ),
+                          ),
+                  ),
+                  Icon(
+                    royaltyPaid
+                        ? Icons.verified_outlined
+                        : Icons.schedule_outlined,
+                    size: 16,
+                    color: royaltyPaid
+                        ? const Color(0xFF147647)
+                        : const Color(0xFF946018),
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        _Fact(
-                          icon: Icons.event_outlined,
-                          text: challan.challanDate == null
-                              ? 'No date'
-                              : _dayFormat.format(_toIst(challan.challanDate!)),
+                        Text(
+                          royaltyPaid ? 'Royalty paid' : 'Royalty pending',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                            color: royaltyPaid
+                                ? const Color(0xFF147647)
+                                : const Color(0xFF946018),
+                          ),
                         ),
-                        _Fact(
-                          icon: Icons.landscape_outlined,
-                          text: challan.portalMineralName.isEmpty
-                              ? '—'
-                              : challan.portalMineralName,
-                        ),
-                        _Fact(
-                          icon: Icons.scale_outlined,
-                          text: challan.quantityLabel,
-                        ),
-                        _Fact(
-                          icon: Icons.local_shipping_outlined,
-                          text: challan.vehicleNumber,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          challan.verificationMethod ==
-                                  ChallanVerificationMethod
-                                      .webviewHumanVerification
-                              ? Icons.shield_outlined
-                              : Icons.edit_note_outlined,
-                          size: 12,
-                          color: InfraColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            challan.verificationMethod.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        if (challan.royaltyPaidAt != null)
+                          Text(
+                            _dayFormat.format(_toIst(challan.royaltyPaidAt!)),
                             style: const TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 11,
                               color: InfraColors.textSecondary,
                             ),
                           ),
-                        ),
-                        if (challan.hasMaterialMismatch)
-                          const Tooltip(
-                            message:
-                                'Selected material differs from portal mineral',
-                            child: Icon(
-                              Icons.warning_amber_outlined,
-                              size: 14,
-                              color: InfraColors.orange,
-                            ),
-                          ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: _updatingRoyalty
-                              ? const Padding(
-                                  padding: EdgeInsets.all(7),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Checkbox(
-                                  value: royaltyPaid,
-                                  visualDensity: VisualDensity.compact,
-                                  onChanged: widget.onRoyaltyPaidChanged == null
-                                      ? null
-                                      : (value) =>
-                                            _setRoyaltyPaid(value ?? false),
-                                ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          royaltyPaid
-                              ? Icons.verified_outlined
-                              : Icons.pending_outlined,
-                          size: 14,
-                          color: royaltyPaid
-                              ? InfraColors.green
-                              : InfraColors.textSecondary,
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 2,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Text(
-                                royaltyPaid
-                                    ? 'Royalty paid'
-                                    : 'Royalty pending',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: royaltyPaid
-                                      ? InfraColors.green
-                                      : InfraColors.textSecondary,
-                                ),
-                              ),
-                              if (challan.royaltyPaidAt != null)
-                                Text(
-                                  _dayFormat.format(
-                                    _toIst(challan.royaltyPaidAt!),
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: InfraColors.textSecondary,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -295,9 +333,9 @@ class ChallanStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      ChallanVerificationStatus.portalCaptured => InfraColors.green,
-      ChallanVerificationStatus.officialApiVerified => InfraColors.royalBlue,
-      ChallanVerificationStatus.manualUnverified => InfraColors.orange,
+      ChallanVerificationStatus.portalCaptured => const Color(0xFF147647),
+      ChallanVerificationStatus.officialApiVerified => const Color(0xFF175CD3),
+      ChallanVerificationStatus.manualUnverified => const Color(0xFF946018),
       ChallanVerificationStatus.invalid => InfraColors.red,
       ChallanVerificationStatus.expired => InfraColors.textSecondary,
     };
@@ -313,7 +351,7 @@ class ChallanStatusBadge extends StatelessWidget {
         full ? status.label : status.shortLabel,
         style: TextStyle(
           fontSize: 10.5,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w600,
           color: color,
         ),
       ),
@@ -332,14 +370,17 @@ class _Fact extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: InfraColors.textSecondary),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: InfraColors.textPrimary,
+        Icon(icon, size: 15, color: InfraColors.textSecondary),
+        const SizedBox(width: 7),
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: InfraColors.textPrimary,
+              height: 1.4,
+            ),
           ),
         ),
       ],

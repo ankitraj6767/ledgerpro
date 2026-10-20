@@ -14,6 +14,7 @@ import '../../domain/challan_portal.dart';
 import '../../domain/challan_status.dart';
 import '../../domain/material_type.dart';
 import 'challan_card.dart';
+import 'challan_workspace_theme.dart';
 
 /// Searchable, filterable list of saved challans.
 class ChallanList extends ConsumerStatefulWidget {
@@ -84,10 +85,23 @@ class _ChallanListState extends ConsumerState<ChallanList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _searchField(),
-        const SizedBox(height: 10),
-        _filterBar(filter),
-        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: InfraColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _searchField(),
+              const SizedBox(height: 12),
+              _filterBar(filter),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
         if (widget.onToggleSelection != null &&
             widget.selectedChallanIds.isNotEmpty)
           _selectionBar(),
@@ -222,7 +236,7 @@ class _ChallanListState extends ConsumerState<ChallanList> {
 
   Widget _selectionBar() {
     return Card(
-      color: InfraColors.royalBlue.withValues(alpha: 0.08),
+      color: InfraColors.navy,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -231,20 +245,23 @@ class _ChallanListState extends ConsumerState<ChallanList> {
             const Icon(
               Icons.check_box_outlined,
               size: 18,
-              color: InfraColors.royalBlue,
+              color: ChallanWorkspaceTheme.gold,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 '${widget.selectedChallanIds.length} challan(s) selected',
                 style: const TextStyle(
-                  color: InfraColors.navy,
-                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             if (widget.onClearSelection != null)
               TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: ChallanWorkspaceTheme.gold,
+                ),
                 onPressed: widget.onClearSelection,
                 child: const Text('Clear'),
               ),
@@ -257,6 +274,9 @@ class _ChallanListState extends ConsumerState<ChallanList> {
   Widget _searchField() {
     return TextField(
       controller: _search,
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(color: InfraColors.navy, fontSize: 14),
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         hintText: 'Search challan or vehicle number',
@@ -265,6 +285,7 @@ class _ChallanListState extends ConsumerState<ChallanList> {
         suffixIcon: _search.text.isEmpty
             ? null
             : IconButton(
+                tooltip: 'Clear search',
                 icon: const Icon(Icons.clear, size: 18),
                 onPressed: () {
                   _search.clear();
@@ -371,7 +392,20 @@ class _ChallanListState extends ConsumerState<ChallanList> {
     return FilterChip(
       label: Text(label),
       selected: hasRange,
-      avatar: const Icon(Icons.date_range_outlined, size: 16),
+      selectedColor: InfraColors.navy,
+      backgroundColor: Colors.white,
+      labelStyle: TextStyle(
+        color: hasRange ? Colors.white : InfraColors.textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      side: BorderSide(color: hasRange ? InfraColors.navy : InfraColors.border),
+      avatar: Icon(
+        Icons.date_range_outlined,
+        size: 16,
+        color: hasRange ? Colors.white : InfraColors.textSecondary,
+      ),
       onSelected: (_) async {
         if (hasRange) {
           ref.read(challanFiltersProvider.notifier).setDateRange();
@@ -448,15 +482,23 @@ class _FilterChip<T> extends StatelessWidget {
           PopupMenuItem<T?>(value: option.$1, child: Text(option.$2)),
       ],
       child: Chip(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        side: BorderSide(
+          color: selected ? InfraColors.navy : InfraColors.border,
+        ),
+        labelStyle: TextStyle(
+          color: selected ? Colors.white : InfraColors.textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
         label: Text(selected ? display(value as T) : label),
         avatar: Icon(
           selected ? Icons.check : Icons.expand_more,
           size: 16,
-          color: selected ? InfraColors.royalBlue : InfraColors.textSecondary,
+          color: selected ? Colors.white : InfraColors.textSecondary,
         ),
-        backgroundColor: selected
-            ? InfraColors.royalBlue.withValues(alpha: 0.1)
-            : null,
+        backgroundColor: selected ? InfraColors.navy : Colors.white,
       ),
     );
   }

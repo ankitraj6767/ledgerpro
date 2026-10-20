@@ -7,6 +7,7 @@ import 'package:ledgerpro_mobile/data/repositories/infra_repository.dart';
 import 'package:ledgerpro_mobile/features/challans/application/challan_providers.dart';
 import 'package:ledgerpro_mobile/features/challans/data/challan_repository.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_models.dart';
+import 'package:ledgerpro_mobile/features/challans/domain/challan_portal.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/challan_status.dart';
 import 'package:ledgerpro_mobile/features/challans/domain/material_type.dart';
 import 'package:ledgerpro_mobile/features/challans/presentation/challan_screen.dart';
@@ -75,6 +76,7 @@ void main() {
     OrgMemberRole role = OrgMemberRole.owner,
     List<EPassChallan> challans = const [],
     bool online = true,
+    double textScale = 1,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -97,7 +99,15 @@ void main() {
           challansProvider.overrideWith((ref) async => challans),
           networkOnlineProvider.overrideWithValue(online),
         ],
-        child: const MaterialApp(home: ChallanScreen()),
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
+          home: const ChallanScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -168,7 +178,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(continueButton().onPressed, isNull);
 
-      await tester.tap(find.text('Select a project'));
+      await tester.ensureVisible(
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Highway Package 3').last);
       await tester.pumpAndSettle();
@@ -208,7 +222,11 @@ void main() {
 
   group('step 2 — portal', () {
     Future<void> advanceToPortal(WidgetTester tester) async {
-      await tester.tap(find.text('Select a project'));
+      await tester.ensureVisible(
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Highway Package 3').last);
       await tester.pumpAndSettle();
@@ -216,6 +234,8 @@ void main() {
         find.widgetWithText(TextField, 'e.g. 2413812606031238531'),
         'BR2026001234',
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
@@ -228,6 +248,7 @@ void main() {
       await advanceToPortal(tester);
 
       expect(find.textContaining('Step 2 of 5'), findsOneWidget);
+      expect(find.textContaining('Step 2 of 5').hitTestable(), findsOneWidget);
       expect(find.text('khanansoft.bihar.gov.in'), findsOneWidget);
       expect(
         find.textContaining('LedgerPro never stores your government'),
@@ -344,6 +365,67 @@ void main() {
   });
 
   group('challan list', () {
+    testWidgets(
+      'search and filter chips apply and clear their existing values',
+      (tester) async {
+        await pumpChallanScreen(
+          tester,
+          role: OrgMemberRole.viewer,
+          size: const Size(390, 844),
+          challans: [challan()],
+        );
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(ChallanScreen)),
+          listen: false,
+        );
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Search challan or vehicle number'),
+          'BR2026',
+        );
+        await tester.pumpAndSettle();
+        expect(container.read(challanFiltersProvider).query, 'BR2026');
+        await tester.tap(find.byTooltip('Project'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Highway Package 3').last);
+        await tester.pumpAndSettle();
+        expect(container.read(challanFiltersProvider).projectId, 'project-1');
+        await tester.ensureVisible(find.byTooltip('State'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('State'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Jharkhand'));
+        await tester.pumpAndSettle();
+        expect(
+          container.read(challanFiltersProvider).portal,
+          ChallanPortal.jharkhand,
+        );
+        await tester.ensureVisible(find.byTooltip('Royalty'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('Royalty'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Pending'));
+        await tester.pumpAndSettle();
+        expect(container.read(challanFiltersProvider).royaltyPaid, isFalse);
+        await tester.ensureVisible(find.text('Clear (4)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Clear (4)'));
+        await tester.pumpAndSettle();
+        expect(container.read(challanFiltersProvider).isActive, isFalse);
+        expect(
+          tester
+              .widget<TextField>(
+                find.widgetWithText(
+                  TextField,
+                  'Search challan or vehicle number',
+                ),
+              )
+              .controller!
+              .text,
+          isEmpty,
+        );
+      },
+    );
+
     testWidgets('empty state uses the specified copy and action', (
       tester,
     ) async {
@@ -405,6 +487,8 @@ void main() {
           )
           .first;
 
+      await tester.ensureVisible(checkboxFor(0));
+      await tester.pumpAndSettle();
       await tester.tap(checkboxFor(0));
       await tester.pumpAndSettle();
       expect(find.text('1 challan(s) selected'), findsOneWidget);
@@ -417,6 +501,8 @@ void main() {
         'Download selected challans',
       );
 
+      await tester.ensureVisible(checkboxFor(1));
+      await tester.pumpAndSettle();
       await tester.tap(checkboxFor(1));
       await tester.pumpAndSettle();
       expect(find.text('2 challan(s) selected'), findsOneWidget);
@@ -452,6 +538,10 @@ void main() {
         isNotNull,
       );
 
+      await tester.ensureVisible(
+        find.descendant(of: card, matching: find.byType(Checkbox)).last,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(of: card, matching: find.byType(Checkbox)).last,
       );
@@ -489,6 +579,8 @@ void main() {
           .descendant(of: card, matching: find.byType(Checkbox))
           .last;
 
+      await tester.ensureVisible(royaltyCheckbox);
+      await tester.pumpAndSettle();
       await tester.tap(royaltyCheckbox);
       await tester.pumpAndSettle();
 
@@ -512,6 +604,8 @@ void main() {
         ),
       );
 
+      await tester.ensureVisible(royaltyCheckbox);
+      await tester.pumpAndSettle();
       await tester.tap(royaltyCheckbox);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Unmark as unpaid'));
@@ -667,6 +761,36 @@ void main() {
   });
 
   group('adaptive layout', () {
+    for (final size in [
+      const Size(320, 568),
+      const Size(390, 844),
+      const Size(900, 1200),
+      const Size(1500, 1000),
+    ]) {
+      testWidgets('large text preserves entry and register at $size', (
+        tester,
+      ) async {
+        await pumpChallanScreen(
+          tester,
+          size: size,
+          textScale: 1.8,
+          challans: [challan()],
+        );
+        expect(tester.takeException(), isNull);
+        if (find.byType(ChallanCard).evaluate().isEmpty) {
+          await tester.scrollUntilVisible(
+            find.byType(ChallanCard),
+            300,
+            scrollable: find.byType(Scrollable).first,
+          );
+        }
+        await tester.ensureVisible(find.text('Royalty pending'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('Royalty pending').hitTestable(), findsOneWidget);
+      });
+    }
+
     testWidgets('desktop shows the flow and the list side by side', (
       tester,
     ) async {

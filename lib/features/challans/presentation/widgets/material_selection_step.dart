@@ -11,6 +11,7 @@ import '../../application/challan_flow_state.dart';
 import '../../application/challan_providers.dart';
 import '../../domain/challan_portal.dart';
 import '../../domain/material_type.dart';
+import 'challan_workspace_theme.dart';
 
 /// Step 1 — project, material, financial year and challan number.
 class MaterialSelectionStep extends ConsumerStatefulWidget {
@@ -47,159 +48,195 @@ class _MaterialSelectionStepState extends ConsumerState<MaterialSelectionStep> {
     final projectsAsync = ref.watch(projectsProvider);
     final years = FinancialYear.options();
 
-    return SectionCard(
+    final portalField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FieldLabel('State portal', required: true),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<ChallanPortal>(
+          initialValue: state.portal,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.account_balance_outlined),
+          ),
+          items: [
+            for (final portal in ChallanPortal.values)
+              DropdownMenuItem(
+                value: portal,
+                child: Text(portal.stateName, overflow: TextOverflow.ellipsis),
+              ),
+          ],
+          onChanged: (value) {
+            if (value != null) controller.selectPortal(value);
+          },
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Opens ${state.portal.host}',
+          style: const TextStyle(
+            fontSize: 11,
+            color: InfraColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+    final projectField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        projectsAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: SkeletonBox(height: 52),
+          ),
+          error: (error, _) => ErrorStateView(
+            message: 'Could not load projects.',
+            onRetry: () => ref.invalidate(projectsProvider),
+          ),
+          data: (projects) => _projectSelector(
+            projects: projects,
+            state: state,
+            controller: controller,
+          ),
+        ),
+      ],
+    );
+    final materialField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FieldLabel('Material type'),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<ChallanMaterialType?>(
+          initialValue: state.materialType,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            hintText: 'Select material type',
+            prefixIcon: Icon(Icons.landscape_outlined),
+          ),
+          items: [
+            const DropdownMenuItem<ChallanMaterialType?>(
+              value: null,
+              child: Text('Not specified'),
+            ),
+            for (final material in ChallanMaterialType.values)
+              DropdownMenuItem<ChallanMaterialType?>(
+                value: material,
+                child: Text(material.label),
+              ),
+          ],
+          onChanged: controller.selectMaterial,
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'The portal\'s own Mineral Name is always stored alongside your '
+          'choice. A mismatch is flagged, never overwritten.',
+          style: TextStyle(fontSize: 11, color: InfraColors.textSecondary),
+        ),
+      ],
+    );
+    final yearField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FieldLabel('Financial year'),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: years.contains(state.financialYear)
+              ? state.financialYear
+              : FinancialYear.current(),
+          isExpanded: true,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.calendar_today_outlined),
+          ),
+          items: [
+            for (final year in years)
+              DropdownMenuItem(value: year, child: Text(year)),
+          ],
+          onChanged: (value) {
+            if (value != null) controller.selectFinancialYear(value);
+          },
+        ),
+      ],
+    );
+    return ChallanPanel(
       title: 'Project & Material',
       icon: Icons.inventory_2_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _FieldLabel('State portal', required: true),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<ChallanPortal>(
-            initialValue: state.portal,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.account_balance_outlined),
-            ),
-            items: [
-              for (final portal in ChallanPortal.values)
-                DropdownMenuItem(
-                  value: portal,
-                  child: Text(
-                    portal.stateName,
-                    overflow: TextOverflow.ellipsis,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final paired =
+              constraints.maxWidth >= 620 &&
+              MediaQuery.textScalerOf(context).scale(15) <= 20;
+          Widget pair(Widget first, Widget second) => paired
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: first),
+                    const SizedBox(width: 20),
+                    Expanded(child: second),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [first, const SizedBox(height: 16), second],
+                );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              pair(portalField, projectField),
+              const SizedBox(height: 16),
+              pair(materialField, yearField),
+              const SizedBox(height: 16),
+              _FieldLabel(state.portal.challanNumberLabel),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _challanController,
+                textCapitalization: TextCapitalization.characters,
+                textInputAction: TextInputAction.done,
+                inputFormatters: [LengthLimitingTextInputFormatter(64)],
+                decoration: InputDecoration(
+                  hintText: state.portal.challanNumberHint,
+                  prefixIcon: const Icon(Icons.confirmation_number_outlined),
+                ),
+                onChanged: (value) {
+                  controller.setChallanNumber(value);
+                  final tidied = ref
+                      .read(challanFlowControllerProvider)
+                      .challanNumber;
+                  if (tidied != value) {
+                    _challanController.value = TextEditingValue(
+                      text: tidied,
+                      selection: TextSelection.collapsed(offset: tidied.length),
+                    );
+                  }
+                },
+                onSubmitted: (_) => widget.onContinue(),
+              ),
+
+              if (state.errorMessage != null) ...[
+                const SizedBox(height: 12),
+                _InlineError(message: state.errorMessage!),
+              ],
+
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: state.canContinueFromSelection && !state.isBusy
+                      ? widget.onContinue
+                      : null,
+                  icon: state.isCheckingDuplicate
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.arrow_forward),
+                  label: Text(
+                    state.isCheckingDuplicate ? 'Checking…' : 'Continue',
                   ),
                 ),
-            ],
-            onChanged: (value) {
-              if (value != null) controller.selectPortal(value);
-            },
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Opens ${state.portal.host}',
-            style: const TextStyle(
-              fontSize: 11,
-              color: InfraColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          projectsAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: SkeletonBox(height: 52),
-            ),
-            error: (error, _) => ErrorStateView(
-              message: 'Could not load projects.',
-              onRetry: () => ref.invalidate(projectsProvider),
-            ),
-            data: (projects) => _projectSelector(
-              projects: projects,
-              state: state,
-              controller: controller,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          const _FieldLabel('Material type'),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<ChallanMaterialType?>(
-            initialValue: state.materialType,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              hintText: 'Select material type',
-              prefixIcon: Icon(Icons.landscape_outlined),
-            ),
-            items: [
-              const DropdownMenuItem<ChallanMaterialType?>(
-                value: null,
-                child: Text('Not specified'),
               ),
-              for (final material in ChallanMaterialType.values)
-                DropdownMenuItem<ChallanMaterialType?>(
-                  value: material,
-                  child: Text(material.label),
-                ),
             ],
-            onChanged: controller.selectMaterial,
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'The portal\'s own Mineral Name is always stored alongside your '
-            'choice. A mismatch is flagged, never overwritten.',
-            style: TextStyle(fontSize: 11, color: InfraColors.textSecondary),
-          ),
-          const SizedBox(height: 16),
-
-          const _FieldLabel('Financial year'),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            initialValue: years.contains(state.financialYear)
-                ? state.financialYear
-                : FinancialYear.current(),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.calendar_today_outlined),
-            ),
-            items: [
-              for (final year in years)
-                DropdownMenuItem(value: year, child: Text(year)),
-            ],
-            onChanged: (value) {
-              if (value != null) controller.selectFinancialYear(value);
-            },
-          ),
-          const SizedBox(height: 16),
-
-          _FieldLabel(state.portal.challanNumberLabel),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _challanController,
-            textCapitalization: TextCapitalization.characters,
-            textInputAction: TextInputAction.done,
-            inputFormatters: [LengthLimitingTextInputFormatter(64)],
-            decoration: InputDecoration(
-              hintText: state.portal.challanNumberHint,
-              prefixIcon: const Icon(Icons.confirmation_number_outlined),
-            ),
-            onChanged: (value) {
-              controller.setChallanNumber(value);
-              final tidied = ref
-                  .read(challanFlowControllerProvider)
-                  .challanNumber;
-              if (tidied != value) {
-                _challanController.value = TextEditingValue(
-                  text: tidied,
-                  selection: TextSelection.collapsed(offset: tidied.length),
-                );
-              }
-            },
-            onSubmitted: (_) => widget.onContinue(),
-          ),
-
-          if (state.errorMessage != null) ...[
-            const SizedBox(height: 12),
-            _InlineError(message: state.errorMessage!),
-          ],
-
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: state.canContinueFromSelection && !state.isBusy
-                  ? widget.onContinue
-                  : null,
-              icon: state.isCheckingDuplicate
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.arrow_forward),
-              label: Text(state.isCheckingDuplicate ? 'Checking…' : 'Continue'),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -255,11 +292,15 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
       children: [
         Text(
           text,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          style: const TextStyle(
+            color: InfraColors.navy,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
         ),
         if (required)
           const Text(' *', style: TextStyle(color: InfraColors.red)),

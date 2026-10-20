@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/infra_theme.dart';
 import '../../application/challan_flow_state.dart';
+import 'challan_workspace_theme.dart';
 
-/// Five-step progress indicator.
-///
-/// Compact on mobile (numbered dots + the active step's title) and a full
-/// labelled stepper from tablet width up, so no layout overflows horizontally.
+/// Responsive progress panel. Completed steps retain their navigation targets.
 class ChallanStepIndicator extends StatelessWidget {
   const ChallanStepIndicator({
     super.key,
@@ -16,151 +14,151 @@ class ChallanStepIndicator extends StatelessWidget {
   });
 
   final ChallanFlowStep current;
-
-  /// Forces the compact layout regardless of available width.
   final bool compact;
-
-  /// Called when the user taps an already-completed step.
   final ValueChanged<ChallanFlowStep>? onStepTapped;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useCompact = compact || constraints.maxWidth < 560;
-        return Semantics(
-          label:
-              'Step ${current.stepNumber} of ${ChallanFlowStep.values.length}: '
-              '${current.title}',
-          child: useCompact ? _buildCompact(context) : _buildFull(context),
+        final useCompact =
+            compact ||
+            constraints.maxWidth < 620 ||
+            MediaQuery.textScalerOf(context).scale(12) > 16;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [InfraColors.navy, Color(0xFF143348)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFF284254)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'NEW CHALLAN',
+                style: TextStyle(
+                  color: ChallanWorkspaceTheme.gold,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.8,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Step ${current.stepNumber} of ${ChallanFlowStep.values.length} — ${current.title}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final step in ChallanFlowStep.values)
+                    Expanded(
+                      child: _StepSegment(
+                        step: step,
+                        current: current,
+                        showLabel: !useCompact,
+                        onTap:
+                            onStepTapped == null || step.index >= current.index
+                            ? null
+                            : () => onStepTapped!(step),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
   }
-
-  Widget _buildCompact(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            for (final step in ChallanFlowStep.values) ...[
-              _Dot(step: step, current: current, onTap: _tapHandler(step)),
-              if (step != ChallanFlowStep.values.last)
-                Expanded(child: _Connector(done: step.index < current.index)),
-            ],
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Step ${current.stepNumber} of ${ChallanFlowStep.values.length} — '
-          '${current.title}',
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 13,
-            color: InfraColors.textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFull(BuildContext context) {
-    return Row(
-      children: [
-        for (final step in ChallanFlowStep.values) ...[
-          _Dot(step: step, current: current, onTap: _tapHandler(step)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              step.title,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: step == current ? FontWeight.w900 : FontWeight.w600,
-                color: step == current
-                    ? InfraColors.textPrimary
-                    : InfraColors.textSecondary,
-              ),
-            ),
-          ),
-          if (step != ChallanFlowStep.values.last) ...[
-            const SizedBox(width: 8),
-            Expanded(child: _Connector(done: step.index < current.index)),
-            const SizedBox(width: 8),
-          ],
-        ],
-      ],
-    );
-  }
-
-  VoidCallback? _tapHandler(ChallanFlowStep step) {
-    final handler = onStepTapped;
-    if (handler == null || step.index >= current.index) return null;
-    return () => handler(step);
-  }
 }
 
-class _Dot extends StatelessWidget {
-  const _Dot({required this.step, required this.current, this.onTap});
+class _StepSegment extends StatelessWidget {
+  const _StepSegment({
+    required this.step,
+    required this.current,
+    required this.showLabel,
+    this.onTap,
+  });
 
   final ChallanFlowStep step;
   final ChallanFlowStep current;
+  final bool showLabel;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final done = step.index < current.index;
     final active = step == current;
-    final color = done
-        ? InfraColors.green
-        : active
-        ? InfraColors.royalBlue
-        : InfraColors.border;
-
-    return Tooltip(
-      message: step.title,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: 28,
-          height: 28,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: done || active ? color : InfraColors.surface,
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 2),
-          ),
-          child: done
-              ? const Icon(Icons.check, size: 15, color: Colors.white)
-              : Text(
-                  '${step.stepNumber}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: active ? Colors.white : InfraColors.textSecondary,
+    final color = active
+        ? ChallanWorkspaceTheme.gold
+        : done
+        ? const Color(0xFF8CCBB8)
+        : const Color(0xFF92A4B4);
+    return Semantics(
+      selected: active,
+      label: '${step.title}${done ? ', completed' : ''}',
+      child: Tooltip(
+        message: step.title,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(3, 10, 3, 10),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: active || done ? color : const Color(0xFF3B5163),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                ),
+                  if (showLabel) ...[
+                    const SizedBox(height: 10),
+                    if (done)
+                      Icon(Icons.check_rounded, size: 14, color: color)
+                    else
+                      Text(
+                        '0${step.stepNumber}',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    const SizedBox(height: 5),
+                    Text(
+                      step.title,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        height: 1.4,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _Connector extends StatelessWidget {
-  const _Connector({required this.done});
-
-  final bool done;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 3,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: done ? InfraColors.green : InfraColors.border,
-        borderRadius: BorderRadius.circular(2),
       ),
     );
   }

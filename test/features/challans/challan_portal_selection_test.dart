@@ -278,7 +278,11 @@ void main() {
       await tester.tap(find.text('Jharkhand').last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Select a project'));
+      await tester.ensureVisible(
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Highway Package 3').last);
       await tester.pumpAndSettle();
@@ -289,6 +293,8 @@ void main() {
         ),
         'JH/2026/0012345',
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
@@ -307,7 +313,11 @@ void main() {
     ) async {
       await pump(tester);
 
-      await tester.tap(find.text('Select a project'));
+      await tester.ensureVisible(
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Highway Package 3').last);
       await tester.pumpAndSettle();
@@ -315,6 +325,8 @@ void main() {
         find.widgetWithText(TextField, ChallanPortal.bihar.challanNumberHint),
         '2413812606031238531',
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
@@ -342,7 +354,11 @@ void main() {
       expect(find.text('eTP number'), findsOneWidget);
       expect(find.text('Challan number'), findsNothing);
 
-      await tester.tap(find.text('Select a project'));
+      await tester.ensureVisible(
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Highway Package 3').last);
       await tester.pumpAndSettle();
@@ -353,6 +369,8 @@ void main() {
         ),
         '1234567890',
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();

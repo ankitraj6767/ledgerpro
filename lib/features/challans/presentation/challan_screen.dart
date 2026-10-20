@@ -17,6 +17,7 @@ import 'widgets/challan_preview_step.dart';
 import 'widgets/challan_save_step.dart';
 import 'widgets/challan_step_indicator.dart';
 import 'widgets/challan_verification_step.dart';
+import 'widgets/challan_workspace_theme.dart';
 import 'widgets/duplicate_challan_dialog.dart';
 import 'widgets/government_portal_step.dart';
 import 'widgets/material_selection_step.dart';
@@ -34,6 +35,13 @@ class ChallanScreen extends ConsumerStatefulWidget {
 
 class _ChallanScreenState extends ConsumerState<ChallanScreen> {
   final Set<String> _selectedChallanIds = <String>{};
+  final _entryScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _entryScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +64,7 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
       ref.read(challanFlowControllerProvider.notifier).setOffline(!online);
     });
 
-    _listenForDuplicates();
+    _listenForFlowChanges();
 
     if (!permissions.canViewChallans) {
       return const Scaffold(
@@ -71,51 +79,76 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
     final isMobile = width <= AdaptiveBreakpoints.mobileMax;
     final isDesktop = width > AdaptiveBreakpoints.tabletMax;
 
-    return Scaffold(
-      backgroundColor: InfraColors.background,
-      appBar: AppBar(
-        title: const Text('E-Pass Challan'),
-        actions: [
-          if (!online)
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Tooltip(
-                message: 'Offline — portal verification needs internet',
-                child: Icon(Icons.wifi_off_outlined, size: 20),
+    return ChallanWorkspaceTheme(
+      child: Scaffold(
+        backgroundColor: ChallanWorkspaceTheme.background,
+        appBar: AppBar(
+          title: const Text('E-Pass Challan'),
+          actions: [
+            if (!online)
+              const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: Tooltip(
+                  message: 'Offline — portal verification needs internet',
+                  child: Icon(Icons.wifi_off_outlined, size: 20),
+                ),
               ),
-            ),
-          if (_selectedChallanIds.isNotEmpty)
+            if (_selectedChallanIds.isNotEmpty)
+              IconButton(
+                tooltip: 'Clear selected challans',
+                icon: const Icon(Icons.clear_all_outlined),
+                onPressed: _clearChallanSelection,
+              ),
             IconButton(
-              tooltip: 'Clear selected challans',
-              icon: const Icon(Icons.clear_all_outlined),
-              onPressed: _clearChallanSelection,
+              tooltip: hasSelectedVisibleChallans
+                  ? 'Download selected challans'
+                  : 'Download challan PDF',
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.white,
+                disabledForegroundColor: Colors.white38,
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: visibleChallans.isEmpty ? null : _downloadListPdf,
             ),
-          IconButton(
-            tooltip: hasSelectedVisibleChallans
-                ? 'Download selected challans'
-                : 'Download challan PDF',
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            onPressed: visibleChallans.isEmpty ? null : _downloadListPdf,
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () {
-          ref.invalidate(challansProvider);
-          return ref.awaitRefresh(ref.read(challansProvider.future));
-        },
-        child: isDesktop
-            ? _desktopLayout(permissions.canAddChallan)
-            : isMobile
-            ? _mobileLayout(permissions.canAddChallan)
-            : _tabletLayout(permissions.canAddChallan),
+            const SizedBox(width: 12),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () {
+            ref.invalidate(challansProvider);
+            return ref.awaitRefresh(ref.read(challansProvider.future));
+          },
+          child: isDesktop
+              ? _desktopLayout(permissions.canAddChallan)
+              : isMobile
+              ? _mobileLayout(permissions.canAddChallan)
+              : _tabletLayout(permissions.canAddChallan),
+        ),
       ),
     );
   }
 
-  /// Surfaces the duplicate dialog whenever the flow detects an existing record.
-  void _listenForDuplicates() {
+  /// Starts each step at its heading and surfaces detected duplicate records.
+  void _listenForFlowChanges() {
     ref.listen(challanFlowControllerProvider, (previous, next) {
+      if (previous?.step != next.step) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_entryScrollController.hasClients) return;
+          if (MediaQuery.disableAnimationsOf(context)) {
+            _entryScrollController.jumpTo(0);
+            return;
+          }
+          _entryScrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+          );
+        });
+      }
       final duplicate = next.duplicateOf;
       if (duplicate == null || previous?.duplicateOf?.id == duplicate.id) {
         return;
@@ -136,8 +169,9 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
   Widget _mobileLayout(bool canAdd) {
     final state = ref.watch(challanFlowControllerProvider);
     return ListView(
+      controller: _entryScrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
       children: [
         if (canAdd) ...[
           Padding(
@@ -176,6 +210,7 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
   Widget _tabletLayout(bool canAdd) {
     final state = ref.watch(challanFlowControllerProvider);
     return ListView(
+      controller: _entryScrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       children: [
@@ -211,6 +246,7 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
         Expanded(
           flex: 3,
           child: ListView(
+            controller: _entryScrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24),
             children: [
@@ -382,7 +418,8 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
       final file = await service.challansPdf(
         organizationName: org.name,
         project: project,
-        subjectTitle: project?.name ??
+        subjectTitle:
+            project?.name ??
             (projectIds.length == 1
                 ? challans.first.projectName ?? 'Challans'
                 : 'All Projects'),
@@ -392,7 +429,9 @@ class _ChallanScreenState extends ConsumerState<ChallanScreen> {
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Challan PDF generated (${challans.length} challan(s)).'),
+          content: Text(
+            'Challan PDF generated (${challans.length} challan(s)).',
+          ),
         ),
       );
     } catch (error) {
@@ -434,15 +473,56 @@ class _ListHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Icon(Icons.history, size: 18, color: InfraColors.textSecondary),
-        SizedBox(width: 8),
-        Text(
-          'Recent challans',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
-        ),
-      ],
+    return const Padding(
+      padding: EdgeInsets.only(top: 8, bottom: 4),
+      child: Row(
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+              border: Border.fromBorderSide(
+                BorderSide(color: InfraColors.border),
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(10),
+              child: Icon(
+                Icons.receipt_long_outlined,
+                size: 20,
+                color: InfraColors.navy,
+              ),
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'YOUR REGISTER',
+                  style: TextStyle(
+                    color: InfraColors.textSecondary,
+                    fontSize: 10,
+                    letterSpacing: 1.6,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Recent challans',
+                  style: TextStyle(
+                    color: InfraColors.navy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
