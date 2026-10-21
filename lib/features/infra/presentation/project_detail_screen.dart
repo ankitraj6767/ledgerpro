@@ -17,7 +17,6 @@ import '../data/infra_report_service.dart';
 import '../domain/expense_search.dart';
 import 'infra_forms.dart';
 import 'widgets/project_expense_category_group.dart';
-import 'widgets/project_expense_workspace.dart';
 
 class ProjectDetailScreen extends ConsumerWidget {
   const ProjectDetailScreen({
@@ -62,14 +61,6 @@ class ProjectDetailScreen extends ConsumerWidget {
         backgroundColor: InfraColors.background,
         appBar: AppBar(
           title: const Text('Project Details'),
-          toolbarHeight: 64,
-          scrolledUnderElevation: 0,
-          titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.4,
-          ),
           actions: [
             if (permissions.canManageProjects)
               PopupMenuButton<String>(
@@ -104,15 +95,8 @@ class ProjectDetailScreen extends ConsumerWidget {
           bottom: const TabBar(
             isScrollable: true,
             indicatorColor: InfraColors.gold,
-            indicatorWeight: 3,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
-            labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            unselectedLabelStyle: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-            ),
-            labelPadding: EdgeInsets.symmetric(horizontal: 20),
             tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: 'Overview'),
@@ -2263,6 +2247,66 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     return list;
   }
 
+  Widget _buildSortControl() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: SegmentedButton<_ExpenseSortKey>(
+              segments: const [
+                ButtonSegment(
+                  value: _ExpenseSortKey.date,
+                  label: Text('Date'),
+                ),
+                ButtonSegment(
+                  value: _ExpenseSortKey.name,
+                  label: Text('Name'),
+                ),
+              ],
+              selected: {_sortKey},
+              showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                textStyle: WidgetStatePropertyAll(
+                  TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
+              ),
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _sortKey = selection.first;
+                  _sortAscending = _defaultAscendingFor(_sortKey);
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: _sortAscending ? 'Ascending' : 'Descending',
+            child: Material(
+              color: InfraColors.navy.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => setState(() => _sortAscending = !_sortAscending),
+                child: Padding(
+                  padding: const EdgeInsets.all(9),
+                  child: Icon(
+                    _sortAscending
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    size: 20,
+                    color: InfraColors.navy,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _expenseTile(
     ProjectExpense e,
     OrgPermissions permissions, {
@@ -2273,59 +2317,95 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
     final title = nested && child != null && child.isNotEmpty
         ? child
         : e.categoryLabel;
-    return ExpenseEntryCard(
-      key: ValueKey('project-expense-entry-${e.id}'),
-      title: title,
-      metadata: [
-        if (e.expenseDate != null)
-          DateFormat('dd MMM yyyy').format(e.expenseDate!),
-        if (e.paymentMode.isNotEmpty) _humanizeToken(e.paymentMode),
-      ].join(' · '),
-      amountPaise: e.amountPaise,
-      selected: isSelected,
-      nested: nested,
-      onSelectionChanged: (value) {
-        setState(() {
-          if (value == true) {
-            _selectedExpenseIds.add(e.id);
-          } else {
-            _selectedExpenseIds.remove(e.id);
-          }
-        });
-      },
-      onTap: () => _showExpenseDetails(
-        context,
-        e,
-        onGeneratePdf: () => _shareExpensePdf(e),
-      ),
-      menu: _EntityMenu(
-        onEdit: permissions.canEditExpense(e)
-            ? () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      ExpenseFormScreen(project: widget.project, expense: e),
-                ),
-              )
-            : null,
-        onDelete: permissions.canDeleteExpense
-            ? () => _confirmDelete(
-                context,
-                ref,
-                title: 'Delete expense?',
-                message:
-                    'Remove ${e.categoryLabel} '
-                    '(${Money.fromPaise(e.amountPaise).formatInr()})?',
-                onConfirm: () async {
-                  await ref.read(infraRepositoryProvider).deleteExpense(e.id);
-                  ref.invalidate(projectExpensesProvider(widget.project.id));
-                  ref.invalidate(
-                    projectFinancialSummaryProvider(widget.project.id),
-                  );
-                  ref.invalidate(projectsProvider);
-                  ref.invalidate(dashboardSummaryProvider);
-                },
-              )
-            : null,
+    return Card(
+      margin: EdgeInsets.only(left: nested ? 16 : 0, bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(6, 2, 6, 2),
+        leading: Checkbox(
+          activeColor: InfraColors.royalBlue,
+          value: isSelected,
+          onChanged: (val) {
+            setState(() {
+              if (val == true) {
+                _selectedExpenseIds.add(e.id);
+              } else {
+                _selectedExpenseIds.remove(e.id);
+              }
+            });
+          },
+        ),
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            [
+              if (e.expenseDate != null)
+                DateFormat('dd MMM yyyy').format(e.expenseDate!),
+              if (e.paymentMode.isNotEmpty) _humanizeToken(e.paymentMode),
+            ].join(' · '),
+            style: const TextStyle(
+              fontSize: 11,
+              color: InfraColors.textSecondary,
+            ),
+          ),
+        ),
+        onTap: () => _showExpenseDetails(
+          context,
+          e,
+          onGeneratePdf: () => _shareExpensePdf(e),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AmountText(
+              paise: e.amountPaise,
+              color: InfraColors.red,
+              size: 13,
+              weight: FontWeight.w700,
+            ),
+            _EntityMenu(
+              onEdit: permissions.canEditExpense(e)
+                  ? () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ExpenseFormScreen(
+                          project: widget.project,
+                          expense: e,
+                        ),
+                      ),
+                    )
+                  : null,
+              onDelete: permissions.canDeleteExpense
+                  ? () => _confirmDelete(
+                      context,
+                      ref,
+                      title: 'Delete expense?',
+                      message:
+                          'Remove ${e.categoryLabel} '
+                          '(${Money.fromPaise(e.amountPaise).formatInr()})?',
+                      onConfirm: () async {
+                        await ref
+                            .read(infraRepositoryProvider)
+                            .deleteExpense(e.id);
+                        ref.invalidate(
+                          projectExpensesProvider(widget.project.id),
+                        );
+                        ref.invalidate(
+                          projectFinancialSummaryProvider(widget.project.id),
+                        );
+                        ref.invalidate(projectsProvider);
+                        ref.invalidate(dashboardSummaryProvider);
+                      },
+                    )
+                  : null,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2457,125 +2537,205 @@ class _ExpensesTabState extends ConsumerState<_ExpensesTab> {
                   filtered.isNotEmpty &&
                   filtered.every((e) => _selectedExpenseIds.contains(e.id));
 
-              return LayoutBuilder(
-                builder: (context, constraints) => Column(
-                  children: [
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () => ref.refreshProject(widget.project.id),
-                        child: ListView(
-                          key: PageStorageKey(
-                            'project-expenses-${widget.project.id}',
-                          ),
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              return Column(
+                children: [
+                  _FinanceSearchBar(
+                    controller: _searchController,
+                    hintText: 'Search category, subcategory or amount',
+                    query: _query,
+                    onChanged: _setQuery,
+                    onClear: _clearSearch,
+                    onAdd: permissions.canAddExpense
+                        ? () => context.push(
+                            AppRoutes.newExpense(widget.project.id),
+                            extra: widget.project,
+                          )
+                        : null,
+                  ),
+                  if (filtered.isNotEmpty) _buildSortControl(),
+                  if (isSelectionActive)
+                    Card(
+                      color: InfraColors.royalBlue.withValues(alpha: 0.08),
+                      margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(
+                          color: InfraColors.royalBlue,
+                          width: 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            ExpenseWorkspaceToolbar(
-                              controller: _searchController,
-                              query: _query,
-                              onChanged: _setQuery,
-                              onClear: _clearSearch,
-                              showSort: filtered.isNotEmpty,
-                              sortByName: _sortKey == _ExpenseSortKey.name,
-                              ascending: _sortAscending,
-                              onSortChanged: (byName) => setState(() {
-                                _sortKey = byName
-                                    ? _ExpenseSortKey.name
-                                    : _ExpenseSortKey.date;
-                                _sortAscending = _defaultAscendingFor(_sortKey);
-                              }),
-                              onToggleDirection: () => setState(
-                                () => _sortAscending = !_sortAscending,
-                              ),
-                              onAdd: permissions.canAddExpense
-                                  ? () => context.push(
-                                      AppRoutes.newExpense(widget.project.id),
-                                      extra: widget.project,
-                                    )
-                                  : null,
+                            Row(
+                              children: [
+                                Checkbox(
+                                  activeColor: InfraColors.royalBlue,
+                                  value: isAllSelected,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      if (val == true) {
+                                        _selectedExpenseIds.addAll(
+                                          filtered.map((e) => e.id),
+                                        );
+                                      } else {
+                                        _selectedExpenseIds.removeAll(
+                                          filtered.map((e) => e.id),
+                                        );
+                                      }
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${_selectedExpenseIds.length} Selected',
+                                  style: const TextStyle(
+                                    color: InfraColors.navy,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
-                            if (expenses.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 64),
-                                child: EmptyState(
-                                  icon: Icons.receipt_long_outlined,
-                                  title: 'No expenses yet',
-                                  message:
-                                      'Record material, labor, and other project costs.',
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedExpenseIds.clear();
+                                    });
+                                  },
+                                  child: const Text(
+                                    'Clear',
+                                    style: TextStyle(
+                                      color: InfraColors.textSecondary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              )
-                            else if (filtered.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 64,
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: InfraColors.royalBlue,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    // Build from the on-screen sorted list so
+                                    // the PDF prints in the same order the user
+                                    // sorted by (Date / Name / S.No).
+                                    final selectedExpenses = sortedList
+                                        .where(
+                                          (e) => _selectedExpenseIds.contains(
+                                            e.id,
+                                          ),
+                                        )
+                                        .toList();
+                                    if (selectedExpenses.isNotEmpty) {
+                                      _shareSelectedExpensesPdf(
+                                        selectedExpenses,
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(
+                                    Icons.picture_as_pdf_outlined,
+                                    size: 16,
+                                  ),
+                                  label: const Text(
+                                    'Generate PDF',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ),
-                                child: _NoFinanceMatches(
-                                  icon: Icons.receipt_long_outlined,
-                                  title: 'No matching expenses',
-                                  query: _query,
-                                  messageTail:
-                                      'Try a category, subcategory, or amount.',
-                                ),
-                              )
-                            else ...[
-                              ExpenseSummaryCard(
-                                projectName: widget.project.name,
-                                amountPaise: total,
-                                expenseCount: filtered.length,
-                                categoryCount:
-                                    ProjectExpenseCategoryGroup.fromExpenses(
-                                      sortedList,
-                                    ).length,
-                                filtered: _query.trim().isNotEmpty,
-                              ),
-                              ..._buildExpenseRows(sortedList, permissions),
-                            ],
+                              ],
+                            ),
                           ],
                         ),
                       ),
                     ),
-                    if (isSelectionActive)
-                      // Keep bulk actions reachable without returning to the
-                      // top of a long group. Small keyboard viewports can scroll
-                      // this footer independently instead of overflowing.
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: constraints.maxHeight * 0.45,
-                        ),
-                        child: SingleChildScrollView(
-                          child: ExpenseSelectionBar(
-                            count: _selectedExpenseIds.length,
-                            allSelected: isAllSelected,
-                            onSelectAll: (value) => setState(() {
-                              if (value == true) {
-                                _selectedExpenseIds.addAll(
-                                  filtered.map((e) => e.id),
-                                );
-                              } else {
-                                _selectedExpenseIds.removeAll(
-                                  filtered.map((e) => e.id),
-                                );
-                              }
-                            }),
-                            onClear: () => setState(_selectedExpenseIds.clear),
-                            onGeneratePdf: () {
-                              // Preserve the exact on-screen ordering in exports.
-                              final selectedExpenses = sortedList
-                                  .where(
-                                    (e) => _selectedExpenseIds.contains(e.id),
-                                  )
-                                  .toList();
-                              if (selectedExpenses.isNotEmpty) {
-                                _shareSelectedExpensesPdf(selectedExpenses);
-                              }
-                            },
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => ref.refreshProject(widget.project.id),
+                      child: expenses.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 120),
+                              EmptyState(
+                                icon: Icons.receipt_long_outlined,
+                                title: 'No expenses yet',
+                                message:
+                                    'Record material, labor, and other project costs.',
+                              ),
+                            ],
+                          )
+                        : filtered.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 120),
+                              _NoFinanceMatches(
+                                icon: Icons.receipt_long_outlined,
+                                title: 'No matching expenses',
+                                query: _query,
+                                messageTail:
+                                    'Try a category, subcategory, or amount.',
+                              ),
+                            ],
+                          )
+                        : ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                            children: [
+                              Card(
+                                color: InfraColors.navy,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _query.trim().isEmpty
+                                            ? 'Total Expenses'
+                                            : 'Filtered Expenses',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      Text(
+                                        Money.fromPaise(total).formatInr(),
+                                        style: const TextStyle(
+                                          color: InfraColors.gold,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ..._buildExpenseRows(sortedList, permissions),
+                            ],
                           ),
-                        ),
-                      ),
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               );
             },
           ),
