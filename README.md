@@ -192,6 +192,11 @@ downloads must be Developer ID signed and notarized by Apple to open normally
 after download; see `docs/macos_distribution.md` for the required GitHub
 Actions secrets.
 
+Automatic macOS releases are skipped with a configuration summary until those
+Apple secrets are set. For internal test artifacts, manually run a macOS
+workflow with `allow_unsigned_artifact=true`; these builds are not published to
+the update feed.
+
 Desktop platform folders are generated under `macos/`, `windows/`, and
 `linux/`. Platform-specific capabilities are guarded in Flutter: biometric
 unlock is disabled on unsupported platforms, FCM is skipped where unavailable,
