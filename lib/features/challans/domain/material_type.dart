@@ -85,13 +85,10 @@ extension ChallanMaterialTypeMapping on ChallanMaterialType {
 /// Indian financial year helpers.
 ///
 /// Financial years run 1 April → 31 March and are rendered as `2026-2027`,
-/// which is the format the Bihar portal dropdown uses. The selectable range is
-/// separate from the clock-based calculation of the current financial year.
+/// which is the format the Bihar portal dropdown uses. Never hard-code a single
+/// year: the list is always derived from the supplied clock.
 class FinancialYear {
   const FinancialYear._();
-
-  static const firstSelectableStartYear = 2024;
-  static const lastSelectableStartYear = 2030;
 
   /// The financial year containing [now], e.g. `2026-2027`.
   static String current([DateTime? now]) {
@@ -103,22 +100,15 @@ class FinancialYear {
 
   static String format(int startYear) => '$startYear-${startYear + 1}';
 
-  /// The current financial year when supported, otherwise the nearest choice.
-  /// Keeps initial/reset selections valid even outside the selectable range.
-  static String defaultSelection([DateTime? now]) {
-    final currentStart = int.parse(current(now).split('-').first);
-    return format(
-      currentStart.clamp(firstSelectableStartYear, lastSelectableStartYear),
-    );
+  /// Selectable financial years: [past] years back and [future] years ahead of
+  /// the current one, newest first.
+  static List<String> options({DateTime? now, int past = 5, int future = 1}) {
+    final date = now ?? DateTime.now();
+    final currentStart = date.month >= 4 ? date.year : date.year - 1;
+    final years = <String>[];
+    for (var offset = future; offset >= -past; offset--) {
+      years.add(format(currentStart + offset));
+    }
+    return years;
   }
-
-  /// The supported entry years, newest first. Saved records retain their years.
-  static List<String> options() => [
-    for (
-      var year = lastSelectableStartYear;
-      year >= firstSelectableStartYear;
-      year--
-    )
-      format(year),
-  ];
 }

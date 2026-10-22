@@ -442,7 +442,7 @@ void main() {
     });
 
     test('the financial year defaults to the current Indian FY', () {
-      expect(state().financialYear, FinancialYear.defaultSelection());
+      expect(state().financialYear, FinancialYear.current());
     });
   });
 

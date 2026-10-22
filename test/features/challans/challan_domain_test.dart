@@ -14,44 +14,28 @@ void main() {
       expect(FinancialYear.current(DateTime(2027, 1, 1)), '2026-2027');
     });
 
-    test('entry years run from 2030-2031 through 2024-2025, newest first', () {
-      expect(FinancialYear.options(), [
-        '2030-2031',
-        '2029-2030',
-        '2028-2029',
-        '2027-2028',
-        '2026-2027',
-        '2025-2026',
-        '2024-2025',
-      ]);
+    test('options are derived from the clock, never hard-coded', () {
+      final options = FinancialYear.options(now: DateTime(2026, 7, 25));
+
+      expect(options.first, '2027-2028');
+      expect(options, contains('2026-2027'));
+      expect(options, contains('2021-2022'));
+      expect(options.length, 7);
+
+      // A different clock produces a different list — nothing is pinned to 2026.
+      final later = FinancialYear.options(now: DateTime(2031, 7, 25));
+      expect(later, contains('2031-2032'));
+      expect(later, isNot(contains('2021-2022')));
     });
 
-    test('default selection follows the April rollover within the range', () {
+    test('the current year is always selectable', () {
       for (final month in List.generate(12, (i) => i + 1)) {
         final now = DateTime(2026, month, 15);
-        expect(FinancialYear.defaultSelection(now), FinancialYear.current(now));
-      }
-    });
-
-    test('default selection stays valid before and after the entry range', () {
-      for (final now in [
-        DateTime(2024, 3, 31),
-        DateTime(2024, 4, 1),
-        DateTime(2031, 3, 31),
-        DateTime(2031, 4, 1),
-      ]) {
         expect(
-          FinancialYear.options(),
-          contains(FinancialYear.defaultSelection(now)),
+          FinancialYear.options(now: now),
+          contains(FinancialYear.current(now)),
         );
       }
-      expect(
-        FinancialYear.defaultSelection(DateTime(2024, 3, 31)),
-        '2024-2025',
-      );
-      expect(FinancialYear.defaultSelection(DateTime(2031, 4, 1)), '2030-2031');
-      // Date classification itself remains independent of dropdown limits.
-      expect(FinancialYear.current(DateTime(2031, 4, 1)), '2031-2032');
     });
   });
 
