@@ -19,7 +19,7 @@ import 'challan_providers.dart';
 class ChallanFlowController extends Notifier<ChallanFlowState> {
   @override
   ChallanFlowState build() {
-    return ChallanFlowState(financialYear: FinancialYear.current());
+    return ChallanFlowState(financialYear: FinancialYear.defaultSelection());
   }
 
   // ---------------------------------------------------------------------------
@@ -353,7 +353,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
       projectId: state.projectId,
       materialType: state.materialType,
       financialYear: state.financialYear.isEmpty
-          ? FinancialYear.current()
+          ? FinancialYear.defaultSelection()
           : state.financialYear,
       isOffline: state.isOffline,
     );
@@ -363,7 +363,7 @@ class ChallanFlowController extends Notifier<ChallanFlowState> {
   void reset() {
     state = ChallanFlowState(
       portal: state.portal,
-      financialYear: FinancialYear.current(),
+      financialYear: FinancialYear.defaultSelection(),
       isOffline: state.isOffline,
     );
   }

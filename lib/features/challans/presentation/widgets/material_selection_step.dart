@@ -141,7 +141,7 @@ class _MaterialSelectionStepState extends ConsumerState<MaterialSelectionStep> {
         DropdownButtonFormField<String>(
           initialValue: years.contains(state.financialYear)
               ? state.financialYear
-              : FinancialYear.current(),
+              : FinancialYear.defaultSelection(),
           isExpanded: true,
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.calendar_today_outlined),

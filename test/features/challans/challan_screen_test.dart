@@ -206,18 +206,87 @@ void main() {
       expect(field.controller!.text, 'BR-2026/1234');
     });
 
-    testWidgets('defaults the financial year to the current Indian FY', (
-      tester,
-    ) async {
-      await pumpChallanScreen(tester);
+    testWidgets(
+      'defaults the financial year to the current supported Indian FY',
+      (tester) async {
+        await pumpChallanScreen(tester);
 
-      final now = DateTime.now();
-      final expected = now.month >= 4
-          ? '${now.year}-${now.year + 1}'
-          : '${now.year - 1}-${now.year}';
+        final expected = FinancialYear.defaultSelection();
 
-      expect(find.text(expected), findsWidgets);
-    });
+        expect(find.text(expected), findsWidgets);
+      },
+    );
+  });
+
+  group('financial year range', () {
+    for (final year in ['2024-2025', '2030-2031']) {
+      testWidgets('$year is selectable and carried into the portal step', (
+        tester,
+      ) async {
+        await pumpChallanScreen(tester);
+        final yearField = find.byType(DropdownButtonFormField<String>).last;
+        final items = tester
+            .widget<DropdownButton<String>>(
+              find.descendant(
+                of: yearField,
+                matching: find.byType(DropdownButton<String>),
+              ),
+            )
+            .items!;
+        expect(items.map((item) => item.value).toList(), [
+          '2030-2031',
+          '2029-2030',
+          '2028-2029',
+          '2027-2028',
+          '2026-2027',
+          '2025-2026',
+          '2024-2025',
+        ]);
+        await tester.ensureVisible(yearField);
+        await tester.pumpAndSettle();
+        await tester.tap(yearField);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(year).last);
+        await tester.pumpAndSettle();
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(ChallanScreen)),
+          listen: false,
+        );
+        expect(
+          container.read(challanFlowControllerProvider).financialYear,
+          year,
+        );
+        final projectField = find.byType(DropdownButtonFormField<String>).first;
+        await tester.ensureVisible(projectField);
+        await tester.pumpAndSettle();
+        await tester.tap(projectField);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Highway Package 3').last);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextField, 'e.g. 2413812606031238531'),
+          'BR2026001234',
+        );
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Continue'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Step 2 of 5'), findsOneWidget);
+        expect(
+          container.read(challanFlowControllerProvider).financialYear,
+          year,
+        );
+        expect(find.text(year), findsOneWidget);
+        verify(
+          () => repository.challanExists(
+            organizationId: 'org',
+            financialYear: year,
+            challanNumber: 'BR2026001234',
+          ),
+        ).called(1);
+      });
+    }
   });
 
   group('step 2 — portal', () {
